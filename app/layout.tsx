@@ -1,12 +1,25 @@
 import type React from "react"
 import type { Metadata } from "next/next-types"
 import { Inter } from "next/font/google"
+import dynamic from "next/dynamic"
 import "./globals.css"
 import { Providers } from "./providers"
-import { BackgroundElements } from "@/components/design-elements"
-import CookieConsent from "@/components/cookie-consent"
 
-const inter = Inter({ subsets: ["latin"] })
+// Optimize font loading with display swap for better performance
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: 'swap',
+  preload: true
+})
+
+// Lazy load non-critical components
+const BackgroundElements = dynamic(() => import("@/components/design-elements").then(mod => ({ default: mod.BackgroundElements })), {
+  ssr: false
+})
+
+const CookieConsent = dynamic(() => import("@/components/cookie-consent"), {
+  ssr: false
+})
 
 export const metadata: Metadata = {
   title: "Recruitify",
