@@ -11,7 +11,7 @@ const path = require('path');
 console.log('🚀 Starting Recruily server...');
 
 // Change to the correct directory
-process.chdir('/home/user/webapp/Recruily_Page');
+process.chdir('/home/user/webapp');
 
 // Set environment variables
 process.env.NODE_ENV = 'development';
@@ -20,7 +20,7 @@ process.env.PORT = '3000';
 // Start Next.js development server
 const server = spawn('npm', ['run', 'dev'], {
   stdio: 'inherit',
-  cwd: '/home/user/webapp/Recruily_Page',
+  cwd: '/home/user/webapp',
   env: {
     ...process.env,
     NODE_ENV: 'development',
