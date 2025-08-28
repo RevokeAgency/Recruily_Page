@@ -88,8 +88,8 @@ serve(async (req: Request) => {
       .insert({
         candidate_id: candidateId,
         file_path: filePath,
-        file_name: file.name,\
-        file_type: file.typeile_type: file.type
+        file_name: file.name,
+        file_type: file.type
       })
       .select()
       .single();
