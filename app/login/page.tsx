@@ -132,6 +132,32 @@ export default function LoginPage() {
             </Alert>
           )}
 
+          {/* Demo Credentials Banner */}
+          <Alert className="mb-6 border-teal-200 bg-teal-50">
+            <CheckCircle className="h-4 w-4 text-teal-600" />
+            <AlertDescription className="text-teal-800">
+              <div className="space-y-2">
+                <p className="font-semibold">🎯 Demo Account Ready!</p>
+                <p className="text-sm">Use these credentials to explore the platform:</p>
+                <div className="bg-white/50 p-3 rounded border border-teal-200">
+                  <p className="font-mono text-sm"><strong>Email:</strong> office@example.com</p>
+                  <p className="font-mono text-sm"><strong>Password:</strong> password123</p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setFormData({ email: "office@example.com", password: "password123" })
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="w-full bg-transparent border-teal-300 text-teal-700 hover:bg-teal-100"
+                >
+                  Fill Demo Credentials
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+
           {showResendOption && (
             <Alert className="mb-6 border-blue-200 bg-blue-50">
               <Mail className="h-4 w-4 text-blue-600" />
