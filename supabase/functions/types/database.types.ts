@@ -1,0 +1,206 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      organisations: {
+        Row: {
+          id: string
+          name: string
+          plan: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          plan?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          plan?: string
+          created_at?: string
+        }
+      }
+      members: {
+        Row: {
+          user_id: string
+          organisation_id: string
+          role: string
+        }
+        Insert: {
+          user_id: string
+          organisation_id: string
+          role?: string
+        }
+        Update: {
+          user_id?: string
+          organisation_id?: string
+          role?: string
+        }
+      }
+      candidates: {
+        Row: {
+          id: string
+          organisation_id: string
+          first_name: string
+          last_name: string
+          email: string | null
+          phone: string | null
+          location: string | null
+          status: string
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organisation_id: string
+          first_name: string
+          last_name: string
+          email?: string | null
+          phone?: string | null
+          location?: string | null
+          status?: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organisation_id?: string
+          first_name?: string
+          last_name?: string
+          email?: string | null
+          phone?: string | null
+          location?: string | null
+          status?: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      job_postings: {
+        Row: {
+          id: string
+          organisation_id: string
+          title: string
+          description: string
+          requirements: string | null
+          location: string | null
+          job_type: string | null
+          salary_range: string | null
+          status: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organisation_id: string
+          title: string
+          description: string
+          requirements?: string | null
+          location?: string | null
+          job_type?: string | null
+          salary_range?: string | null
+          status?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organisation_id?: string
+          title?: string
+          description?: string
+          requirements?: string | null
+          location?: string | null
+          job_type?: string | null
+          salary_range?: string | null
+          status?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      job_candidate_matches: {
+        Row: {
+          id: string
+          job_id: string
+          candidate_id: string
+          match_score: number | null
+          match_details: Json | null
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          job_id: string
+          candidate_id: string
+          match_score?: number | null
+          match_details?: Json | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          job_id?: string
+          candidate_id?: string
+          match_score?: number | null
+          match_details?: Json | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      resumes: {
+        Row: {
+          id: string
+          candidate_id: string
+          file_path: string | null
+          file_name: string | null
+          file_type: string | null
+          parsed_data: Json | null
+          skills: string[] | null
+          experience: Json | null
+          education: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          candidate_id: string
+          file_path?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          parsed_data?: Json | null
+          skills?: string[] | null
+          experience?: Json | null
+          education?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          candidate_id?: string
+          file_path?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          parsed_data?: Json | null
+          skills?: string[] | null
+          experience?: Json | null
+          education?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+    }
+  }
+}
