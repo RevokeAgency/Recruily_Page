@@ -132,14 +132,29 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          {/* Real Backend Notice */}
-          <Alert className="mb-6 border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
+          {/* Hybrid Mode - Demo + Real Backend Setup */}
+          <Alert className="mb-6 border-blue-200 bg-blue-50">
+            <CheckCircle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
               <div className="space-y-2">
-                <p className="font-semibold">🎉 Real Backend Active!</p>
-                <p className="text-sm">Create your account or login with your credentials.</p>
-                <p className="text-xs text-green-600">All data is now saved to your Supabase database.</p>
+                <p className="font-semibold">🚀 Backend Setup in Progress</p>
+                <p className="text-sm">Use demo credentials while we configure your Supabase backend:</p>
+                <div className="bg-white/50 p-3 rounded border border-blue-200">
+                  <p className="font-mono text-sm"><strong>Email:</strong> office@example.com</p>
+                  <p className="font-mono text-sm"><strong>Password:</strong> password123</p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setFormData({ email: "office@example.com", password: "password123" })
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="w-full bg-transparent border-blue-300 text-blue-700 hover:bg-blue-100"
+                >
+                  Fill Demo Credentials
+                </Button>
+                <p className="text-xs text-blue-600">Real backend will be ready after Supabase configuration.</p>
               </div>
             </AlertDescription>
           </Alert>
