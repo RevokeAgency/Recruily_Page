@@ -40,6 +40,7 @@ export function JobDescriptionUploader() {
   const [isProcessingFile, setIsProcessingFile] = useState(false)
   const [jobUrl, setJobUrl] = useState("")
   const [jobText, setJobText] = useState("")
+  const [scrapedData, setScrapedData] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("upload")
   const [jobData, setJobData] = useState<JobData>({
     title: "",
@@ -168,8 +169,14 @@ export function JobDescriptionUploader() {
         throw new Error(data.error || "Failed to scrape URL")
       }
 
-      // Update job text with scraped content
+      // Update job text and scraped data
       setJobText(data.content || "")
+      setScrapedData({
+        ...data.structuredData,
+        siteType: data.siteType,
+        url: data.url,
+        contentLength: data.length
+      })
 
       toast({
         title: language === "EN" ? "URL scraped successfully" : "URL erfolgreich gescrapt",
@@ -684,11 +691,11 @@ export function JobDescriptionUploader() {
                     </p>
                   </div>
 
-                  {jobText && !isProcessingFile && (
+                  {(jobText || scrapedData) && !isProcessingFile && (
                     <div className="mt-4">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-medium">
-                          {language === "EN" ? "Extracted Text" : "Extrahierter Text"}
+                          {language === "EN" ? "Extracted Job Data" : "Extrahierte Jobdaten"}
                         </h3>
                         <Button variant="outline" size="sm" onClick={() => handleParseJobText()} disabled={isLoading}>
                           {isLoading ? (
@@ -697,13 +704,180 @@ export function JobDescriptionUploader() {
                               {language === "EN" ? "Processing..." : "Verarbeitung..."}
                             </>
                           ) : (
-                            <>{language === "EN" ? "Parse Text" : "Text analysieren"}</>
+                            <>{language === "EN" ? "Parse & Structure Data" : "Daten parsen & strukturieren"}</>
                           )}
                         </Button>
                       </div>
-                      <div className="bg-muted p-3 rounded-md max-h-[200px] overflow-y-auto">
-                        <pre className="text-xs whitespace-pre-wrap">{jobText}</pre>
-                      </div>
+
+                      {/* Structured Data Preview */}
+                      {scrapedData && (scrapedData.title || scrapedData.company || scrapedData.location || scrapedData.description) && (
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-blue-800">
+                              {language === "EN" ? "Structured Data Extracted" : "Strukturierte Daten extrahiert"}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {scrapedData.siteType || "generic"}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {scrapedData.title && (
+                              <div className="bg-white rounded-md p-3 border border-blue-100">
+                                <label className="text-xs font-medium text-blue-600 uppercase tracking-wide">
+                                  {language === "EN" ? "Job Title" : "Stellentitel"}
+                                </label>
+                                <p className="text-sm font-semibold text-gray-900 mt-1">{scrapedData.title}</p>
+                              </div>
+                            )}
+                            
+                            {scrapedData.company && (
+                              <div className="bg-white rounded-md p-3 border border-blue-100">
+                                <label className="text-xs font-medium text-blue-600 uppercase tracking-wide">
+                                  {language === "EN" ? "Company" : "Unternehmen"}
+                                </label>
+                                <p className="text-sm font-semibold text-gray-900 mt-1">{scrapedData.company}</p>
+                              </div>
+                            )}
+                            
+                            {scrapedData.location && (
+                              <div className="bg-white rounded-md p-3 border border-blue-100">
+                                <label className="text-xs font-medium text-blue-600 uppercase tracking-wide">
+                                  {language === "EN" ? "Location" : "Standort"}
+                                </label>
+                                <p className="text-sm font-semibold text-gray-900 mt-1">{scrapedData.location}</p>
+                              </div>
+                            )}
+                            
+                            <div className="bg-white rounded-md p-3 border border-blue-100">
+                              <label className="text-xs font-medium text-blue-600 uppercase tracking-wide">
+                                {language === "EN" ? "Source" : "Quelle"}
+                              </label>
+                              <p className="text-sm text-gray-900 mt-1 truncate">{scrapedData.url}</p>
+                            </div>
+                          </div>
+                          
+                          {scrapedData.description && (
+                            <div className="bg-white rounded-md p-3 border border-blue-100 mt-4">
+                              <label className="text-xs font-medium text-blue-600 uppercase tracking-wide">
+                                {language === "EN" ? "Job Description Preview" : "Stellenbeschreibung Vorschau"}
+                              </label>
+                              <p className="text-sm text-gray-700 mt-1 line-clamp-3">
+                                {scrapedData.description.substring(0, 200)}
+                                {scrapedData.description.length > 200 ? "..." : ""}
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-blue-100">
+                            <div className="flex items-center gap-4 text-xs text-blue-600">
+                              <span>
+                                {language === "EN" ? "Content Length" : "Inhaltslänge"}: {scrapedData.contentLength?.toLocaleString()} chars
+                              </span>
+                              <span>•</span>
+                              <span>
+                                {language === "EN" ? "Quality" : "Qualität"}: 
+                                <span className="font-medium ml-1">
+                                  {(scrapedData.title && scrapedData.company && scrapedData.location) ? (
+                                    language === "EN" ? "Excellent" : "Ausgezeichnet"
+                                  ) : (scrapedData.title || scrapedData.description) ? (
+                                    language === "EN" ? "Good" : "Gut"
+                                  ) : (
+                                    language === "EN" ? "Basic" : "Grundlegend"
+                                  )}
+                                </span>
+                              </span>
+                            </div>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (scrapedData) {
+                                  setJobData({
+                                    ...jobData,
+                                    title: scrapedData.title || jobData.title,
+                                    company: scrapedData.company || jobData.company,
+                                    location: scrapedData.location || jobData.location,
+                                    description: scrapedData.description || jobData.description,
+                                  })
+                                  toast({
+                                    title: language === "EN" ? "Data pre-filled" : "Daten vorausgefüllt",
+                                    description: language === "EN" ? "Structured data filled into form fields" : "Strukturierte Daten in Formularfelder eingefügt",
+                                    variant: "default"
+                                  })
+                                  setStep(2) // Move to review step
+                                }
+                              }}
+                              className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                            >
+                              {language === "EN" ? "Auto-fill Form" : "Formular auto-füllen"} →
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Show message when no structured data was found */}
+                      {scrapedData && !(scrapedData.title || scrapedData.company || scrapedData.location || scrapedData.description) && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-yellow-800">
+                              {language === "EN" ? "Limited Structure Found" : "Begrenzte Struktur gefunden"}
+                            </span>
+                            <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
+                              {scrapedData.siteType || "generic"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-yellow-700">
+                            {language === "EN" 
+                              ? "The page was scraped, but no structured job data was found. The AI parser will try to extract information from the raw content."
+                              : "Die Seite wurde gescrapt, aber keine strukturierten Jobdaten gefunden. Der KI-Parser wird versuchen, Informationen aus dem rohen Inhalt zu extrahieren."
+                            }
+                          </p>
+                          <div className="mt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleParseJobText()}
+                              disabled={isLoading}
+                              className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300"
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                  {language === "EN" ? "Processing..." : "Verarbeitung..."}
+                                </>
+                              ) : (
+                                <>{language === "EN" ? "Try AI Parser" : "KI-Parser versuchen"}</>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Raw Text Preview (Collapsible) */}
+                      {jobText && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg">
+                          <details className="group">
+                            <summary className="cursor-pointer p-3 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center justify-between">
+                              <span>
+                                {language === "EN" ? "View Raw Extracted Text" : "Rohen extrahierten Text anzeigen"}
+                                <span className="text-xs text-gray-500 ml-2">({jobText.length} characters)</span>
+                              </span>
+                              <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </summary>
+                            <div className="border-t border-gray-200 p-3 bg-white">
+                              <pre className="text-xs whitespace-pre-wrap text-gray-600 max-h-[200px] overflow-y-auto">
+                                {jobText}
+                              </pre>
+                            </div>
+                          </details>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
