@@ -145,7 +145,7 @@ export function JobDescriptionUploader() {
         throw new Error("Invalid URL format. Please enter a valid URL.")
       }
 
-      // Call the scraping API
+      // Call the enhanced scraping API
       const response = await fetch("/api/scrape-url", {
         method: "POST",
         headers: {
@@ -162,7 +162,7 @@ export function JobDescriptionUploader() {
       }
 
       const data = await response.json()
-      console.log("✅ Scraping successful:", data.success)
+      console.log("✅ Enhanced scraping successful:", data.success)
 
       if (!data.success) {
         throw new Error(data.error || "Failed to scrape URL")
@@ -175,14 +175,14 @@ export function JobDescriptionUploader() {
         title: language === "EN" ? "URL scraped successfully" : "URL erfolgreich gescrapt",
         description:
           language === "EN"
-            ? "Job description has been extracted from the URL."
-            : "Stellenbeschreibung wurde aus der URL extrahiert.",
+            ? `Job data extracted from ${data.siteType} site with enhanced parsing.`
+            : `Jobdaten von ${data.siteType}-Seite mit verbessertem Parsing extrahiert.`,
         variant: "default",
       })
 
-      // Parse the scraped content with our text parser
-      console.log("📝 Parsing scraped content")
-      await handleParseJobText(data.content)
+      // Parse the scraped content with enhanced structured data
+      console.log("📝 Parsing scraped content with structured data")
+      await handleParseJobText(data.content, data.structuredData)
     } catch (error) {
       console.error("❌ Error scraping URL:", error)
 
@@ -201,8 +201,8 @@ export function JobDescriptionUploader() {
     }
   }
 
-  // Handle job text parsing - FIXED VERSION
-  const handleParseJobText = async (textToProcess?: string) => {
+  // Handle job text parsing - ENHANCED VERSION
+  const handleParseJobText = async (textToProcess?: string, structuredData?: any) => {
     const textContent = textToProcess || jobText
     if (!textContent) {
       console.error("No text content to process")
@@ -220,15 +220,21 @@ export function JobDescriptionUploader() {
     setIsLoading(true)
 
     try {
-      console.log("🔍 Parsing job text with length:", textContent.length)
+      console.log("🔍 Enhanced parsing job text with length:", textContent.length)
+      if (structuredData) {
+        console.log("📊 Using structured data for enhanced parsing:", structuredData)
+      }
 
-      // Call the job parsing API with the correct parameter name
+      // Call the enhanced job parsing API
       const response = await fetch("/api/parse-job", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: textContent }), // Changed from 'content' to 'text'
+        body: JSON.stringify({ 
+          text: textContent,
+          structuredData: structuredData 
+        }),
       })
 
       if (!response.ok) {
@@ -262,8 +268,8 @@ export function JobDescriptionUploader() {
         title: language === "EN" ? "Job description parsed successfully" : "Stellenbeschreibung erfolgreich analysiert",
         description:
           language === "EN"
-            ? "Job information has been extracted and structured."
-            : "Jobinformationen wurden extrahiert und strukturiert.",
+            ? `Job information extracted using ${data.method} method with enhanced accuracy.`
+            : `Jobinformationen mit ${data.method}-Methode und verbesserter Genauigkeit extrahiert.`,
         variant: "default",
       })
 
