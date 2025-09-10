@@ -1,0 +1,34 @@
+
+> my-v0-project@0.1.0 dev
+> next dev --hostname 0.0.0.0 --port 3000
+
+  ▲ Next.js 14.2.32
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.2s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 876ms (254 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 10.3s (1330 modules)
+Using real Supabase client
+ GET / 200 in 11118ms
+ ✓ Compiled in 1270ms (641 modules)
+ ✓ Compiled in 574ms (641 modules)
+ ✓ Compiled in 832ms (641 modules)
+ ✓ Compiled in 503ms (641 modules)
+ ✓ Compiled in 489ms (641 modules)
+ ✓ Compiled in 520ms (641 modules)
+ ✓ Compiled in 505ms (641 modules)
+ ✓ Compiled in 783ms (641 modules)
+ ✓ Compiled in 525ms (641 modules)
+ ✓ Compiled in 490ms (641 modules)
+ ✓ Compiled in 487ms (641 modules)
+ ✓ Compiled in 559ms (641 modules)
+ ✓ Compiled in 886ms (641 modules)
+ ✓ Compiled in 489ms (641 modules)
+ ✓ Compiled in 512ms (641 modules)
+ ✓ Compiled in 443ms (641 modules)
+ ✓ Compiled in 464ms (641 modules)
