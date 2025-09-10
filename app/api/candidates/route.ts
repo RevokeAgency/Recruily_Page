@@ -4,9 +4,22 @@ import { createClient } from "@supabase/supabase-js"
 // In-memory storage for candidates (in production, this would be a database)
 const candidatesStorage: any[] = []
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Function to get Supabase client only when available
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!supabaseUrl || !supabaseKey) {
+    return null
+  }
+  
+  try {
+    return createClient(supabaseUrl, supabaseKey)
+  } catch (error) {
+    console.warn("Could not create Supabase client:", error)
+    return null
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +39,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Try to get from Supabase first (if available)
-    if (supabaseUrl && supabaseKey) {
+    const supabase = getSupabaseClient()
+    if (supabase) {
       try {
         const { data: dbCandidates, error } = await supabase
           .from("candidates")
@@ -126,7 +140,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Try to save to Supabase first (if available)
-    if (supabaseUrl && supabaseKey) {
+    const supabase = getSupabaseClient()
+    if (supabase) {
       try {
         const { data, error } = await supabase.from("candidates").insert(savedCandidates)
 
