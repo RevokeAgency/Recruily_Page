@@ -306,8 +306,8 @@ function extractNameFromFileName(fileName: string): string | null {
   return null
 }
 
-export const config = {
-  api: {
-    bodyParser: false,
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
+export const bodyParser = false
   },
 }
