@@ -32,3 +32,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=Authentication%20failed", request.url))
   }
 }
+
+// App Router configuration exports
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"

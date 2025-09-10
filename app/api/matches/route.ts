@@ -124,3 +124,7 @@ export async function PATCH(request: NextRequest) {
     )
   }
 }
+
+// App Router configuration exports
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"

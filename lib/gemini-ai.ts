@@ -992,3 +992,21 @@ export function getQuotaStatus(): {
     cooldownRemaining: Math.ceil(cooldownRemaining / 1000 / 60), // in minutes
   }
 }
+
+// Stub functions for PDF processing (used by resumes/upload route)
+export async function extractTextFromPDF(file: File): Promise<string> {
+  console.warn("extractTextFromPDF: Using stub implementation")
+  return `Extracted text from ${file.name} (stub implementation)`
+}
+
+export async function analyzePDFContent(text: string): Promise<any> {
+  console.warn("analyzePDFContent: Using stub implementation")
+  return {
+    name: "PDF Candidate",
+    email: "candidate@example.com", 
+    position: "Professional",
+    experience: "Extracted from PDF",
+    skills: ["PDF Processing", "Document Analysis"],
+    summary: "Candidate extracted from PDF document"
+  }
+}

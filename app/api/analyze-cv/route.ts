@@ -308,6 +308,4 @@ function extractNameFromFileName(fileName: string): string | null {
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
-export const bodyParser = false
-  },
-}
+// bodyParser is handled automatically in App Router - no need for explicit config

@@ -122,3 +122,7 @@ function generateWeaknesses(): string[] {
 
   return weaknesses.sort(() => 0.5 - Math.random()).slice(0, 2)
 }
+
+// App Router configuration exports
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
