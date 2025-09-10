@@ -1,13 +1,9 @@
 {
-  "scripts": {
-    "prebuild": "node -e \"const fs=require('fs');const p='app';function scan(d){for(const f of fs.readdirSync(d)){const fp=d+'/'+f;const s=fs.statSync(fp);if(s.isDirectory()) scan(fp); else if(/route\\.(t|j)sx?$/.test(f)){const c=fs.readFileSync(fp,'utf8'); if(c.includes('export const config')){console.error('❌ deprecated export in', fp); process.exit(1);}}} } scan(p); console.log('✅ no deprecated exports in /app routes');\"",
-    "build": "next build"
-  }
-}{
   "name": "my-v0-project",
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "node -e \"const fs=require('fs');const p='app';function scan(d){for(const f of fs.readdirSync(d)){const fp=d+'/'+f;const s=fs.statSync(fp);if(s.isDirectory()) scan(fp); else if(/route\\.(t|j)sx?$/.test(f)){const c=fs.readFileSync(fp,'utf8'); if(c.includes('export const config')){console.error('❌ deprecated export in', fp); process.exit(1);}}} } scan(p); console.log('✅ no deprecated exports in /app routes');\"",
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
