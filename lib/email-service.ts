@@ -218,3 +218,30 @@ export const resendConfirmationEmail = async (email: string): Promise<{ success:
     return { success: false, error: error.message || "Failed to resend confirmation email" }
   }
 }
+
+// Simple email function as requested - for basic email sending
+export async function sendEmail(to: string, subject: string, body: string): Promise<string> {
+  try {
+    console.log("📧 Sending email:")
+    console.log("To:", to)
+    console.log("Subject:", subject) 
+    console.log("Body:", body)
+    
+    // Store email for demo purposes
+    const emailData = {
+      id: `email_${Date.now()}`,
+      to,
+      subject,
+      body,
+      sentAt: new Date().toISOString(),
+      status: "sent"
+    }
+    
+    storeEmail(emailData)
+    
+    return Promise.resolve("Email sent (placeholder)")
+  } catch (error) {
+    console.error("Error sending email:", error)
+    return Promise.resolve("Email failed (placeholder)")
+  }
+}
