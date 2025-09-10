@@ -314,3 +314,8 @@ function cleanExtractedText(text: string, structuredData: any): string {
   
   return combinedText.substring(0, 8000) // Limit to reasonable size
 }
+
+// App Router configuration exports
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
+export const maxDuration = 60

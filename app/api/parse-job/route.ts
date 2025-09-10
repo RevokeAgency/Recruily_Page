@@ -366,3 +366,7 @@ function extractJobWithRegex(text: string) {
 
   return result
 }
+
+// App Router configuration exports
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
