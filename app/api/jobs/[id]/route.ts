@@ -90,3 +90,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     )
   }
 }
+
+// App Router configuration exports
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
