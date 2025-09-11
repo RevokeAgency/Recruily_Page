@@ -2,31 +2,57 @@
 
 /**
  * Environment Variables Validation Script
- * This script runs before the build to validate environment variables
- * Now supports graceful fallbacks for missing credentials
+ * ZERO DEPENDENCIES - Works in any Node.js environment
+ * Compatible with Netlify, Vercel, and any CI/CD platform
  */
 
-// Try to load chalk, fallback to plain console if not available
-let chalk
-try {
-  chalk = require('chalk')
-} catch (error) {
-  console.log('⚠️  Chalk not available, using plain console output')
-  // Create a chalk fallback object
-  chalk = {
-    blue: (text) => `🔵 ${text}`,
-    green: (text) => `✅ ${text}`,
-    yellow: (text) => `⚠️  ${text}`,
-    red: (text) => `❌ ${text}`
+// Simple color functions using ANSI escape codes (no dependencies needed)
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m'
+}
+
+// Helper functions for colored output (works without chalk)
+const log = {
+  info: (text) => console.log(`${colors.blue}🔍 ${text}${colors.reset}`),
+  success: (text) => console.log(`${colors.green}✅ ${text}${colors.reset}`),
+  warning: (text) => console.log(`${colors.yellow}⚠️  ${text}${colors.reset}`),
+  error: (text) => console.log(`${colors.red}❌ ${text}${colors.reset}`),
+  plain: (text) => console.log(text)
+}
+
+// Load environment variables from .env.local if it exists (no dotenv dependency)
+function loadEnvFile() {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const envPath = path.join(process.cwd(), '.env.local')
+    
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8')
+      envContent.split('\n').forEach(line => {
+        const match = line.match(/^([^#][^=]+)=(.*)$/)
+        if (match) {
+          const [, key, value] = match
+          if (!process.env[key]) {
+            process.env[key] = value.replace(/^["']|["']$/g, '')
+          }
+        }
+      })
+      log.info('Loaded environment variables from .env.local')
+    }
+  } catch (e) {
+    // Silently continue if .env.local doesn't exist or can't be read
   }
 }
 
-// Load environment variables from .env.local if it exists
-try {
-  require('dotenv').config({ path: '.env.local' })
-} catch (e) {
-  // dotenv not available or .env.local doesn't exist, continue anyway
-}
+// Initialize environment
+loadEnvFile()
 
 // Required environment variables for production
 const requiredEnvVars = [
@@ -43,7 +69,7 @@ const optionalEnvVars = [
 ]
 
 function validateEnvironmentVariables() {
-  console.log(chalk.blue('🔍 Validating environment variables...'))
+  log.info('Validating environment variables...')
   
   let hasMissingVars = false
   let hasErrors = false
@@ -53,69 +79,75 @@ function validateEnvironmentVariables() {
     const value = process.env[envVar]
     
     if (!value || value.trim() === '') {
-      console.log(chalk.yellow(`⚠️  Missing environment variable: ${envVar}`))
+      log.warning(`Missing environment variable: ${envVar}`)
       hasMissingVars = true
     } else {
       // Additional validation for Supabase URL
       if (envVar === 'NEXT_PUBLIC_SUPABASE_URL') {
         if (!value.startsWith('https://')) {
-          console.error(chalk.red(`❌ ${envVar} must start with https://`))
+          log.error(`${envVar} must start with https://`)
           hasErrors = true
         } else if (!value.includes('.supabase.co')) {
-          console.warn(chalk.yellow(`⚠️  ${envVar} doesn't appear to be a valid Supabase URL`))
+          log.warning(`${envVar} doesn't appear to be a valid Supabase URL`)
         } else {
-          console.log(chalk.green(`✅ ${envVar} is properly configured`))
+          log.success(`${envVar} is properly configured`)
         }
       } else {
-        console.log(chalk.green(`✅ ${envVar} is set`))
+        log.success(`${envVar} is set`)
       }
     }
   }
   
   // Check optional variables (just report)
-  console.log(chalk.blue('\n📋 Optional environment variables:'))
+  log.plain('\n📋 Optional environment variables:')
   for (const envVar of optionalEnvVars) {
     const value = process.env[envVar]
     
     if (value && value.trim() !== '') {
-      console.log(chalk.green(`✅ ${envVar} is set`))
+      log.success(`${envVar} is set`)
     } else {
-      console.log(chalk.yellow(`⚠️  ${envVar} is not set (optional)`))
+      log.warning(`${envVar} is not set (optional)`)
     }
   }
   
   // Determine build mode and handle accordingly
   const isProduction = process.env.NODE_ENV === 'production'
-  const isNetlifyBuild = process.env.NETLIFY === 'true'
+  const isNetlifyBuild = process.env.NETLIFY === 'true' || process.env.NETLIFY_BUILD_BASE
+  const isVercelBuild = process.env.VERCEL === '1'
+  const isCIBuild = process.env.CI === 'true'
   
   if (hasErrors) {
     // Critical validation errors - fail the build
-    console.error(chalk.red('\n❌ Environment validation failed due to invalid values!'))
+    log.error('\n❌ Environment validation failed due to invalid values!')
     process.exit(1)
   } else if (hasMissingVars) {
     if (isNetlifyBuild) {
       // On Netlify, warn but allow build to continue with fallbacks
-      console.log(chalk.yellow('\n⚠️  Missing environment variables detected on Netlify'))
-      console.log(chalk.yellow('Build will continue with mock Supabase client as fallback'))
-      console.log(chalk.blue('\n💡 To fix this:'))
-      console.log(chalk.blue('   1. Go to Site settings → Environment variables'))
-      console.log(chalk.blue('   2. Add the missing variables from netlify-environment.json'))
-      console.log(chalk.blue('   3. Redeploy your site'))
-    } else if (isProduction) {
-      // Local production build - warn but continue
-      console.log(chalk.yellow('\n⚠️  Missing environment variables in production build'))
-      console.log(chalk.yellow('Using fallback configuration'))
+      log.warning('\n⚠️  Missing environment variables detected on Netlify')
+      log.warning('Build will continue with mock Supabase client as fallback')
+      log.info('\n💡 To fix this:')
+      log.info('   1. Go to Site settings → Environment variables')
+      log.info('   2. Add the missing variables from netlify-environment.json')
+      log.info('   3. Redeploy your site')
+    } else if (isVercelBuild) {
+      // On Vercel, similar handling
+      log.warning('\n⚠️  Missing environment variables detected on Vercel')
+      log.warning('Build will continue with mock Supabase client as fallback')
+    } else if (isCIBuild || isProduction) {
+      // CI or production build - warn but continue
+      log.warning('\n⚠️  Missing environment variables in production build')
+      log.warning('Using fallback configuration')
     } else {
       // Development build - warn but continue
-      console.log(chalk.yellow('\n⚠️  Missing environment variables in development'))
-      console.log(chalk.blue('💡 For full functionality:'))
-      console.log(chalk.blue('   1. Copy .env.example to .env.local'))
-      console.log(chalk.blue('   2. Fill in the Supabase credentials'))
+      log.warning('\n⚠️  Missing environment variables in development')
+      log.info('💡 For full functionality:')
+      log.info('   1. Copy .env.example to .env.local')
+      log.info('   2. Fill in the Supabase credentials')
     }
     
-    console.log(chalk.green('\n✅ Build will continue with fallback configuration'))
+    log.success('\n✅ Build will continue with fallback configuration')
   } else {
-    console.log(chalk.green('\n✅ Environment validation passed!'))
+    log.success('\n✅ Environment validation passed!')
   }
 }
 
@@ -123,7 +155,7 @@ function validateEnvironmentVariables() {
 try {
   validateEnvironmentVariables()
 } catch (error) {
-  console.error(chalk.red('❌ Error during environment validation:'), error.message)
+  log.error(`Error during environment validation: ${error.message}`)
   // Don't exit on validation errors - let build continue
-  console.log(chalk.yellow('⚠️  Continuing build with default configuration'))
+  log.warning('⚠️  Continuing build with default configuration')
 }
