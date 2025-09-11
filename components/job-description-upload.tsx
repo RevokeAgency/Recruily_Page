@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
 import { useLanguage } from "@/contexts/language-context"
-import { createClient } from "@/lib/supabase-client"
+import { supabase } from "@/lib/supabaseClient"
 import { useAuth } from "@/hooks/use-auth"
 
 interface JobData {
@@ -30,7 +30,7 @@ export function JobDescriptionUpload() {
   const { toast } = useToast()
   const router = useRouter()
   const { user } = useAuth()
-  const supabase = createClient()
+  // Use centralized Supabase client
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [step, setStep] = useState(1)

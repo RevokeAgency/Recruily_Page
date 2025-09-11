@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { getSupabaseClient } from "@/lib/supabase-client"
+import { supabase } from "@/lib/supabaseClient"
 
 export async function POST(request: Request) {
   try {
-    const supabase = getSupabaseClient()
+    // Use centralized Supabase client
     const { name, plan = "starter" } = await request.json()
 
     // Call the Edge Function

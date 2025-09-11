@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { getSupabaseClient } from "@/lib/supabase-client"
+import { supabase } from "@/lib/supabaseClient"
 
 interface Candidate {
   id: string
@@ -61,7 +61,7 @@ export function useCandidates(organisationId?: string) {
       // Try to load from Supabase as well
       let supabaseCandidates: Candidate[] = []
       try {
-        const supabase = getSupabaseClient()
+        // Use centralized Supabase client
         const { data: supabaseData, error: supabaseError } = await supabase
           .from("candidates")
           .select("*")
@@ -158,7 +158,7 @@ export function useCandidates(organisationId?: string) {
         console.log(`✏️ Updating candidate ${candidateId} status to ${newStatus}`)
 
         // Try to update in Supabase first
-        const supabase = getSupabaseClient()
+        // Use centralized Supabase client
         const { error: supabaseError } = await supabase
           .from("candidates")
           .update({
@@ -221,7 +221,7 @@ export function useCandidates(organisationId?: string) {
         setCandidates((prev) => [newCandidate, ...prev])
 
         // Try to save to Supabase
-        const supabase = getSupabaseClient()
+        // Use centralized Supabase client
         const candidateData = {
           id: newCandidate.id,
           organisation_id: orgId,
@@ -285,7 +285,7 @@ export function useCandidates(organisationId?: string) {
         localStorage.setItem("recruitify_candidates", JSON.stringify(updatedCandidates))
 
         // Try to update in Supabase
-        const supabase = getSupabaseClient()
+        // Use centralized Supabase client
         const { error: supabaseError } = await supabase
           .from("candidates")
           .update({
@@ -319,7 +319,7 @@ export function useCandidates(organisationId?: string) {
         localStorage.setItem("recruitify_candidates", JSON.stringify(updatedCandidates))
 
         // Try to delete from Supabase
-        const supabase = getSupabaseClient()
+        // Use centralized Supabase client
         const { error: supabaseError } = await supabase.from("candidates").delete().eq("id", id)
 
         if (supabaseError) {

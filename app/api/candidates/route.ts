@@ -1,22 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabaseClient"
 
 // In-memory storage for candidates (in production, this would be a database)
 const candidatesStorage: any[] = []
 
-// Function to get Supabase client only when available
+// Function to get Supabase client
 function getSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  
-  if (!supabaseUrl || !supabaseKey) {
-    return null
-  }
-  
   try {
-    return createClient(supabaseUrl, supabaseKey)
+    return supabase
   } catch (error) {
-    console.warn("Could not create Supabase client:", error)
+    console.warn("Could not access Supabase client:", error)
     return null
   }
 }
@@ -212,7 +205,8 @@ export async function PUT(request: NextRequest) {
     candidatesStorage[candidateIndex] = updatedCandidate
 
     // Try to update in Supabase first (if available)
-    if (supabaseUrl && supabaseKey) {
+    const supabase = getSupabaseClient()
+    if (supabase) {
       try {
         const { data, error } = await supabase
           .from("candidates")
@@ -261,7 +255,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Try to delete from Supabase first (if available)
-    if (supabaseUrl && supabaseKey) {
+    const supabase = getSupabaseClient()
+    if (supabase) {
       try {
         const { error } = await supabase.from("candidates").delete().eq("id", id)
 

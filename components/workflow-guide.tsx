@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/hooks/use-auth"
-import { createClient } from "@/lib/supabase-client"
+import { supabase } from "@/lib/supabaseClient"
 import { useLanguage } from "@/contexts/language-context"
 
 interface Step {
@@ -22,7 +22,7 @@ interface Step {
 export function WorkflowGuide() {
   const { user } = useAuth()
   const { t } = useLanguage()
-  const supabase = createClient()
+  // Use centralized Supabase client
   const [steps, setSteps] = useState<Step[]>([
     {
       id: "job",

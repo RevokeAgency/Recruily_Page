@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getSupabaseClient } from "../lib/supabase-client"
+import { supabase } from "@/lib/supabaseClient"
 import { useAuth } from "./use-auth"
 
 export function useOrganisations() {
@@ -9,7 +9,7 @@ export function useOrganisations() {
   const [organisations, setOrganisations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const supabase = getSupabaseClient()
+  // Use centralized Supabase client
 
   useEffect(() => {
     const fetchOrganisations = async () => {

@@ -1,11 +1,11 @@
-import { getSupabaseClient } from "./supabase-client"
+import { supabase } from "./supabaseClient"
 
 export async function invokeEdgeFunction<T = any>(
   functionName: string,
   payload: any,
   options?: { noAuth?: boolean },
 ): Promise<T> {
-  const supabase = getSupabaseClient()
+  // Use centralized Supabase client
 
   const { data, error } = await supabase.functions.invoke(functionName, {
     body: payload,

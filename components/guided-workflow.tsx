@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useLanguage } from "@/contexts/language-context"
 import { useAuth } from "@/hooks/use-auth"
-import { createClient } from "@/lib/supabase-client"
+import { supabase } from "@/lib/supabaseClient"
 import CvUploadModal from "@/components/cv-upload-modal"
 
 interface GuidedWorkflowProps {
@@ -34,7 +34,7 @@ export default function GuidedWorkflow({ className }: GuidedWorkflowProps) {
 
       setIsLoading(true)
       try {
-        const supabase = createClient()
+        // Use centralized Supabase client
 
         // Get job count
         const { count: jobCount } = await supabase

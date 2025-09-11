@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/server-supabase"
+import { createServerSupabaseClient } from "@/lib/supabaseServer"
 import { analyzePDFContent, extractTextFromPDF } from "@/lib/gemini-ai"
 
 export async function POST(request: Request) {

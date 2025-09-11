@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { supabase } from "@/lib/supabaseClient"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -13,11 +12,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Create a Supabase client using the cookies
-    const cookieStore = cookies()
-    const supabase = createServerComponentClient({ cookies: () => cookieStore })
-
-    // Exchange the code for a session
+    // Exchange the code for a session using the centralized client
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (error) {

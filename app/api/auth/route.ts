@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { supabase } from "@/lib/supabaseClient"
 
 export async function POST(request: Request) {
   try {
@@ -53,21 +54,7 @@ export async function POST(request: Request) {
 
     // For production environments with Supabase
     try {
-      // Dynamically import Supabase to avoid issues in environments without it
-      const { createClient } = await import("@supabase/supabase-js")
-
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error("Supabase credentials missing")
-      }
-
-      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          persistSession: false,
-        },
-      })
+      // Use the centralized Supabase client
 
       if (action === "signin") {
         const { data, error } = await supabase.auth.signInWithPassword({

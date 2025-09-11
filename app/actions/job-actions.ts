@@ -1,6 +1,6 @@
 "use server"
 
-import { createServerSupabaseClient } from "@/lib/server-supabase"
+import { createServerSupabaseClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 
 export async function createJob(formData: FormData) {

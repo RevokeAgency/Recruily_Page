@@ -40,7 +40,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLanguage } from "@/contexts/language-context"
 import { useAuth } from "@/hooks/use-auth"
-import { createClient } from "@/lib/supabase-client"
+import { supabase } from "@/lib/supabaseClient"
 import CvUploadModal from "@/components/cv-upload-modal"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { generateDummyMatches, generateDummyJobs } from "@/lib/dummy-data"
@@ -70,7 +70,7 @@ const strengthIcons: Record<string, React.ReactNode> = {
 export default function MatchesPage() {
   const { language } = useLanguage()
   const { user } = useAuth()
-  const supabase = createClient()
+  // Use the centralized Supabase client
   const [selectedJob, setSelectedJob] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [scoreFilter, setScoreFilter] = useState<string[]>(["high", "medium", "low"])

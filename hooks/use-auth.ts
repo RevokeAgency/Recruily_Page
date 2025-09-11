@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react"
 import type { User, Session } from "@supabase/supabase-js"
-import { getSupabaseClient } from "../lib/supabase-client"
+import { supabase } from "@/lib/supabaseClient"
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const supabase = getSupabaseClient()
+  // Use centralized Supabase client
 
   useEffect(() => {
     // Get the current session

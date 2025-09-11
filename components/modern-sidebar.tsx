@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/hooks/use-auth"
-import { createClient } from "@/lib/supabase-client"
+import { supabase } from "@/lib/supabaseClient"
 import { useLanguage } from "@/contexts/language-context"
 
 interface NavItemProps {
@@ -92,7 +92,7 @@ export function ModernSidebar() {
   const pathname = usePathname()
   const { user, signOut } = useAuth()
   const { t } = useLanguage()
-  const supabase = createClient()
+  // Use centralized Supabase client
   const [counts, setCounts] = useState({
     jobs: 0,
     candidates: 0,
