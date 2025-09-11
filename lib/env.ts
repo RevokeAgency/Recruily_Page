@@ -16,6 +16,48 @@ export const ENV = {
   ENABLE_BULK_ACTIONS: process.env.NEXT_PUBLIC_ENABLE_BULK_ACTIONS !== "false",
 }
 
+// Validate required environment variables for production builds
+function validateProductionEnv() {
+  if (ENV.NODE_ENV === "production" || process.env.NODE_ENV === "production") {
+    const missingVars: string[] = []
+    
+    if (!ENV.SUPABASE_URL) {
+      missingVars.push("NEXT_PUBLIC_SUPABASE_URL")
+    }
+    
+    if (!ENV.SUPABASE_ANON_KEY) {
+      missingVars.push("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    }
+    
+    // For Netlify builds, throw an error if required vars are missing
+    if (missingVars.length > 0 && typeof window === "undefined") {
+      const isNetlifyBuild = process.env.NETLIFY === "true" || process.env.BUILD_ID || process.env.CI
+      
+      if (isNetlifyBuild) {
+        console.error("❌ Missing required environment variables for production build:")
+        missingVars.forEach(varName => console.error(`   - ${varName}`))
+        console.error("\n💡 Add these to your Netlify environment variables:")
+        console.error("   NEXT_PUBLIC_SUPABASE_URL=https://easdyzpslrxplpogilhx.supabase.co")
+        console.error("   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here")
+        
+        throw new Error(`Missing required environment variables: ${missingVars.join(", ")}`)
+      } else {
+        console.warn("⚠️ Missing Supabase environment variables, using mock client")
+      }
+    }
+  }
+}
+
+// Run validation
+try {
+  validateProductionEnv()
+} catch (error) {
+  // Re-throw in build environments to fail the build
+  if (typeof window === "undefined") {
+    throw error
+  }
+}
+
 // Validation functions
 export const isSupabaseConfigured = (): boolean => {
   return Boolean(ENV.SUPABASE_URL && ENV.SUPABASE_ANON_KEY)

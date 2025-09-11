@@ -2,6 +2,8 @@
   "NEXT_PUBLIC_SUPABASE_URL": "https://easdyzpslrxplpogilhx.supabase.co",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhc2R5enBzbHJ4cGxwb2dpbGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1ODQxMjUsImV4cCI6MjA2MTE2MDEyNX0.DLXRdhm2SOAz17e4QNhPw8DrDdQaRbuQVMQ2cbiMJ1s",
   "NODE_ENV": "production",
+  "NETLIFY": "true",
+  "CI": "true",
   "NEXT_PUBLIC_APP_URL": "https://recruily-page.netlify.app",
   "NEXTAUTH_URL": "https://recruily-page.netlify.app",
   "NEXTAUTH_SECRET": "your-production-nextauth-secret-here",

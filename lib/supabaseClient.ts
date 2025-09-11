@@ -11,20 +11,37 @@ function createSupabaseInstance() {
 
   // Check if Supabase is properly configured
   if (!isSupabaseConfigured()) {
+    const missingVars = []
+    if (!ENV.SUPABASE_URL) missingVars.push("NEXT_PUBLIC_SUPABASE_URL")
+    if (!ENV.SUPABASE_ANON_KEY) missingVars.push("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    
+    // In build environments, throw error for better debugging
+    if (typeof window === "undefined" && (process.env.CI || process.env.NETLIFY)) {
+      throw new Error(`supabaseUrl is required. Missing environment variables: ${missingVars.join(", ")}`)
+    }
+    
     console.warn("⚠️ Supabase environment variables missing. Using mock client.")
-    console.warn("Missing:", {
-      url: !ENV.SUPABASE_URL,
-      anonKey: !ENV.SUPABASE_ANON_KEY,
-    })
+    console.warn("Missing:", missingVars)
     return createMockClient()
   }
 
   try {
-    const client = createClient(ENV.SUPABASE_URL, ENV.SUPABASE_ANON_KEY)
+    const client = createClient(ENV.SUPABASE_URL, ENV.SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    })
     console.log("✅ Supabase client initialized successfully")
     return client
   } catch (error) {
     console.error("❌ Failed to create Supabase client:", error)
+    
+    // In CI/build environments, throw the error to fail the build
+    if (typeof window === "undefined" && (process.env.CI || process.env.NETLIFY)) {
+      throw new Error(`supabaseUrl is required. Failed to initialize Supabase client: ${error}`)
+    }
+    
     return createMockClient()
   }
 }
