@@ -8,6 +8,13 @@
 
 const chalk = require('chalk')
 
+// Load environment variables from .env.local if it exists
+try {
+  require('dotenv').config({ path: '.env.local' })
+} catch (e) {
+  // dotenv not available or .env.local doesn't exist, continue anyway
+}
+
 // Required environment variables for production
 const requiredEnvVars = [
   'NEXT_PUBLIC_SUPABASE_URL',
