@@ -1,18 +1,39 @@
-// Environment variables with fallbacks for development and preview
-export const supabaseEnv = {
-  url: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-  serviceRole: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+// Environment configuration with validation and fallbacks
+
+export const ENV = {
+  // Supabase Configuration
+  SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  
+  // App Configuration
+  NODE_ENV: process.env.NODE_ENV || "development",
+  APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  
+  // Feature Flags
+  ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === "true",
+  ENABLE_ONBOARDING: process.env.NEXT_PUBLIC_ENABLE_ONBOARDING !== "false",
+  ENABLE_BULK_ACTIONS: process.env.NEXT_PUBLIC_ENABLE_BULK_ACTIONS !== "false",
 }
 
-// Check if we're in a preview environment
-export const isPreviewEnv =
-  typeof window !== "undefined" &&
-  (window.location.hostname.includes("v0.dev") || window.location.hostname.includes("vercel-v0-preview"))
+// Validation functions
+export const isSupabaseConfigured = (): boolean => {
+  return Boolean(ENV.SUPABASE_URL && ENV.SUPABASE_ANON_KEY)
+}
 
-// Check if we have valid Supabase credentials
-export const hasValidSupabaseCredentials =
-  !!supabaseEnv.url && supabaseEnv.url.length > 0 && !!supabaseEnv.anonKey && supabaseEnv.anonKey.length > 0
+export const isProductionBuild = (): boolean => {
+  return ENV.NODE_ENV === "production"
+}
 
-// Use mock data when in development or preview environments
-export const useMockData = isPreviewEnv || !hasValidSupabaseCredentials
+export const isBuildTime = (): boolean => {
+  return typeof window === "undefined" && isProductionBuild()
+}
+
+// Log configuration status (only in development)
+if (ENV.NODE_ENV === "development") {
+  console.log("🔧 Environment Configuration:", {
+    supabaseConfigured: isSupabaseConfigured(),
+    nodeEnv: ENV.NODE_ENV,
+    appUrl: ENV.APP_URL,
+  })
+}
