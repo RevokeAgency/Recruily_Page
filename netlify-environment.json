@@ -1,6 +1,8 @@
 {
+  "NODE_VERSION": "20",
   "NEXT_PUBLIC_SUPABASE_URL": "https://easdyzpslrxplpogilhx.supabase.co",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhc2R5enBzbHJ4cGxwb2dpbGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1ODQxMjUsImV4cCI6MjA2MTE2MDEyNX0.DLXRdhm2SOAz17e4QNhPw8DrDdQaRbuQVMQ2cbiMJ1s",
+  "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhc2R5enBzbHJ4cGxwb2dpbGh4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTU4NDEyNSwiZXhwIjoyMDYxMTYwMTI1fQ.WaSy_lb0vIxiHljwck9hJwDj55sdKns4n_2crzwLJ1Q",
   "NODE_ENV": "production",
   "NETLIFY": "true",
   "CI": "true",

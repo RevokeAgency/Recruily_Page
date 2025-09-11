@@ -74,8 +74,8 @@
     "zod": "^3.24.1"
   },
   "engines": {
-    "node": ">=18.17.0 <=20.x",
-    "npm": ">=8.0.0"
+    "node": "20.x",
+    "npm": ">=9.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",
