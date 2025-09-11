@@ -6,7 +6,20 @@
  * Now supports graceful fallbacks for missing credentials
  */
 
-const chalk = require('chalk')
+// Try to load chalk, fallback to plain console if not available
+let chalk
+try {
+  chalk = require('chalk')
+} catch (error) {
+  console.log('⚠️  Chalk not available, using plain console output')
+  // Create a chalk fallback object
+  chalk = {
+    blue: (text) => `🔵 ${text}`,
+    green: (text) => `✅ ${text}`,
+    yellow: (text) => `⚠️  ${text}`,
+    red: (text) => `❌ ${text}`
+  }
+}
 
 // Load environment variables from .env.local if it exists
 try {

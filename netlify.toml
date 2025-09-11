@@ -1,18 +1,18 @@
 [build]
-  command = "bash scripts/build.sh"
+  command = "npm install && npm run build"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20.18.0"
-  NPM_VERSION = "10.8.2"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+[context.production]
+  command = "npm install && npm run build"
+  [context.production.environment]
+    NODE_ENV = "production"
+    NODE_VERSION = "20.18.0"
 
-[context.production.environment]
-  NODE_ENV = "production"
-  NODE_VERSION = "20.18.0"
-
-[context.deploy-preview.environment] 
-  NODE_ENV = "production"
-  NODE_VERSION = "20.18.0"
+[context.deploy-preview]
+  command = "npm install && npm run build" 
+  [context.deploy-preview.environment]
+    NODE_ENV = "production"
+    NODE_VERSION = "20.18.0"
