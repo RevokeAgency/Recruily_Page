@@ -8,8 +8,15 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: '.env.local' });
 
-const supabaseUrl = 'https://easdyzpslrxplpogilhx.supabase.co';
-const supabaseServiceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhc2R5enBzbHJ4cGxwb2dpbGh4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTU4NDEyNSwiZXhwIjoyMDYxMTYwMTI1fQ.WaSy_lb0vIxiHljwck9hJwDj55sdKns4n_2crzwLJ1Q';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Validate environment variables
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  console.error('❌ Missing Supabase credentials in .env.local');
+  console.log('Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+  process.exit(1);
+}
 
 // Initialize Supabase client with service role key for admin operations
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
@@ -378,7 +385,7 @@ async function createTablesIndividually() {
   
   console.log('✅ Database setup completed!');
   console.log('📋 Next steps:');
-  console.log('   1. Go to your Supabase dashboard: https://supabase.com/dashboard/project/easdyzpslrxplpogilhx/sql/new');
+  console.log(`   1. Go to your Supabase dashboard: ${supabaseUrl.replace('.co', '.com/dashboard').replace('https://', 'https://supabase.com/dashboard/project/').replace('.supabase', '')}/sql/new`);
   console.log('   2. Copy and paste the SQL from database_setup.sql');
   console.log('   3. Run the SQL to create all tables and policies');
   console.log('   4. Enable email/password auth in Authentication settings');

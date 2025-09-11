@@ -37,7 +37,7 @@ function validateProductionEnv() {
         console.error("❌ Missing required environment variables for production build:")
         missingVars.forEach(varName => console.error(`   - ${varName}`))
         console.error("\n💡 Add these to your Netlify environment variables:")
-        console.error("   NEXT_PUBLIC_SUPABASE_URL=https://easdyzpslrxplpogilhx.supabase.co")
+        console.error("   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url")
         console.error("   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here")
         
         throw new Error(`Missing required environment variables: ${missingVars.join(", ")}`)

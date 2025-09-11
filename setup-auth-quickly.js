@@ -6,12 +6,19 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config({ path: '.env.local' });
 
-const supabaseUrl = 'https://easdyzpslrxplpogilhx.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhc2R5enBzbHJ4cGxwb2dpbGh4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTU4NDEyNSwiZXhwIjoyMDYxMTYwMTI1fQ.WaSy_lb0vIxiHljwck9hJwDj55sdKns4n_2crzwLJ1Q';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 async function setupAuth() {
   console.log('🔧 Testing Supabase connection...');
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('❌ Missing Supabase credentials in .env.local');
+    console.log('Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+    return;
+  }
   
   // Create admin client
   const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -30,20 +37,20 @@ async function setupAuth() {
     console.log('🎯 To complete the setup:');
     console.log('');
     console.log('1. 📧 Enable Email Authentication:');
-    console.log('   → Go to: https://supabase.com/dashboard/project/easdyzpslrxplpogilhx/auth/providers');
+    console.log(`   → Go to: ${supabaseUrl.replace('.co', '.com/dashboard').replace('https://', 'https://supabase.com/dashboard/project/').replace('.supabase', '')}/auth/providers`);
     console.log('   → Ensure "Email" is enabled');
     console.log('   → Save changes');
     console.log('');
     
     console.log('2. 🌐 Configure Site URL:');
-    console.log('   → Go to: https://supabase.com/dashboard/project/easdyzpslrxplpogilhx/auth/settings');
+    console.log(`   → Go to: ${supabaseUrl.replace('.co', '.com/dashboard').replace('https://', 'https://supabase.com/dashboard/project/').replace('.supabase', '')}/auth/settings`);
     console.log('   → Set Site URL to: http://localhost:3000');
     console.log('   → Add Redirect URLs: http://localhost:3000/auth/callback');
     console.log('   → Save changes');
     console.log('');
     
     console.log('3. 🗄️ Create Basic Tables (optional for auth):');
-    console.log('   → Go to: https://supabase.com/dashboard/project/easdyzpslrxplpogilhx/sql/new');
+    console.log(`   → Go to: ${supabaseUrl.replace('.co', '.com/dashboard').replace('https://', 'https://supabase.com/dashboard/project/').replace('.supabase', '')}/sql/new`);
     console.log('   → Run: CREATE TABLE IF NOT EXISTS public.user_profiles (id uuid references auth.users primary key);');
     console.log('');
     
