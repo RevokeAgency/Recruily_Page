@@ -262,7 +262,7 @@ function cleanText(text: string): string {
     .replace(/\s+/g, ' ') // Multiple spaces to single
     .replace(/[\r\n]+/g, ' ') // Remove line breaks
     .trim()
-    .substring(0, 500) // Limit length
+    // No length limit - allow full content
 }
 
 /**
@@ -1031,7 +1031,7 @@ function extractDescriptionAndRequirementsOld(
   }
   
   return {
-    description: description || content.substring(0, 1000).trim(),
+    description: description || content.trim(),
     requirements: requirements || ""
   }
 }
@@ -1070,7 +1070,7 @@ function extractBestDescription(content: string): string {
     return paragraphs[0].trim()
   }
   
-  return content.substring(0, 800).trim()
+  return content.trim()
 }
 
 /**
@@ -1307,8 +1307,10 @@ function stripAllHtml(text: string): string {
   if (!text) return ''
   
   return text
-    // Remove all HTML tags (including unclosed ones)
-    .replace(/<[^>]*>/g, '')
+    // Add space before closing tags to preserve word boundaries
+    .replace(/<\/[^>]*>/g, ' ')
+    // Remove all remaining HTML tags (including unclosed ones)
+    .replace(/<[^>]*>/g, ' ')
     // Remove HTML entities
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
@@ -1553,7 +1555,7 @@ function extractJobSections(content: string, existingDescription?: string): {
   }
   
   return {
-    description: description || content.substring(0, 1000).trim(),
+    description: description || content.trim(),
     requirements: requirements || ""
   }
 }
@@ -1646,7 +1648,7 @@ function splitDescriptionIntoSections(text: string): {
     }
   }
   
-  sections.description = remainingText || text.substring(0, Math.min(500, text.length))
+  sections.description = remainingText || text
   
   return sections
 }
