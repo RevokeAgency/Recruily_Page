@@ -179,16 +179,16 @@ function parseScrapedContent(
     console.log("🏷️ Extracted skills:", jobData.skills.join(', '))
   }
 
-  // Enhanced description and requirements extraction with better formatting
+  // Enhanced description and requirements extraction with superior formatting
   const { description, requirements } = extractDescriptionAndRequirements(content, jobData.description)
   
   if (description) {
-    jobData.description = formatTextContent(cleanHtmlContent(description))
+    jobData.description = cleanHtmlContent(description)
     console.log("📄 Processed description (length):", jobData.description.length)
   }
   
   if (requirements) {
-    jobData.requirements = formatRequirementsList(cleanHtmlContent(requirements))
+    jobData.requirements = formatRequirementsList(requirements)
     console.log("📋 Extracted requirements (length):", jobData.requirements.length)
   }
 
@@ -205,7 +205,8 @@ function parseScrapedContent(
       // Last resort: use cleaned sentences
       const sentences = cleanContent.split(/[.!?]+/).filter(s => s.trim().length > 30)
       if (sentences.length > 0) {
-        jobData.description = formatTextContent(sentences.slice(0, 4).join('. ').trim() + '.')
+        const fallbackText = sentences.slice(0, 4).join('. ').trim() + '.'
+        jobData.description = cleanHtmlContent(fallbackText)
         console.log("📄 Used fallback description from content sentences")
       }
     }
@@ -213,7 +214,7 @@ function parseScrapedContent(
   
   // Ensure requirements are properly formatted if they exist
   if (jobData.requirements) {
-    jobData.requirements = formatRequirementsList(cleanHtmlContent(jobData.requirements))
+    jobData.requirements = formatRequirementsList(jobData.requirements)
   }
 
   // Log final extraction summary
@@ -252,40 +253,41 @@ function cleanText(text: string): string {
 }
 
 /**
- * Clean HTML content more thoroughly for descriptions and format properly
+ * Clean HTML content and create well-structured, readable text
  */
 function cleanHtmlContent(html: string): string {
   if (!html) return ''
   
-  return html
-    // First pass: handle structured elements
-    .replace(/<h[1-6][^>]*>([^<]*)<\/h[1-6]>/gi, '\n\n**$1**\n') // Headers to bold
-    .replace(/<strong[^>]*>([^<]*)<\/strong>/gi, '**$1**') // Strong to bold markdown
-    .replace(/<b[^>]*>([^<]*)<\/b>/gi, '**$1**') // Bold to bold markdown
-    .replace(/<em[^>]*>([^<]*)<\/em>/gi, '*$1*') // Emphasis to italic
-    .replace(/<i[^>]*>([^<]*)<\/i>/gi, '*$1*') // Italic to italic markdown
+  // Step 1: Clean HTML while preserving structure
+  let cleaned = html
+    // Remove script and style content completely
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
     
-    // Handle lists properly
-    .replace(/<ul[^>]*>/gi, '\n') // Start unordered list
-    .replace(/<\/ul>/gi, '\n') // End unordered list
-    .replace(/<ol[^>]*>/gi, '\n') // Start ordered list
-    .replace(/<\/ol>/gi, '\n') // End ordered list
+    // Handle headers - convert to clean section breaks
+    .replace(/<h[1-6][^>]*>([^<]*)<\/h[1-6]>/gi, '\n\n$1\n')
+    
+    // Handle paragraphs properly
+    .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '\n\n$1\n\n')
+    
+    // Handle lists with proper spacing
+    .replace(/<ul[^>]*>/gi, '\n\n')
+    .replace(/<\/ul>/gi, '\n\n')
+    .replace(/<ol[^>]*>/gi, '\n\n')
+    .replace(/<\/ol>/gi, '\n\n')
     .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (match, content) => {
-      // Clean the list item content and add bullet
       const cleanContent = content.replace(/<[^>]*>/g, '').trim()
-      return `\n• ${cleanContent}`
+      return cleanContent ? `\n• ${cleanContent}` : ''
     })
     
-    // Handle block elements
-    .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '\n\n$1\n') // Paragraphs with spacing
-    .replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, '\n$1\n') // Divs with line breaks
-    .replace(/<br\s*\/?>/gi, '\n') // Line breaks
-    .replace(/<hr[^>]*>/gi, '\n---\n') // Horizontal rules
+    // Handle other block elements
+    .replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, '\n$1\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<hr[^>]*>/gi, '\n\n---\n\n')
     
     // Remove all remaining HTML tags
     .replace(/<[^>]*>/g, '')
     
-    // Clean up HTML entities
+    // Clean HTML entities
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -300,44 +302,144 @@ function cleanHtmlContent(html: string): string {
     .replace(/&bull;/g, '•')
     .replace(/&mdash;/g, '—')
     .replace(/&ndash;/g, '–')
+  
+  // Step 2: Normalize and structure the text
+  return structureCleanText(cleaned)
+}
+
+/**
+ * Structure clean text into well-organized, readable format
+ */
+function structureCleanText(text: string): string {
+  if (!text) return ''
+  
+  // Step 1: Basic cleanup and normalization
+  let structured = text
+    // Remove excessive whitespace
+    .replace(/[ \t]+/g, ' ') // Multiple spaces/tabs to single space
+    .replace(/\n[ \t]+/g, '\n') // Remove spaces at line starts
+    .replace(/[ \t]+\n/g, '\n') // Remove spaces at line ends
     
-    // Clean up whitespace and formatting
-    .replace(/\n\s*\n\s*\n/g, '\n\n') // No more than double line breaks
-    .replace(/\n{4,}/g, '\n\n') // Maximum double line breaks
-    .replace(/^\s+|\s+$/gm, '') // Trim each line
-    .replace(/[ \t]+/g, ' ') // Multiple spaces to single
-    .replace(/^\n+|\n+$/g, '') // Remove leading/trailing line breaks
+    // Normalize line breaks
+    .replace(/\n{4,}/g, '\n\n\n') // Max 3 line breaks
+    .replace(/\n\s*\n\s*\n\s*\n/g, '\n\n\n') // Clean multiple breaks
+  
+  // Step 2: Create proper paragraph structure
+  const paragraphs = structured
+    .split(/\n\s*\n\s*\n/) // Split on triple line breaks
+    .map(section => section.trim())
+    .filter(section => section.length > 0)
+  
+  // Step 3: Format each section properly
+  const formattedSections = paragraphs.map(section => {
+    return formatTextSection(section)
+  })
+  
+  // Step 4: Join with proper spacing
+  return formattedSections
+    .filter(section => section.length > 0)
+    .join('\n\n')
     .trim()
 }
 
 /**
- * Format text content for better readability
+ * Format individual text sections for optimal readability
  */
-function formatTextContent(text: string): string {
+function formatTextSection(text: string): string {
   if (!text) return ''
   
+  // Check if this section contains bullet points or lists
+  const hasBullets = /^\s*[•\-\*\+]\s+/m.test(text)
+  const hasNumbers = /^\s*\d+\.\s+/m.test(text)
+  
+  if (hasBullets || hasNumbers) {
+    return formatListSection(text)
+  } else {
+    return formatParagraphSection(text)
+  }
+}
+
+/**
+ * Format paragraph sections with proper sentence structure
+ */
+function formatParagraphSection(text: string): string {
   return text
-    // Ensure proper sentence spacing
+    // Fix sentence spacing
     .replace(/\.(?=[A-Z])/g, '. ')
     .replace(/\?(?=[A-Z])/g, '? ')
     .replace(/!(?=[A-Z])/g, '! ')
     
-    // Format bullet points consistently
-    .replace(/^[\s]*[-\*\+•]\s*/gm, '• ')
-    .replace(/^[\s]*\d+\.\s*/gm, (match, offset, string) => {
-      const number = match.match(/\d+/)?.[0] || '1'
-      return `${number}. `
-    })
+    // Handle line breaks within paragraphs
+    .replace(/\n(?=[a-z])/g, ' ') // Join lines that don't start with capital
+    .replace(/\n(?=[A-Z][^.])/g, ' ') // Join lines with capitals (not abbreviations)
     
-    // Ensure proper paragraph spacing
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/([.!?])\n(?=[A-Z])/g, '$1\n\n')
+    // Create proper sentences
+    .replace(/([.!?])\s*(?=[A-Z])/g, '$1 ')
     
-    // Clean up common formatting issues
+    // Clean up punctuation
     .replace(/\s+([,.!?;:])/g, '$1')
     .replace(/([.!?])([A-Z])/g, '$1 $2')
     
     .trim()
+}
+
+/**
+ * Format list sections with clean bullet points and proper spacing
+ */
+function formatListSection(text: string): string {
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+  const formattedLines: string[] = []
+  
+  for (const line of lines) {
+    // Check if line is already a bullet point or number
+    if (/^[•\-\*\+]\s+/.test(line)) {
+      // Clean existing bullet
+      const content = line.replace(/^[•\-\*\+]\s+/, '').trim()
+      if (content) {
+        formattedLines.push(`• ${capitalizeFirst(content)}`)
+      }
+    } else if (/^\d+\.\s+/.test(line)) {
+      // Keep numbered items
+      const match = line.match(/^(\d+)\.\s+(.+)$/)
+      if (match) {
+        formattedLines.push(`${match[1]}. ${capitalizeFirst(match[2].trim())}`)
+      }
+    } else if (line.length > 10) {
+      // Convert regular lines to bullet points if they seem like list items
+      if (isLikelyListItem(line)) {
+        formattedLines.push(`• ${capitalizeFirst(line)}`)
+      } else {
+        // This might be a section header or paragraph
+        formattedLines.push(capitalizeFirst(line))
+      }
+    }
+  }
+  
+  return formattedLines.join('\n')
+}
+
+/**
+ * Check if a line looks like a list item
+ */
+function isLikelyListItem(line: string): boolean {
+  // Keywords that indicate list items
+  const listKeywords = [
+    /^(experience|knowledge|skill|ability|proficiency|familiar)/i,
+    /^(bachelor|master|degree|certification|diploma)/i,
+    /^(minimum|required|must|should|preferred)/i,
+    /^(strong|excellent|good|solid|proven)/i,
+    /\d+\+?\s*(years?|months?)\s+(of\s+)?(experience|exp)/i,
+  ]
+  
+  return listKeywords.some(pattern => pattern.test(line.trim()))
+}
+
+/**
+ * Capitalize first letter of text
+ */
+function capitalizeFirst(text: string): string {
+  if (!text) return ''
+  return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
 /**
@@ -1186,45 +1288,119 @@ export function getScrapingTips(url: string): string[] {
 }
 
 /**
- * Format requirements list for better readability
+ * Format requirements with intelligent structure detection and clean organization
  */
 function formatRequirementsList(requirements: string): string {
   if (!requirements) return ''
   
-  // Clean and format the requirements
-  let formatted = requirements
-    // Ensure consistent bullet points
-    .replace(/^[\s]*[-\*\+•]\s*/gm, '• ')
-    
-    // Format numbered lists
-    .replace(/^[\s]*\d+\.\s*/gm, (match) => {
-      const number = match.match(/\d+/)?.[0] || '1'
-      return `${number}. `
-    })
-    
-    // Break up long lines into proper bullet points if they contain multiple requirements
-    .replace(/([.!?])\s*([A-Z][^.!?]*(?:experience|knowledge|skill|ability|proficiency|familiar)[^.!?]*[.!?])/g, '$1\n• $2')
-    
-    // Ensure proper capitalization after bullet points
-    .replace(/^•\s*([a-z])/gm, (match, letter) => `• ${letter.toUpperCase()}`)
-    .replace(/^\d+\.\s*([a-z])/gm, (match, letter) => match.replace(letter, letter.toUpperCase()))
-    
-    // Clean up spacing
-    .replace(/\n\s*\n/g, '\n')
-    .replace(/^\s+|\s+$/gm, '')
-    .trim()
+  // First clean the HTML and structure the text
+  const cleaned = structureCleanText(requirements)
   
-  // If no bullet points or numbers were found, try to create them from sentences
-  if (!/^[•\d+\.]/.test(formatted)) {
-    const sentences = formatted.split(/[.!?]+/).filter(s => s.trim().length > 10)
-    if (sentences.length > 1) {
-      formatted = sentences
-        .map(s => s.trim())
-        .filter(s => s.length > 0)
-        .map(s => `• ${s.charAt(0).toUpperCase() + s.slice(1)}`)
-        .join('\n')
+  // Split into sections and identify requirement patterns
+  const sections = cleaned.split(/\n\s*\n/).filter(s => s.trim().length > 0)
+  const formattedSections: string[] = []
+  
+  for (const section of sections) {
+    const formatted = formatRequirementSection(section)
+    if (formatted) {
+      formattedSections.push(formatted)
     }
   }
   
-  return formatted
+  // If we didn't get good sections, try to create structure from the whole text
+  if (formattedSections.length === 0) {
+    const structured = createRequirementStructure(cleaned)
+    return structured
+  }
+  
+  return formattedSections.join('\n\n')
+}
+
+/**
+ * Format individual requirement sections
+ */
+function formatRequirementSection(text: string): string {
+  if (!text || text.trim().length < 10) return ''
+  
+  // Check if this is already a well-formatted list
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+  
+  if (lines.length === 1) {
+    // Single line - might be a paragraph that needs to be broken down
+    return createRequirementStructure(text)
+  }
+  
+  // Multiple lines - format as list
+  const formattedLines: string[] = []
+  let hasHeader = false
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    
+    // Check if this looks like a section header
+    if (i === 0 && !line.match(/^[•\-\*\+\d+\.]/) && line.length < 60 && !line.endsWith('.')) {
+      formattedLines.push(line + ':')
+      hasHeader = true
+      continue
+    }
+    
+    // Format as list item
+    if (line.match(/^[•\-\*\+]/)) {
+      const content = line.replace(/^[•\-\*\+]\s*/, '').trim()
+      formattedLines.push(`• ${capitalizeFirst(content)}`)
+    } else if (line.match(/^\d+\./)) {
+      formattedLines.push(line)
+    } else if (line.length > 5) {
+      formattedLines.push(`• ${capitalizeFirst(line)}`)
+    }
+  }
+  
+  return formattedLines.join('\n')
+}
+
+/**
+ * Create structured requirements from unstructured text
+ */
+function createRequirementStructure(text: string): string {
+  if (!text) return ''
+  
+  // Try to identify and separate different types of requirements
+  const requirements: string[] = []
+  
+  // Split by sentences and common separators
+  const parts = text
+    .split(/[.!]\s*(?=[A-Z])/) // Split on sentence boundaries
+    .map(part => part.trim())
+    .filter(part => part.length > 10)
+  
+  for (const part of parts) {
+    // Clean up the part
+    const cleaned = part
+      .replace(/^[\s\-\*\+•]+/, '') // Remove leading bullets
+      .replace(/[.!]*$/, '') // Remove trailing punctuation
+      .trim()
+    
+    if (cleaned.length > 5) {
+      requirements.push(`• ${capitalizeFirst(cleaned)}`)
+    }
+  }
+  
+  // If we didn't get good requirements, try splitting by common keywords
+  if (requirements.length <= 1) {
+    const keywordSplit = text.split(/\b(?:and|with|including|plus|also|additionally)\b/gi)
+    requirements.length = 0
+    
+    for (const part of keywordSplit) {
+      const cleaned = part
+        .replace(/^[\s\-\*\+•,;]+/, '')
+        .replace(/[.!,;]*$/, '')
+        .trim()
+      
+      if (cleaned.length > 10) {
+        requirements.push(`• ${capitalizeFirst(cleaned)}`)
+      }
+    }
+  }
+  
+  return requirements.join('\n')
 }
