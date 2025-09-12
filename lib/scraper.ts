@@ -262,7 +262,7 @@ function cleanText(text: string): string {
     .replace(/\s+/g, ' ') // Multiple spaces to single
     .replace(/[\r\n]+/g, ' ') // Remove line breaks
     .trim()
-    .substring(0, 500) // Limit length
+    // No length limit - allow full content
 }
 
 /**
@@ -1031,7 +1031,7 @@ function extractDescriptionAndRequirementsOld(
   }
   
   return {
-    description: description || content.substring(0, 1000).trim(),
+    description: description || content.trim(),
     requirements: requirements || ""
   }
 }
@@ -1070,7 +1070,7 @@ function extractBestDescription(content: string): string {
     return paragraphs[0].trim()
   }
   
-  return content.substring(0, 800).trim()
+  return content.trim()
 }
 
 /**
@@ -1143,7 +1143,7 @@ function extractBulletPointLists(content: string): string {
       const matches = [...content.matchAll(pattern)]
       for (const match of matches) {
         if (match[1] && match[1].length > 100) {
-          return match[1].trim()
+          return stripAllHtml(match[1].trim())
         }
       }
     } catch (error) {
@@ -1301,13 +1301,47 @@ export function getScrapingTips(url: string): string[] {
 }
 
 /**
+ * Strip all HTML tags and entities from text
+ */
+function stripAllHtml(text: string): string {
+  if (!text) return ''
+  
+  return text
+    // Add space before closing tags to preserve word boundaries
+    .replace(/<\/[^>]*>/g, ' ')
+    // Remove all remaining HTML tags (including unclosed ones)
+    .replace(/<[^>]*>/g, ' ')
+    // Remove HTML entities
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&rsquo;/g, "'")
+    .replace(/&lsquo;/g, "'")
+    .replace(/&rdquo;/g, '"')
+    .replace(/&ldquo;/g, '"')
+    .replace(/&bull;/g, '•')
+    .replace(/&mdash;/g, '—')
+    .replace(/&ndash;/g, '–')
+    // Clean up whitespace
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
  * Format requirements with intelligent structure detection and clean organization
  */
 function formatRequirementsList(requirements: string): string {
   if (!requirements) return ''
   
-  // First clean the HTML and structure the text
-  const cleaned = structureCleanText(requirements)
+  // First strip ALL HTML tags and entities completely
+  const htmlStripped = stripAllHtml(requirements)
+  // Then clean and structure the text properly
+  const htmlCleaned = cleanHtmlContent(htmlStripped)
+  const cleaned = structureCleanText(htmlCleaned)
   
   // Split into sections and identify requirement patterns
   const sections = cleaned.split(/\n\s*\n/).filter(s => s.trim().length > 0)
@@ -1377,11 +1411,14 @@ function formatRequirementSection(text: string): string {
 function createRequirementStructure(text: string): string {
   if (!text) return ''
   
+  // Ensure HTML is completely stripped first
+  const cleanedText = stripAllHtml(text)
+  
   // Try to identify and separate different types of requirements
   const requirements: string[] = []
   
   // Split by sentences and common separators
-  const parts = text
+  const parts = cleanedText
     .split(/[.!]\s*(?=[A-Z])/) // Split on sentence boundaries
     .map(part => part.trim())
     .filter(part => part.length > 10)
@@ -1400,7 +1437,7 @@ function createRequirementStructure(text: string): string {
   
   // If we didn't get good requirements, try splitting by common keywords
   if (requirements.length <= 1) {
-    const keywordSplit = text.split(/\b(?:and|with|including|plus|also|additionally)\b/gi)
+    const keywordSplit = cleanedText.split(/\b(?:and|with|including|plus|also|additionally)\b/gi)
     requirements.length = 0
     
     for (const part of keywordSplit) {
@@ -1518,7 +1555,7 @@ function extractJobSections(content: string, existingDescription?: string): {
   }
   
   return {
-    description: description || content.substring(0, 1000).trim(),
+    description: description || content.trim(),
     requirements: requirements || ""
   }
 }
@@ -1611,7 +1648,7 @@ function splitDescriptionIntoSections(text: string): {
     }
   }
   
-  sections.description = remainingText || text.substring(0, Math.min(500, text.length))
+  sections.description = remainingText || text
   
   return sections
 }

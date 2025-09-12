@@ -753,8 +753,8 @@ export default function JobCreationWizard() {
                     placeholder="Describe the role, responsibilities, and what makes this position exciting..."
                     value={formData.description}
                     onChange={(e) => handleInputChange("description", e.target.value)}
-                    rows={8}
-                    className="pr-10 whitespace-pre-wrap leading-relaxed resize-none"
+                    rows={12}
+                    className="pr-10 whitespace-pre-wrap leading-relaxed resize-y min-h-[200px]"
                     style={{lineHeight: '1.6'}}
                   />
                   <Edit3 className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
@@ -770,8 +770,8 @@ export default function JobCreationWizard() {
                     placeholder="List the required qualifications, experience, and skills..."
                     value={formData.requirements}
                     onChange={(e) => handleInputChange("requirements", e.target.value)}
-                    rows={6}
-                    className="pr-10 whitespace-pre-wrap leading-relaxed resize-none"
+                    rows={10}
+                    className="pr-10 whitespace-pre-wrap leading-relaxed resize-y min-h-[160px]"
                     style={{lineHeight: '1.6'}}
                   />
                   <Edit3 className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
