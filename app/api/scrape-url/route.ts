@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { normalizeJobDataWithGemini } from '@/lib/gemini-ai'
 
 // Common job posting selectors for different sites
 const JOB_SITE_SELECTORS = {
@@ -109,13 +110,26 @@ export async function POST(request: NextRequest) {
         }
       })
 
+      // Normalize and enhance the extracted data with Gemini AI
+      console.log(`🤖 Normalizing scraped data with Gemini AI...`)
+      const normalizedData = await normalizeJobDataWithGemini(
+        extractedContent.structuredData,
+        extractedContent.content
+      )
+      
+      console.log(`✅ Gemini normalization completed:`, {
+        enhanced: !!normalizedData,
+        hasNewFields: !!(normalizedData?.department || normalizedData?.responsibilities || normalizedData?.benefits)
+      })
+
       return NextResponse.json({
         success: true,
         content: extractedContent.content,
-        structuredData: extractedContent.structuredData,
+        structuredData: normalizedData || extractedContent.structuredData,
         url: url,
         siteType: siteType,
         length: extractedContent.content.length,
+        normalized: !!normalizedData
       })
     } catch (fetchError: any) {
       clearTimeout(timeoutId)

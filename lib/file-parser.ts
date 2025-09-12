@@ -3,17 +3,31 @@
  * Supports PDF, DOCX, and TXT file formats
  */
 
+import { normalizeJobDataWithGemini } from '@/lib/gemini-ai'
+import { 
+  extractDepartment, 
+  extractApplicationDeadline, 
+  extractResponsibilities, 
+  extractBenefits,
+  extractJobType,
+  extractExperienceLevel 
+} from '@/lib/scraper'
+
 // Types for extracted job data
 export interface ParsedJobData {
   title?: string
   company?: string
   location?: string
+  department?: string
   description?: string
   requirements?: string
+  responsibilities?: string
+  benefits?: string
   skills?: string[]
   employmentType?: string
   experienceLevel?: string
   salary?: string
+  applicationDeadline?: string
 }
 
 export interface FileParseResult {
@@ -78,7 +92,21 @@ export async function parseJobDescriptionFile(file: File): Promise<FileParseResu
     console.log(`✅ Successfully extracted ${rawText.length} characters from file`)
 
     // Parse structured data from raw text
-    const parsedData = parseJobDataFromText(rawText)
+    let parsedData = parseJobDataFromText(rawText)
+
+    // Apply Gemini normalization for consistency
+    console.log("🤖 Normalizing parsed file data with Gemini AI...")
+    try {
+      const normalizedData = await normalizeJobDataWithGemini(parsedData, rawText)
+      if (normalizedData) {
+        parsedData = normalizedData
+        console.log("✅ Gemini normalization applied to parsed file data")
+      } else {
+        console.log("⚠️ Using original parsed data (Gemini normalization failed)")
+      }
+    } catch (error) {
+      console.warn("⚠️ Gemini normalization error, using original parsed data:", error)
+    }
 
     return {
       success: true,
@@ -182,26 +210,20 @@ function parseJobDataFromText(text: string): ParsedJobData {
   
   const parsedData: ParsedJobData = {}
 
-  // Extract job title (usually in first few lines or after "position:", "title:", "role:")
+  // Extract basic job information
   parsedData.title = extractJobTitle(cleanText)
-  
-  // Extract company name
   parsedData.company = extractCompanyName(cleanText)
-  
-  // Extract location
   parsedData.location = extractLocation(cleanText)
-  
-  // Extract employment type
-  parsedData.employmentType = extractEmploymentType(lowerText)
-  
-  // Extract experience level
-  parsedData.experienceLevel = extractExperienceLevel(lowerText)
-  
-  // Extract salary information
+  parsedData.employmentType = extractJobType(cleanText) || extractEmploymentType(lowerText)
+  parsedData.experienceLevel = extractExperienceLevel(cleanText) || extractExperienceLevelLegacy(lowerText)
   parsedData.salary = extractSalary(cleanText)
-  
-  // Extract skills
   parsedData.skills = extractSkills(lowerText)
+  
+  // Extract enhanced job information using new extractors
+  parsedData.department = extractDepartment(cleanText)
+  parsedData.applicationDeadline = extractApplicationDeadline(cleanText)
+  parsedData.responsibilities = extractResponsibilities(cleanText)
+  parsedData.benefits = extractBenefits(cleanText)
   
   // Split description and requirements
   const { description, requirements } = splitDescriptionAndRequirements(cleanText)
@@ -292,9 +314,9 @@ function extractEmploymentType(lowerText: string): string {
 }
 
 /**
- * Extract experience level
+ * Extract experience level (legacy function)
  */
-function extractExperienceLevel(lowerText: string): string {
+function extractExperienceLevelLegacy(lowerText: string): string {
   if (lowerText.includes('senior') || lowerText.includes('sr.') || lowerText.includes('lead')) return 'senior-level'
   if (lowerText.includes('junior') || lowerText.includes('jr.') || lowerText.includes('entry')) return 'entry-level'
   if (lowerText.includes('mid') || lowerText.includes('intermediate')) return 'mid-level'
