@@ -150,6 +150,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(mockUser)
       setSession(mockSession)
+
+      // Set auth cookie for preview mode
+      try {
+        document.cookie = `auth-session=preview-init-${mockUser.id}; path=/; max-age=3600; secure; samesite=strict`
+      } catch (cookieErr) {
+        console.error("Error setting preview auth cookie:", cookieErr)
+      }
+      
       return
     }
 
@@ -173,6 +181,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               expires_at: Date.now() + 3600,
               user: parsedUser,
             } as Session)
+
+            // Ensure auth cookie is set for existing session
+            try {
+              document.cookie = `auth-session=restored-${parsedUser.id}; path=/; max-age=3600; secure; samesite=strict`
+            } catch (cookieErr) {
+              console.error("Error setting restored auth cookie:", cookieErr)
+            }
           } else {
             // User no longer exists or not confirmed, clear current user
             localStorage.removeItem("recruitify-current-user")
@@ -218,6 +233,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem("recruitify-current-user", JSON.stringify(mockUser))
         } catch (err) {
           console.error("Error storing user in localStorage:", err)
+        }
+
+        // Set a cookie for middleware authentication
+        try {
+          document.cookie = `auth-session=preview-${mockUser.id}; path=/; max-age=3600; secure; samesite=strict`
+        } catch (cookieErr) {
+          console.error("Error setting auth cookie:", cookieErr)
         }
 
         // Simulate a delay
@@ -267,6 +289,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("recruitify-current-user", JSON.stringify(authenticatedUser))
       } catch (storageErr) {
         console.error("Error storing current user:", storageErr)
+      }
+
+      // Set a cookie for middleware authentication
+      try {
+        document.cookie = `auth-session=authenticated-${authenticatedUser.id}; path=/; max-age=3600; secure; samesite=strict`
+      } catch (cookieErr) {
+        console.error("Error setting auth cookie:", cookieErr)
       }
 
       console.log("🎉 Sign in successful!")
@@ -368,6 +397,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("recruitify-current-user")
       } catch (err) {
         console.error("Error removing current user from localStorage:", err)
+      }
+
+      // Clear the auth cookie
+      try {
+        document.cookie = "auth-session=; path=/; max-age=0; secure; samesite=strict"
+      } catch (cookieErr) {
+        console.error("Error clearing auth cookie:", cookieErr)
       }
 
       // Redirect to home page
