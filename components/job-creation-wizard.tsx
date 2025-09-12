@@ -33,14 +33,18 @@ interface JobFormData {
   title: string
   company: string
   location: string
+  department: string
   description: string
   requirements: string
+  responsibilities: string
+  benefits: string
   salary_min: string
   salary_max: string
   employment_type: string
   experience_level: string
   remote_ok: boolean
   technical_skills: string
+  application_deadline: string
   source_type: "manual" | "url_scraping" | "file_upload"
   source_url?: string
   source_filename?: string
@@ -66,14 +70,18 @@ export default function JobCreationWizard() {
     title: "",
     company: "",
     location: "",
+    department: "",
     description: "",
     requirements: "",
+    responsibilities: "",
+    benefits: "",
     salary_min: "",
     salary_max: "",
     employment_type: "full-time",
     experience_level: "mid-level",
     remote_ok: false,
     technical_skills: "",
+    application_deadline: "",
     source_type: "manual",
   })
   
@@ -136,6 +144,26 @@ export default function JobCreationWizard() {
     if (data.requirements && data.requirements.trim()) {
       updates.requirements = data.requirements.trim()
       console.log("📋 Requirements extracted (length):", updates.requirements.length)
+    }
+    
+    if (data.responsibilities && data.responsibilities.trim()) {
+      updates.responsibilities = data.responsibilities.trim()
+      console.log("📝 Responsibilities extracted (length):", updates.responsibilities.length)
+    }
+    
+    if (data.benefits && data.benefits.trim()) {
+      updates.benefits = data.benefits.trim()
+      console.log("🎁 Benefits extracted (length):", updates.benefits.length)
+    }
+    
+    if (data.department && data.department.trim()) {
+      updates.department = data.department.trim()
+      console.log("🏢 Department extracted:", updates.department)
+    }
+    
+    if (data.applicationDeadline && data.applicationDeadline.trim()) {
+      updates.application_deadline = data.applicationDeadline.trim()
+      console.log("📅 Application deadline extracted:", updates.application_deadline)
     }
     
     // Map employment type with better fallback
@@ -701,10 +729,21 @@ export default function JobCreationWizard() {
                   <Input
                     id="review-deadline"
                     type="date"
-                    value=""
-                    onChange={() => {}}
+                    value={formData.application_deadline}
+                    onChange={(e) => handleInputChange("application_deadline", e.target.value)}
                   />
                 </div>
+              </div>
+
+              {/* Department */}
+              <div className="space-y-2">
+                <Label htmlFor="review-department">Department</Label>
+                <Input
+                  id="review-department"
+                  placeholder="e.g., Engineering, Marketing, Sales..."
+                  value={formData.department}
+                  onChange={(e) => handleInputChange("department", e.target.value)}
+                />
               </div>
 
               {/* Job Description */}
@@ -734,6 +773,40 @@ export default function JobCreationWizard() {
                     value={formData.requirements}
                     onChange={(e) => handleInputChange("requirements", e.target.value)}
                     rows={6}
+                    className="pr-10 whitespace-pre-wrap leading-relaxed resize-none"
+                    style={{lineHeight: '1.6'}}
+                  />
+                  <Edit3 className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Responsibilities */}
+              <div className="space-y-2">
+                <Label htmlFor="review-responsibilities">Responsibilities</Label>
+                <div className="relative">
+                  <Textarea
+                    id="review-responsibilities"
+                    placeholder="List the key responsibilities and day-to-day tasks..."
+                    value={formData.responsibilities}
+                    onChange={(e) => handleInputChange("responsibilities", e.target.value)}
+                    rows={5}
+                    className="pr-10 whitespace-pre-wrap leading-relaxed resize-none"
+                    style={{lineHeight: '1.6'}}
+                  />
+                  <Edit3 className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Benefits */}
+              <div className="space-y-2">
+                <Label htmlFor="review-benefits">Benefits</Label>
+                <div className="relative">
+                  <Textarea
+                    id="review-benefits"
+                    placeholder="List employee benefits, perks, and what makes your company great..."
+                    value={formData.benefits}
+                    onChange={(e) => handleInputChange("benefits", e.target.value)}
+                    rows={4}
                     className="pr-10 whitespace-pre-wrap leading-relaxed resize-none"
                     style={{lineHeight: '1.6'}}
                   />

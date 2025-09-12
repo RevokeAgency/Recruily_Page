@@ -7,12 +7,16 @@ export interface ScrapedJobData {
   title?: string
   company?: string
   location?: string
+  department?: string
   description?: string
   requirements?: string
+  responsibilities?: string
+  benefits?: string
   skills?: string[]
   employmentType?: string
   experienceLevel?: string
   salary?: string
+  applicationDeadline?: string
   siteType?: string
 }
 
@@ -179,8 +183,20 @@ function parseScrapedContent(
     console.log("🏷️ Extracted skills:", jobData.skills.join(', '))
   }
 
-  // Enhanced description and requirements extraction with superior formatting
-  const { description, requirements } = extractDescriptionAndRequirements(content, jobData.description)
+  // Extract department
+  jobData.department = extractDepartment(content)
+  if (jobData.department) {
+    console.log("🏢 Department extracted:", jobData.department)
+  }
+
+  // Extract application deadline
+  jobData.applicationDeadline = extractApplicationDeadline(content)
+  if (jobData.applicationDeadline) {
+    console.log("📅 Application deadline extracted:", jobData.applicationDeadline)
+  }
+
+  // Enhanced description, requirements, responsibilities and benefits extraction
+  const { description, requirements, responsibilities, benefits } = extractJobSections(content, jobData.description)
   
   if (description) {
     jobData.description = cleanHtmlContent(description)
@@ -190,6 +206,16 @@ function parseScrapedContent(
   if (requirements) {
     jobData.requirements = formatRequirementsList(requirements)
     console.log("📋 Extracted requirements (length):", jobData.requirements.length)
+  }
+  
+  if (responsibilities) {
+    jobData.responsibilities = formatRequirementsList(responsibilities)
+    console.log("📝 Extracted responsibilities (length):", jobData.responsibilities.length)
+  }
+  
+  if (benefits) {
+    jobData.benefits = cleanHtmlContent(benefits)
+    console.log("🎁 Extracted benefits (length):", jobData.benefits.length)
   }
 
   // Ensure we have some description - with better fallback
@@ -924,7 +950,7 @@ function extractSkills(lowerContent: string): string[] {
 /**
  * Extract description and requirements from content with enhanced parsing
  */
-function extractDescriptionAndRequirements(
+function extractDescriptionAndRequirementsOld(
   content: string, 
   existingDescription?: string
 ): { description: string; requirements: string } {
@@ -1403,4 +1429,347 @@ function createRequirementStructure(text: string): string {
   }
   
   return requirements.join('\n')
+}
+
+/**
+ * Extract department from content
+ */
+function extractDepartment(content: string): string {
+  const departmentPatterns = [
+    /department[:\s-]+([^\n\r<>{};]{2,50})/gi,
+    /team[:\s-]+([^\n\r<>{};]{2,50})/gi,
+    /division[:\s-]+([^\n\r<>{};]{2,50})/gi,
+    /join\s+(?:our\s+)?([^\n\r<>{};]{2,50})\s+(?:department|team|division)/gi,
+    /\b(engineering|marketing|sales|finance|hr|human\s+resources|operations|product|design|analytics|data|security|legal|customer\s+success|support)\b/gi,
+  ]
+
+  const foundDepartments: string[] = []
+
+  for (const pattern of departmentPatterns) {
+    try {
+      const matches = [...content.matchAll(pattern)]
+      for (const match of matches) {
+        if (match[1]) {
+          const dept = cleanText(match[1])
+          if (isValidDepartment(dept) && !foundDepartments.includes(dept)) {
+            foundDepartments.push(dept)
+          }
+        } else if (match[0]) {
+          const dept = cleanText(match[0])
+          if (isValidDepartment(dept) && !foundDepartments.includes(dept)) {
+            foundDepartments.push(dept)
+          }
+        }
+      }
+    } catch (error) {
+      continue
+    }
+  }
+
+  return foundDepartments.length > 0 ? foundDepartments[0] : ""
+}
+
+/**
+ * Validate department name
+ */
+function isValidDepartment(dept: string): boolean {
+  if (!dept || dept.length < 2 || dept.length > 50) return false
+  
+  const commonDepts = [
+    'engineering', 'marketing', 'sales', 'finance', 'hr', 'human resources',
+    'operations', 'product', 'design', 'analytics', 'data', 'security',
+    'legal', 'customer success', 'support', 'it', 'technology', 'research'
+  ]
+  
+  const lowerDept = dept.toLowerCase()
+  return commonDepts.some(common => lowerDept.includes(common)) || 
+         /^[a-zA-Z\s&-]+$/.test(dept)
+}
+
+/**
+ * Extract application deadline from content
+ */
+function extractApplicationDeadline(content: string): string {
+  const deadlinePatterns = [
+    /(?:application\s+)?deadline[:\s-]+([^\n\r<>{};]{5,30})/gi,
+    /apply\s+by[:\s-]+([^\n\r<>{};]{5,30})/gi,
+    /closing\s+date[:\s-]+([^\n\r<>{};]{5,30})/gi,
+    /applications\s+close[:\s-]+([^\n\r<>{};]{5,30})/gi,
+    /due\s+date[:\s-]+([^\n\r<>{};]{5,30})/gi,
+    // Date patterns
+    /(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/g,
+    /(\d{4}[-/]\d{1,2}[-/]\d{1,2})/g,
+    /(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4}/gi,
+  ]
+
+  for (const pattern of deadlinePatterns) {
+    try {
+      const matches = [...content.matchAll(pattern)]
+      for (const match of matches) {
+        if (match[1] || match[0]) {
+          const deadline = cleanText(match[1] || match[0])
+          if (isValidDate(deadline)) {
+            return formatDate(deadline)
+          }
+        }
+      }
+    } catch (error) {
+      continue
+    }
+  }
+
+  return ""
+}
+
+/**
+ * Check if text looks like a valid date
+ */
+function isValidDate(dateStr: string): boolean {
+  if (!dateStr || dateStr.length < 6) return false
+  
+  // Try to parse the date
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return false
+  
+  // Check if it's a reasonable future date (within 1 year)
+  const now = new Date()
+  const oneYearFromNow = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate())
+  
+  return date >= now && date <= oneYearFromNow
+}
+
+/**
+ * Format date to YYYY-MM-DD format
+ */
+function formatDate(dateStr: string): string {
+  try {
+    const date = new Date(dateStr)
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0]
+    }
+  } catch (error) {
+    // If parsing fails, return original string
+  }
+  return dateStr
+}
+
+/**
+ * Enhanced job sections extraction including responsibilities and benefits
+ */
+function extractJobSections(content: string, existingDescription?: string): {
+  description: string
+  requirements: string
+  responsibilities: string
+  benefits: string
+} {
+  // First try to identify clear sections
+  const sections = identifyAllJobSections(content)
+  
+  let description = existingDescription || sections.description || ''
+  let requirements = sections.requirements || ''
+  let responsibilities = sections.responsibilities || ''
+  let benefits = sections.benefits || ''
+  
+  // If we have existing description but missing other sections, try to split it
+  if (description && description.length > 300 && (!requirements || !responsibilities)) {
+    const split = splitDescriptionIntoSections(description)
+    if (!requirements && split.requirements) requirements = split.requirements
+    if (!responsibilities && split.responsibilities) responsibilities = split.responsibilities
+    if (!benefits && split.benefits) benefits = split.benefits
+    description = split.description
+  }
+  
+  // If still no description, extract from content
+  if (!description || description.length < 50) {
+    description = extractBestDescription(content)
+  }
+  
+  // If still missing sections, try more aggressive extraction
+  if (!requirements || requirements.length < 20) {
+    requirements = extractRequirementsFromContent(content)
+  }
+  
+  if (!responsibilities || responsibilities.length < 20) {
+    responsibilities = extractResponsibilitiesFromContent(content)
+  }
+  
+  if (!benefits || benefits.length < 20) {
+    benefits = extractBenefitsFromContent(content)
+  }
+  
+  return {
+    description: description || content.substring(0, 1000).trim(),
+    requirements: requirements || "",
+    responsibilities: responsibilities || "",
+    benefits: benefits || ""
+  }
+}
+
+/**
+ * Extract responsibilities from content
+ */
+function extractResponsibilitiesFromContent(content: string): string {
+  const responsibilityPatterns = [
+    /(?:responsibilities|duties|tasks|role)[:\s-]*([\\s\\S]{50,2000}?)(?=\\n\\s*(?:requirements|qualifications|benefits|what\\s+we\\s+offer|about\\s+us|company)|$)/gi,
+    /(?:what\\s+you\\s+(?:will\\s+)?do|your\\s+role|day\\s+to\\s+day)[:\s-]*([\\s\\S]{50,2000}?)(?=\\n\\s*(?:requirements|qualifications|benefits|what\\s+we\\s+offer|about\\s+us|company)|$)/gi,
+    /(?:key\\s+(?:responsibilities|duties)|main\\s+tasks)[:\s-]*([\\s\\S]{50,2000}?)(?=\\n\\s*(?:requirements|qualifications|benefits|what\\s+we\\s+offer|about\\s+us|company)|$)/gi,
+  ]
+  
+  for (const pattern of responsibilityPatterns) {
+    try {
+      const matches = [...content.matchAll(pattern)]
+      for (const match of matches) {
+        if (match[1]) {
+          const resp = match[1].trim()
+          if (resp.length > 30 && resp.length < 2500) {
+            return resp
+          }
+        }
+      }
+    } catch (error) {
+      continue
+    }
+  }
+  
+  return ''
+}
+
+/**
+ * Extract benefits from content
+ */
+function extractBenefitsFromContent(content: string): string {
+  const benefitPatterns = [
+    /(?:benefits|perks|what\\s+we\\s+offer|compensation\\s+package)[:\s-]*([\\s\\S]{30,1500}?)(?=\\n\\s*(?:requirements|qualifications|responsibilities|about\\s+us|company|how\\s+to\\s+apply)|$)/gi,
+    /(?:why\\s+(?:join\\s+us|work\\s+here)|what\\s+you\\s+get)[:\s-]*([\\s\\S]{30,1500}?)(?=\\n\\s*(?:requirements|qualifications|responsibilities|about\\s+us|company|how\\s+to\\s+apply)|$)/gi,
+    /(?:employee\\s+benefits|our\\s+benefits)[:\s-]*([\\s\\S]{30,1500}?)(?=\\n\\s*(?:requirements|qualifications|responsibilities|about\\s+us|company)|$)/gi,
+  ]
+  
+  for (const pattern of benefitPatterns) {
+    try {
+      const matches = [...content.matchAll(pattern)]
+      for (const match of matches) {
+        if (match[1]) {
+          const benefits = match[1].trim()
+          if (benefits.length > 20 && benefits.length < 2000) {
+            return benefits
+          }
+        }
+      }
+    } catch (error) {
+      continue
+    }
+  }
+  
+  return ''
+}
+
+/**
+ * Identify all job sections with enhanced parsing
+ */
+function identifyAllJobSections(content: string): {
+  description?: string
+  requirements?: string
+  responsibilities?: string
+  benefits?: string
+} {
+  const sections: any = {}
+  
+  const sectionPatterns = {
+    description: [
+      'job description', 'about the role', 'position overview', 'role description',
+      'about this position', 'position summary', 'role summary', 'job summary'
+    ],
+    requirements: [
+      'requirements', 'qualifications', 'skills required', 'must have',
+      'experience required', 'what you need', 'prerequisites', 'required skills',
+      'minimum qualifications', 'ideal candidate', 'what we\\'re looking for'
+    ],
+    responsibilities: [
+      'responsibilities', 'duties', 'what you will do', 'key responsibilities',
+      'your role', 'day to day', 'tasks', 'job responsibilities',
+      'what you\\'ll do', 'role responsibilities', 'main tasks'
+    ],
+    benefits: [
+      'benefits', 'what we offer', 'perks', 'compensation package',
+      'why join us', 'what you get', 'employee benefits', 'our benefits',
+      'why work here', 'what\\'s in it for you'
+    ]
+  }
+
+  // Use enhanced regex patterns to find section headers
+  for (const [sectionName, keywords] of Object.entries(sectionPatterns)) {
+    for (const keyword of keywords) {
+      const pattern = new RegExp(
+        `(?:^|\\n)\\s*(?:<[^>]*>)?\\s*${keyword.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\s*(?:<[^>]*>)?\\s*[:\\-\\s]*\\n?([\\s\\S]{50,3000}?)(?=\\n\\s*(?:${Object.values(sectionPatterns).flat().map(k => k.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).join('|')})|$)`,
+        'gi'
+      )
+      
+      try {
+        const matches = [...content.matchAll(pattern)]
+        if (matches.length > 0 && matches[0][1]) {
+          const sectionContent = matches[0][1]
+            .replace(/^[:\\-\\s<>]+/, '')
+            .replace(/<\\/?[^>]+>/g, '')
+            .trim()
+          
+          if (sectionContent.length > 30) {
+            sections[sectionName] = sectionContent
+            console.log(`📋 Found ${sectionName} section (${sectionContent.length} chars)`)
+            break
+          }
+        }
+      } catch (error) {
+        continue
+      }
+    }
+  }
+
+  return sections
+}
+
+/**
+ * Split description into multiple sections  
+ */
+function splitDescriptionIntoSections(text: string): {
+  description: string
+  requirements: string
+  responsibilities: string
+  benefits: string
+} {
+  const sections = {
+    description: text,
+    requirements: "",
+    responsibilities: "",
+    benefits: ""
+  }
+  
+  const sectionKeywords = {
+    requirements: ['requirements', 'qualifications', 'skills required', 'must have', 'what you need'],
+    responsibilities: ['responsibilities', 'duties', 'what you will do', 'your role', 'tasks'],
+    benefits: ['benefits', 'what we offer', 'perks', 'why join us', 'compensation package']
+  }
+  
+  let remainingText = text
+  
+  // Find and extract each section
+  for (const [sectionName, keywords] of Object.entries(sectionKeywords)) {
+    for (const keyword of keywords) {
+      const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b[:\\s-]*([\\s\\S]*?)(?=\\b(?:${Object.values(sectionKeywords).flat().map(k => k.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).join('|')})|$)`, 'gi')
+      
+      const match = remainingText.match(regex)
+      if (match && match[0]) {
+        const content = match[0].replace(new RegExp(`^\\b${keyword.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b[:\\s-]*`, 'gi'), '').trim()
+        if (content.length > 20) {
+          sections[sectionName as keyof typeof sections] = content
+          // Remove this section from remaining text
+          remainingText = remainingText.replace(match[0], '').trim()
+          break
+        }
+      }
+    }
+  }
+  
+  sections.description = remainingText || text.substring(0, Math.min(500, text.length))
+  
+  return sections
 }

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { normalizeJobDataWithGemini } from '@/lib/gemini-ai'
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,12 +71,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Apply Gemini normalization to all extracted data for consistency
+    console.log("🤖 Normalizing extracted job data with Gemini AI...")
+    const normalizedData = await normalizeJobDataWithGemini(extractedData, text)
+    
+    if (normalizedData) {
+      extractedData = normalizedData
+      console.log("✅ Gemini normalization applied successfully")
+    } else {
+      console.log("⚠️ Using original extracted data (Gemini normalization failed)")
+    }
+
 
 
     return NextResponse.json({
       success: true,
       ...extractedData,
       method: structuredData ? "enhanced-scraper" : (googleApiKey ? "ai" : "regex"),
+      normalized: !!normalizedData
     })
   } catch (error: any) {
     console.error("❌ Job parsing error:", error)

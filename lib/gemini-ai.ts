@@ -1010,3 +1010,204 @@ export async function analyzePDFContent(text: string): Promise<any> {
     summary: "Candidate extracted from PDF document"
   }
 }
+
+/**
+ * Normalize job data using Gemini AI for consistent formatting and enhanced extraction
+ */
+export async function normalizeJobDataWithGemini(
+  rawData: any,
+  originalContent?: string
+): Promise<any> {
+  if (!genAI) {
+    console.warn("⚠️ Gemini AI not initialized, using raw data")
+    return rawData
+  }
+
+  // Check quota and cooldown before making API call
+  if (!checkApiQuota()) {
+    console.log("🔄 API unavailable (quota/cooldown), using raw data")
+    return rawData
+  }
+
+  // Exponential Backoff Retry Logic
+  for (let attempt = 0; attempt <= EXPONENTIAL_BACKOFF_CONFIG.maxRetries; attempt++) {
+    try {
+      console.log(`🤖 Starting Gemini job data normalization (attempt ${attempt + 1})`)
+
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.3, // Lower temperature for more consistent data extraction
+          topK: 40,
+          topP: 0.8,
+          maxOutputTokens: 2000,
+        },
+      })
+
+      const prompt = `You are a job data normalization expert. Analyze and enhance the following job data to ensure consistent formatting and complete information extraction.
+
+CURRENT EXTRACTED DATA:
+${JSON.stringify(rawData, null, 2)}
+
+${originalContent ? `ORIGINAL CONTENT FOR REFERENCE:
+${originalContent.substring(0, 3000)}` : ''}
+
+Please normalize and enhance this data according to these requirements:
+
+1. **Title**: Clean and professional job title
+2. **Company**: Full company name (no abbreviations unless necessary)
+3. **Location**: Standardized format (City, State/Country or "Remote")
+4. **Department**: Extract or infer department (Engineering, Marketing, Sales, etc.)
+5. **Description**: Clean, well-formatted paragraph (2-4 sentences)
+6. **Requirements**: Extract and format as clear bullet points (3-8 items)
+7. **Responsibilities**: Extract key job responsibilities as bullet points (3-6 items)
+8. **Benefits**: Company benefits and perks as bullet points (2-5 items)
+9. **Employment Type**: Standardize (full-time, part-time, contract, internship)
+10. **Experience Level**: Categorize (entry-level, mid-level, senior-level, executive)
+11. **Skills**: Technical and soft skills as array (5-10 items)
+12. **Salary**: Clean format with currency and range if available
+13. **Application Deadline**: Date in YYYY-MM-DD format if mentioned
+
+Return ONLY a JSON object with this exact structure:
+{
+  "title": "Clean job title",
+  "company": "Company Name",
+  "location": "City, State/Country or Remote",
+  "department": "Department name",
+  "description": "Professional description paragraph",
+  "requirements": "• Requirement 1\\n• Requirement 2\\n• Requirement 3",
+  "responsibilities": "• Responsibility 1\\n• Responsibility 2\\n• Responsibility 3", 
+  "benefits": "• Benefit 1\\n• Benefit 2\\n• Benefit 3",
+  "employmentType": "full-time",
+  "experienceLevel": "mid-level",
+  "skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
+  "salary": "$80,000 - $120,000",
+  "applicationDeadline": "2024-12-31"
+}
+
+IMPORTANT: 
+- Use bullet points (•) for lists in requirements, responsibilities, and benefits
+- Ensure all text is clean and professional
+- Return ONLY the JSON object, no additional text
+- If information is missing, use reasonable defaults or leave empty strings`
+
+      const result = await model.generateContent([prompt])
+      const response = await result.response
+      const text = response.text()
+
+      // Check for error indicators
+      if (
+        text.includes("Request Entity Too Large") ||
+        text.includes("quota") ||
+        text.includes("rate limit") ||
+        text.includes("overloaded")
+      ) {
+        console.warn("⚠️ Gemini API error detected in response")
+        if (attempt < EXPONENTIAL_BACKOFF_CONFIG.maxRetries) {
+          await exponentialBackoffSleep(attempt)
+          continue
+        }
+        recordTemporaryFailure()
+        return rawData
+      }
+
+      // Increment usage counter on successful call
+      incrementApiUsage()
+      
+      // Reset temporary failure count on success
+      temporaryFailureCount = 0
+
+      console.log("✅ Gemini job normalization response received, parsing...")
+      return parseGeminiJobResponse(text, rawData)
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`❌ Gemini job normalization failed (attempt ${attempt + 1}):`, errorMessage)
+
+      // Check if this is a retryable error
+      if (isRetryableError(error) && attempt < EXPONENTIAL_BACKOFF_CONFIG.maxRetries) {
+        console.log(`🔄 Retryable error detected, applying exponential backoff...`)
+        await exponentialBackoffSleep(attempt)
+        continue
+      }
+
+      console.error("❌ Job normalization failed, using raw data")
+      recordTemporaryFailure()
+      return rawData
+    }
+  }
+
+  // If all retries failed
+  console.error("❌ All Gemini job normalization attempts failed, using raw data")
+  recordTemporaryFailure()
+  return rawData
+}
+
+/**
+ * Parse Gemini response for job data normalization
+ */
+function parseGeminiJobResponse(textResponse: string, fallbackData: any): any {
+  try {
+    let jsonText = textResponse.trim()
+
+    console.log("🔍 Parsing Gemini job normalization response")
+
+    // Remove markdown formatting
+    if (jsonText.includes("```json")) {
+      const start = jsonText.indexOf("```json") + 7
+      const end = jsonText.indexOf("```", start)
+      if (end > start) {
+        jsonText = jsonText.substring(start, end).trim()
+      }
+    } else if (jsonText.includes("```")) {
+      const start = jsonText.indexOf("```") + 3
+      const end = jsonText.lastIndexOf("```")
+      if (end > start) {
+        jsonText = jsonText.substring(start, end).trim()
+      }
+    }
+
+    // Find JSON boundaries
+    const firstBrace = jsonText.indexOf("{")
+    const lastBrace = jsonText.lastIndexOf("}")
+
+    if (firstBrace === -1 || lastBrace === -1) {
+      console.warn("⚠️ No valid JSON found in Gemini response")
+      return fallbackData
+    }
+
+    jsonText = jsonText.substring(firstBrace, lastBrace + 1)
+
+    // Clean up JSON
+    jsonText = jsonText
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // Remove control characters
+      .replace(/,\s*}/g, "}") // Remove trailing commas
+      .replace(/,\s*]/g, "]") // Remove trailing commas in arrays
+
+    const normalizedData = JSON.parse(jsonText)
+
+    // Validate and merge with fallback data
+    const result = {
+      title: normalizedData.title || fallbackData.title || "",
+      company: normalizedData.company || fallbackData.company || "",
+      location: normalizedData.location || fallbackData.location || "",
+      department: normalizedData.department || fallbackData.department || "",
+      description: normalizedData.description || fallbackData.description || "",
+      requirements: normalizedData.requirements || fallbackData.requirements || "",
+      responsibilities: normalizedData.responsibilities || fallbackData.responsibilities || "",
+      benefits: normalizedData.benefits || fallbackData.benefits || "",
+      employmentType: normalizedData.employmentType || fallbackData.employmentType || "full-time",
+      experienceLevel: normalizedData.experienceLevel || fallbackData.experienceLevel || "mid-level",
+      skills: Array.isArray(normalizedData.skills) ? normalizedData.skills : (fallbackData.skills || []),
+      salary: normalizedData.salary || fallbackData.salary || "",
+      applicationDeadline: normalizedData.applicationDeadline || fallbackData.applicationDeadline || ""
+    }
+
+    console.log("✅ Successfully normalized job data with Gemini")
+    return result
+
+  } catch (error) {
+    console.error("❌ Failed to parse Gemini job normalization response:", error)
+    return fallbackData
+  }
+}
