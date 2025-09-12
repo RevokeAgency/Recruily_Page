@@ -26,6 +26,272 @@ import { useToast } from "@/hooks/use-toast"
 // Import Job interface from useJobs hook
 import type { Job } from "@/hooks/use-jobs"
 
+// Applications Tab Component
+function ApplicationsTab({ jobId }: { jobId: string }) {
+  const { toast } = useToast()
+  const router = useRouter()
+  const [matches, setMatches] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMatches = async () => {
+      try {
+        console.log("📋 Fetching matches for job:", jobId)
+        
+        const response = await fetch(`/api/matches?jobId=${jobId}`)
+        const data = await response.json()
+        
+        if (data.success) {
+          setMatches(data.matches || [])
+          console.log(`✅ Found ${data.matches?.length || 0} matches`)
+        } else {
+          console.warn("⚠️ Failed to fetch matches:", data.error)
+        }
+      } catch (error) {
+        console.error("❌ Error fetching matches:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (jobId) {
+      fetchMatches()
+    }
+  }, [jobId])
+
+  const handleStatusChange = async (matchId: string, newStatus: string) => {
+    try {
+      console.log(`🔄 Updating match status: ${matchId} → ${newStatus}`)
+      
+      const response = await fetch(`/api/matches/${matchId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+      
+      if (response.ok) {
+        setMatches(prev => prev.map(match => 
+          match.id === matchId ? { ...match, status: newStatus } : match
+        ))
+        toast({
+          title: "Status Updated",
+          description: `Candidate status changed to ${newStatus}`
+        })
+      }
+    } catch (error) {
+      console.error("❌ Error updating status:", error)
+      toast({
+        title: "Update Failed",
+        description: "Failed to update candidate status",
+        variant: "destructive"
+      })
+    }
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Applications</CardTitle>
+          <CardDescription>
+            Loading candidate applications...
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center space-y-4">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="text-gray-600">Loading applications...</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (matches.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Applications</CardTitle>
+          <CardDescription>
+            Manage and review job applications
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12">
+            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Yet</h3>
+            <p className="text-gray-600 mb-4">
+              Applications will appear here once you invite candidates to this job.
+            </p>
+            <Button onClick={() => router.push(`/dashboard/jobs/${jobId}/invite`)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Invite Candidates
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Applications ({matches.length})</CardTitle>
+          <CardDescription>
+            Manage and review candidate applications
+          </CardDescription>
+        </div>
+        <Button onClick={() => router.push(`/dashboard/jobs/${jobId}/invite`)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Invite More Candidates
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {matches.map((match) => (
+            <div key={match.id} className="border rounded-lg p-4 space-y-3">
+              {/* Candidate Header */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 font-semibold text-lg">
+                      {match.candidate?.name?.charAt(0)?.toUpperCase() || '?'}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-lg">{match.candidate?.name || 'Unknown Candidate'}</h4>
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      {match.candidate?.email && (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          {match.candidate.email}
+                        </span>
+                      )}
+                      {match.candidate?.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {match.candidate.location}
+                        </span>
+                      )}
+                      {match.candidate?.experience_years > 0 && (
+                        <span>{match.candidate.experience_years} years exp.</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  {/* Match Score */}
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${
+                      match.score >= 80 ? 'text-green-600' : 
+                      match.score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {match.score}%
+                    </div>
+                    <div className="text-xs text-gray-500">Match</div>
+                  </div>
+                  
+                  {/* Status Badge */}
+                  <div>
+                    <select
+                      value={match.status}
+                      onChange={(e) => handleStatusChange(match.id, e.target.value)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${
+                        match.status === 'invited' ? 'bg-blue-100 text-blue-800' :
+                        match.status === 'reviewing' ? 'bg-yellow-100 text-yellow-800' :
+                        match.status === 'contacted' ? 'bg-purple-100 text-purple-800' :
+                        match.status === 'interviewing' ? 'bg-orange-100 text-orange-800' :
+                        match.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        match.status === 'hired' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      <option value="invited">Invited</option>
+                      <option value="reviewing">Reviewing</option>
+                      <option value="contacted">Contacted</option>
+                      <option value="interviewing">Interviewing</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="hired">Hired</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Skills */}
+              {match.candidate?.skills && match.candidate.skills.length > 0 && (
+                <div>
+                  <div className="flex flex-wrap gap-1">
+                    {match.candidate.skills.slice(0, 6).map((skill: string, index: number) => (
+                      <span 
+                        key={index}
+                        className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                    {match.candidate.skills.length > 6 && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded">
+                        +{match.candidate.skills.length - 6} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Match Analysis */}
+              {(match.strengths?.length > 0 || match.weaknesses?.length > 0) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t">
+                  {match.strengths?.length > 0 && (
+                    <div>
+                      <h5 className="text-sm font-medium text-green-700 mb-2">Strengths</h5>
+                      <ul className="text-sm text-green-600 space-y-1">
+                        {match.strengths.slice(0, 3).map((strength: string, index: number) => (
+                          <li key={index} className="flex items-start gap-1">
+                            <CheckCircle2 className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            <span>{strength}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {match.weaknesses?.length > 0 && (
+                    <div>
+                      <h5 className="text-sm font-medium text-orange-700 mb-2">Areas for Discussion</h5>
+                      <ul className="text-sm text-orange-600 space-y-1">
+                        {match.weaknesses.slice(0, 2).map((weakness: string, index: number) => (
+                          <li key={index} className="flex items-start gap-1">
+                            <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            <span>{weakness}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Applied Date */}
+              <div className="flex items-center justify-between pt-2 text-xs text-gray-500">
+                <span>Applied: {new Date(match.created_at).toLocaleDateString()}</span>
+                {match.candidate?.source && (
+                  <span className="capitalize">Source: {match.candidate.source.replace('_', ' ')}</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function JobWorkspace() {
   const params = useParams()
   const router = useRouter()
@@ -272,7 +538,11 @@ export default function JobWorkspace() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button className="w-full justify-start" size="lg">
+                <Button 
+                  className="w-full justify-start" 
+                  size="lg"
+                  onClick={() => router.push(`/dashboard/jobs/${jobId}/invite`)}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Invite Candidates
                 </Button>
@@ -294,27 +564,7 @@ export default function JobWorkspace() {
         </TabsContent>
 
         <TabsContent value="applications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Applications</CardTitle>
-              <CardDescription>
-                Manage and review job applications
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Yet</h3>
-                <p className="text-gray-600 mb-4">
-                  Applications will appear here once candidates start applying to your job.
-                </p>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Invite Candidates
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <ApplicationsTab jobId={jobId} />
         </TabsContent>
 
         <TabsContent value="candidates">

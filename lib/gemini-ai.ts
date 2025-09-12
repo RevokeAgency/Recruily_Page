@@ -1224,3 +1224,230 @@ function parseGeminiJobResponse(textResponse: string, fallbackData: any): any {
     return fallbackData
   }
 }
+
+/**
+ * Normalize candidate data extracted from CV or URL using Gemini AI
+ */
+export async function normalizeCandidateDataWithGemini(
+  candidateData: any,
+  rawText: string
+): Promise<any | null> {
+  if (!genAI) {
+    console.warn("⚠️ Gemini AI not initialized")
+    return null
+  }
+
+  if (!checkApiQuota()) {
+    console.log("🔄 API unavailable (quota/cooldown)")
+    return null
+  }
+
+  for (let attempt = 0; attempt < EXPONENTIAL_BACKOFF_CONFIG.maxRetries; attempt++) {
+    try {
+      console.log(`🤖 Normalizing candidate data with Gemini AI (attempt ${attempt + 1})`)
+
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+
+      const prompt = `You are an expert candidate profile analyzer. I need you to analyze and normalize candidate data extracted from a CV or profile.
+
+INPUT DATA:
+Raw text: "${rawText}"
+Extracted data: ${JSON.stringify(candidateData, null, 2)}
+
+Please normalize and enhance this candidate data with the following requirements:
+
+1. **Name**: Clean full name (first last)
+2. **Email**: Valid email address 
+3. **Phone**: Clean phone number format
+4. **Location**: Standardized location (City, State/Country)
+5. **Skills**: Array of relevant technical and soft skills (deduplicated, standardized)
+6. **Experience**: Calculate years of experience from job history or stated experience
+7. **Education**: Highest degree and field of study
+8. **Summary**: Professional summary (2-3 sentences, 150 chars max)
+9. **LinkedIn**: Clean LinkedIn URL if found
+10. **Languages**: Array of languages spoken
+11. **Certifications**: Array of professional certifications
+
+IMPORTANT FORMATTING RULES:
+- Skills should be lowercase, deduplicated, and relevant
+- Years of experience should be a number (0 if not found)
+- Location should be "City, State" or "City, Country" format
+- Summary should be professional and concise
+- All fields should be clean and standardized
+
+Return ONLY a valid JSON object with these exact field names:
+{
+  "name": "string",
+  "email": "string", 
+  "phone": "string",
+  "location": "string",
+  "skills": ["skill1", "skill2"],
+  "experience_years": 0,
+  "education": "string",
+  "degree": "string",
+  "university": "string", 
+  "graduation_year": 2023,
+  "summary": "string",
+  "linkedin_url": "string",
+  "portfolio_url": "string",
+  "github_url": "string",
+  "languages": ["English"],
+  "certifications": ["cert1", "cert2"],
+  "salary_expectation_min": 50000,
+  "salary_expectation_max": 70000,
+  "visa_status": "string",
+  "availability": "available"
+}`
+
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const text = response.text()
+
+      incrementApiUsage()
+
+      // Parse the JSON response
+      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        throw new Error("No JSON found in Gemini response")
+      }
+
+      const normalizedData = JSON.parse(jsonMatch[0])
+      console.log("✅ Successfully normalized candidate data with Gemini")
+      return normalizedData
+
+    } catch (error: any) {
+      console.error(`❌ Gemini candidate normalization error (attempt ${attempt + 1}):`, error)
+      
+      if (isRetryableError(error) && attempt < EXPONENTIAL_BACKOFF_CONFIG.maxRetries - 1) {
+        recordTemporaryFailure()
+        await exponentialBackoffSleep(attempt)
+        continue
+      } else {
+        console.error("❌ Final failure in candidate normalization")
+        return null
+      }
+    }
+  }
+
+  return null
+}
+
+/**
+ * Calculate AI-powered matching score between job and candidate
+ */
+export async function calculateMatchingScore(
+  job: any,
+  candidate: any
+): Promise<any> {
+  if (!genAI) {
+    console.warn("⚠️ Gemini AI not initialized")
+    throw new Error("AI matching unavailable")
+  }
+
+  if (!checkApiQuota()) {
+    console.log("🔄 API unavailable (quota/cooldown)")
+    throw new Error("AI matching quota exceeded")
+  }
+
+  for (let attempt = 0; attempt < EXPONENTIAL_BACKOFF_CONFIG.maxRetries; attempt++) {
+    try {
+      console.log(`🤖 Calculating matching score with Gemini AI (attempt ${attempt + 1})`)
+
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+
+      const prompt = `You are an expert recruiting AI. Analyze the match between this job and candidate to calculate a comprehensive matching score.
+
+JOB DETAILS:
+Title: ${job.title}
+Company: ${job.company}
+Location: ${job.location}
+Description: ${job.description}
+Requirements: ${job.requirements}
+Skills Required: ${job.technical_skills || job.skills}
+Experience Level: ${job.experience_level}
+Employment Type: ${job.employment_type}
+Salary Range: ${job.salary_min ? `$${job.salary_min} - $${job.salary_max}` : 'Not specified'}
+
+CANDIDATE PROFILE:
+Name: ${candidate.name}
+Location: ${candidate.location}
+Experience: ${candidate.experience_years} years
+Skills: ${Array.isArray(candidate.skills) ? candidate.skills.join(', ') : candidate.skills}
+Education: ${candidate.education}
+Summary: ${candidate.summary}
+Salary Expectation: ${candidate.salary_expectation_min ? `$${candidate.salary_expectation_min} - $${candidate.salary_expectation_max}` : 'Not specified'}
+
+Please analyze and provide a comprehensive matching assessment:
+
+1. **Overall Match Score** (0-100): Based on skills, experience, education, location
+2. **Detailed Analysis**: 
+   - Skills alignment (which skills match, which are missing)
+   - Experience fit (years and relevance)
+   - Location compatibility 
+   - Salary alignment
+   - Education requirements match
+3. **Strengths**: Top 3-5 strengths this candidate brings
+4. **Weaknesses**: Areas where candidate may not fully meet requirements  
+5. **Recommendations**: Hiring decision recommendation
+
+Return ONLY a valid JSON object:
+{
+  "score": 85,
+  "match_reasons": {
+    "skill_match_count": 8,
+    "experience_suitable": true,
+    "location_compatible": true,
+    "education_meets_requirements": true,
+    "salary_aligned": true
+  },
+  "strengths": ["Strong technical skills", "Relevant experience", "Good cultural fit"],
+  "weaknesses": ["Missing specific framework experience", "Junior level for senior role"],
+  "skill_matches": {
+    "matched": ["javascript", "react", "node.js"],
+    "missing": ["kubernetes", "aws"],
+    "bonus": ["typescript", "graphql"]
+  },
+  "experience_match": 85,
+  "location_match": true,
+  "salary_match": true,
+  "ai_analysis": {
+    "recommendation": "strong_match",
+    "confidence": 0.85,
+    "key_factors": ["skills", "experience", "location"],
+    "concerns": ["specific technology gap"],
+    "interview_focus": ["technical depth", "problem solving"]
+  }
+}`
+
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const text = response.text()
+
+      incrementApiUsage()
+
+      // Parse the JSON response
+      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        throw new Error("No JSON found in Gemini matching response")
+      }
+
+      const matchingResult = JSON.parse(jsonMatch[0])
+      console.log(`✅ AI matching complete: ${matchingResult.score}% match`)
+      return matchingResult
+
+    } catch (error: any) {
+      console.error(`❌ Gemini matching error (attempt ${attempt + 1}):`, error)
+      
+      if (isRetryableError(error) && attempt < EXPONENTIAL_BACKOFF_CONFIG.maxRetries - 1) {
+        recordTemporaryFailure()
+        await exponentialBackoffSleep(attempt)
+        continue
+      } else {
+        console.error("❌ Final failure in matching calculation")
+        throw error
+      }
+    }
+  }
+
+  throw new Error("AI matching failed after all retries")
+}
