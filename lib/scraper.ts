@@ -9,6 +9,8 @@ export interface ScrapedJobData {
   location?: string
   description?: string
   requirements?: string
+  responsibilities?: string
+  benefits?: string
   skills?: string[]
   employmentType?: string
   experienceLevel?: string

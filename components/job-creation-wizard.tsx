@@ -35,6 +35,8 @@ interface JobFormData {
   location: string
   description: string
   requirements: string
+  responsibilities: string
+  benefits: string
   salary_min: string
   salary_max: string
   employment_type: string
@@ -69,6 +71,8 @@ export default function JobCreationWizard() {
     location: "",
     description: "",
     requirements: "",
+    responsibilities: "",
+    benefits: "",
     salary_min: "",
     salary_max: "",
     employment_type: "full-time",
@@ -163,55 +167,51 @@ export default function JobCreationWizard() {
     if (data.salary && data.salary.trim()) {
       console.log("💰 Processing salary data:", data.salary)
       
-      // Comprehensive salary patterns for exact extraction
+      // Clean salary string first
+      const salaryStr = data.salary.trim()
+      
+      // Simple and effective salary patterns
       const patterns = [
-        // Ranges with various separators and currencies
-        /(?:salary|compensation|pay|wage)?\s*[:\-]?\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?\s*(?:-|to|–|—|\s)\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?\s*(?:per\s+year|annually|\/year)?/i,
-        // Range patterns with k notation: 80k-120k, $80k-$120k  
-        /\$?\s*(\d{1,3})\s*k\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3})\s*k/i,
-        // Full number ranges: $80,000 - $120,000
-        /\$\s*(\d{1,3}(?:,\d{3})+)\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3}(?:,\d{3})+)/,
-        // Range without commas: 80000-120000
-        /(\d{5,7})\s*(?:-|to|–|—)\s*(\d{5,7})/,
-        // Single salary with k: $100k, 100k
-        /\$?\s*(\d{1,3})\s*k\s*(?:per\s+year|annually|\/year)?/i,
-        // Single salary full: $100,000
-        /\$\s*(\d{1,3}(?:,\d{3})+)(?:\.\d{2})?/,
-        // Simple number: 100000
-        /(?:salary|compensation|pay)?\s*[:\-]?\s*(\d{5,7})(?:\.\d{2})?/i
+        // Range patterns: $80,000 - $120,000, $80k - $120k, 80k-120k
+        /\$?\s*(\d{1,3}(?:,?\d{3})*)\s*k?\s*(?:\s*-\s*|\s+to\s+)\s*\$?\s*(\d{1,3}(?:,?\d{3})*)\s*k?/i,
+        // Single salary: $100,000, $100k, 100000, 100k
+        /\$?\s*(\d{1,3}(?:,?\d{3})*)\s*k?(?:\s*(?:annually|per\s*year|\/year))?/i
       ]
       
       let salaryParsed = false
       
       for (const pattern of patterns) {
-        const match = data.salary.match(pattern)
+        const match = salaryStr.match(pattern)
         if (match) {
+          console.log("💰 Salary pattern matched:", match[0])
+          
           const convertSalary = (val: string) => {
             if (!val) return ''
             
-            // Remove non-numeric characters except decimal points
-            let cleanNum = val.replace(/[,$]/g, '')
+            // Remove commas and dollar signs
+            let num = val.replace(/[,$\s]/g, '')
             
-            // Handle k notation
-            if (/k$/i.test(val)) {
-              const baseNum = parseFloat(cleanNum.replace(/k$/i, ''))
-              return (baseNum * 1000).toString()
+            // Handle k notation (convert to thousands)
+            if (salaryStr.toLowerCase().includes('k')) {
+              const baseNum = parseFloat(num)
+              if (!isNaN(baseNum) && baseNum < 1000) {
+                return (baseNum * 1000).toString()
+              }
             }
             
-            // Return clean number
-            return cleanNum
+            // Return as-is if it's already a full number
+            return num
           }
           
           if (match[2]) { 
-            // Range found
+            // Range found (two values)
             updates.salary_min = convertSalary(match[1])
             updates.salary_max = convertSalary(match[2])
             console.log("💰 Salary range parsed:", updates.salary_min, "-", updates.salary_max)
           } else if (match[1]) { 
             // Single salary found
-            const singleSalary = convertSalary(match[1])
-            updates.salary_min = singleSalary
-            console.log("💰 Salary extracted:", updates.salary_min)
+            updates.salary_min = convertSalary(match[1])
+            console.log("💰 Single salary extracted:", updates.salary_min)
           }
           salaryParsed = true
           break
@@ -778,39 +778,7 @@ export default function JobCreationWizard() {
                 </div>
               </div>
 
-              {/* Responsibilities */}
-              <div className="space-y-2">
-                <Label htmlFor="review-responsibilities">Responsibilities</Label>
-                <div className="relative">
-                  <Textarea
-                    id="review-responsibilities"
-                    placeholder="List the key responsibilities and day-to-day tasks..."
-                    value={formData.responsibilities}
-                    onChange={(e) => handleInputChange("responsibilities", e.target.value)}
-                    rows={5}
-                    className="pr-10 whitespace-pre-wrap leading-relaxed resize-none"
-                    style={{lineHeight: '1.6'}}
-                  />
-                  <Edit3 className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-                </div>
-              </div>
 
-              {/* Benefits */}
-              <div className="space-y-2">
-                <Label htmlFor="review-benefits">Benefits</Label>
-                <div className="relative">
-                  <Textarea
-                    id="review-benefits"
-                    placeholder="List employee benefits, perks, and what makes your company great..."
-                    value={formData.benefits}
-                    onChange={(e) => handleInputChange("benefits", e.target.value)}
-                    rows={4}
-                    className="pr-10 whitespace-pre-wrap leading-relaxed resize-none"
-                    style={{lineHeight: '1.6'}}
-                  />
-                  <Edit3 className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-                </div>
-              </div>
 
               {/* Skills */}
               <div className="space-y-2">
@@ -845,21 +813,7 @@ export default function JobCreationWizard() {
                 </div>
               </div>
 
-              {/* Benefits */}
-              <div className="space-y-2">
-                <Label htmlFor="review-benefits">Benefits</Label>
-                <div className="relative">
-                  <Textarea
-                    id="review-benefits"
-                    placeholder="List employee benefits, perks, and what makes your company great..."
-                    value=""
-                    onChange={() => {}}
-                    rows={3}
-                    className="pr-10"
-                  />
-                  <Edit3 className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-                </div>
-              </div>
+
             </CardContent>
           </Card>
 

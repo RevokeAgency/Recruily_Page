@@ -1065,13 +1065,19 @@ CRITICAL REQUIREMENTS - Extract and format with absolute precision:
 9. **Salary**: EXACT salary extraction - preserve original format, numbers, currency, ranges
 10. **Application Deadline**: Extract exact deadline in YYYY-MM-DD format if mentioned
 
-SALARY EXTRACTION RULES:
+SALARY EXTRACTION RULES (CRITICAL):
 - If range found (e.g., "$80,000 - $120,000", "80k-120k"): preserve exact format
 - If single number (e.g., "$100,000", "100k"): use as-is  
 - If hourly rate (e.g., "$50/hour"): keep hourly format
 - If annual notation (e.g., "100k annually"): include notation
 - If no salary: leave empty string ""
 - DO NOT invent or estimate salaries - extract EXACTLY what's written
+- Look for patterns like: "Salary:", "Pay:", "$X-Y", "XK-YK", "$X/hour", "Starting at $X"
+
+FIELDS TO IGNORE:
+- Do NOT extract or fill "responsibilities" field - leave empty
+- Do NOT extract or fill "benefits" field - leave empty
+- Focus ONLY on the core fields listed above
 
 Return ONLY a JSON object with this exact structure:
 {
@@ -1080,6 +1086,8 @@ Return ONLY a JSON object with this exact structure:
   "location": "Exact location or Remote",
   "description": "Complete professional description",
   "requirements": "• Requirement 1\\n• Requirement 2\\n• Requirement 3\\n• Requirement 4",
+  "responsibilities": "",
+  "benefits": "",
   "employmentType": "full-time",
   "experienceLevel": "mid-level", 
   "skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
@@ -1092,6 +1100,7 @@ ABSOLUTE REQUIREMENTS:
 - Preserve exact salary formatting and numbers from original content
 - Use bullet points (•) for requirements formatting
 - Return ONLY the JSON object, no additional text
+- Leave responsibilities and benefits as empty strings
 - If information is not clearly present, use empty strings
 - Focus on precision over completeness`
 

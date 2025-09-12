@@ -17,6 +17,8 @@ export interface ParsedJobData {
   location?: string
   description?: string
   requirements?: string
+  responsibilities?: string
+  benefits?: string
   skills?: string[]
   employmentType?: string
   experienceLevel?: string
@@ -215,6 +217,10 @@ function parseJobDataFromText(text: string): ParsedJobData {
   
   // Extract enhanced job information using new extractors
   parsedData.applicationDeadline = extractApplicationDeadline(cleanText)
+  
+  // Leave responsibilities and benefits empty (not extracted)
+  parsedData.responsibilities = ""
+  parsedData.benefits = ""
   
   // Split description and requirements
   const { description, requirements } = splitDescriptionAndRequirements(cleanText)
