@@ -817,7 +817,7 @@ export default function JobCreationWizard() {
               </div>
               <CardTitle className="text-2xl">Ready to Publish!</CardTitle>
               <CardDescription className="text-lg">
-                Your job posting is ready to go live. Review the summary below and activate when ready.
+                Your job posting is ready to be added to your recruitment pipeline. Review the summary below and confirm to proceed.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -876,40 +876,16 @@ export default function JobCreationWizard() {
                 )}
               </div>
 
-              {/* Publishing Options */}
+              {/* Recruiter Notes */}
               <div className="space-y-4">
-                <h4 className="font-medium text-gray-900">Publishing Options</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-4 border rounded-lg bg-white">
-                    <input 
-                      type="checkbox" 
-                      id="publish-immediately" 
-                      defaultChecked 
-                      className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
-                    />
-                    <div className="flex-1">
-                      <label htmlFor="publish-immediately" className="font-medium text-gray-900 cursor-pointer">
-                        Publish Immediately
-                      </label>
-                      <p className="text-sm text-gray-600">
-                        Make this job posting visible to candidates right away
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3 p-4 border rounded-lg bg-white">
-                    <input 
-                      type="checkbox" 
-                      id="email-notifications" 
-                      defaultChecked 
-                      className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
-                    />
-                    <div className="flex-1">
-                      <label htmlFor="email-notifications" className="font-medium text-gray-900 cursor-pointer">
-                        Email Notifications
-                      </label>
-                      <p className="text-sm text-gray-600">
-                        Receive email alerts when candidates apply to this position
+                <h4 className="font-medium text-gray-900">Ready to Add to Your Job Pipeline</h4>
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <CheckCircle2 className="w-5 h-5 text-teal-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-teal-900">Job Ready for Your Pipeline</p>
+                      <p className="text-sm text-teal-700 mt-1">
+                        This job posting will be added to your recruitment dashboard where you can manage applications, track candidates, and coordinate with your team.
                       </p>
                     </div>
                   </div>
@@ -926,7 +902,7 @@ export default function JobCreationWizard() {
                   {(isProcessing || loading) ? (
                     <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Creating Job...</>
                   ) : (
-                    <><CheckCircle2 className="w-5 h-5 mr-2" /> Activate Job Posting</>
+                    <><CheckCircle2 className="w-5 h-5 mr-2" /> Add to Pipeline</>
                   )}
                 </Button>
               </div>

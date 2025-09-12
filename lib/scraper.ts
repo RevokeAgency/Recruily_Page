@@ -179,16 +179,16 @@ function parseScrapedContent(
     console.log("🏷️ Extracted skills:", jobData.skills.join(', '))
   }
 
-  // Enhanced description and requirements extraction
+  // Enhanced description and requirements extraction with better formatting
   const { description, requirements } = extractDescriptionAndRequirements(content, jobData.description)
   
   if (description) {
-    jobData.description = cleanHtmlContent(description)
+    jobData.description = formatTextContent(cleanHtmlContent(description))
     console.log("📄 Processed description (length):", jobData.description.length)
   }
   
   if (requirements) {
-    jobData.requirements = cleanHtmlContent(requirements)
+    jobData.requirements = formatRequirementsList(cleanHtmlContent(requirements))
     console.log("📋 Extracted requirements (length):", jobData.requirements.length)
   }
 
@@ -205,15 +205,15 @@ function parseScrapedContent(
       // Last resort: use cleaned sentences
       const sentences = cleanContent.split(/[.!?]+/).filter(s => s.trim().length > 30)
       if (sentences.length > 0) {
-        jobData.description = sentences.slice(0, 4).join('. ').trim() + '.'
+        jobData.description = formatTextContent(sentences.slice(0, 4).join('. ').trim() + '.')
         console.log("📄 Used fallback description from content sentences")
       }
     }
   }
   
-  // Ensure requirements are clean if they exist
+  // Ensure requirements are properly formatted if they exist
   if (jobData.requirements) {
-    jobData.requirements = cleanHtmlContent(jobData.requirements)
+    jobData.requirements = formatRequirementsList(cleanHtmlContent(jobData.requirements))
   }
 
   // Log final extraction summary
@@ -252,20 +252,39 @@ function cleanText(text: string): string {
 }
 
 /**
- * Clean HTML content more thoroughly for descriptions
+ * Clean HTML content more thoroughly for descriptions and format properly
  */
 function cleanHtmlContent(html: string): string {
   if (!html) return ''
   
   return html
-    // Replace block elements with line breaks
-    .replace(/<\/?(div|p|br|h[1-6])[^>]*>/gi, '\n')
-    .replace(/<li[^>]*>/gi, '\n• ') // Convert list items to bullet points
-    .replace(/<\/li>/gi, '')
-    .replace(/<ul[^>]*>|<\/ul>/gi, '\n')
-    .replace(/<ol[^>]*>|<\/ol>/gi, '\n')
-    // Remove all other HTML tags
+    // First pass: handle structured elements
+    .replace(/<h[1-6][^>]*>([^<]*)<\/h[1-6]>/gi, '\n\n**$1**\n') // Headers to bold
+    .replace(/<strong[^>]*>([^<]*)<\/strong>/gi, '**$1**') // Strong to bold markdown
+    .replace(/<b[^>]*>([^<]*)<\/b>/gi, '**$1**') // Bold to bold markdown
+    .replace(/<em[^>]*>([^<]*)<\/em>/gi, '*$1*') // Emphasis to italic
+    .replace(/<i[^>]*>([^<]*)<\/i>/gi, '*$1*') // Italic to italic markdown
+    
+    // Handle lists properly
+    .replace(/<ul[^>]*>/gi, '\n') // Start unordered list
+    .replace(/<\/ul>/gi, '\n') // End unordered list
+    .replace(/<ol[^>]*>/gi, '\n') // Start ordered list
+    .replace(/<\/ol>/gi, '\n') // End ordered list
+    .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (match, content) => {
+      // Clean the list item content and add bullet
+      const cleanContent = content.replace(/<[^>]*>/g, '').trim()
+      return `\n• ${cleanContent}`
+    })
+    
+    // Handle block elements
+    .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '\n\n$1\n') // Paragraphs with spacing
+    .replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, '\n$1\n') // Divs with line breaks
+    .replace(/<br\s*\/?>/gi, '\n') // Line breaks
+    .replace(/<hr[^>]*>/gi, '\n---\n') // Horizontal rules
+    
+    // Remove all remaining HTML tags
     .replace(/<[^>]*>/g, '')
+    
     // Clean up HTML entities
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
@@ -278,10 +297,46 @@ function cleanHtmlContent(html: string): string {
     .replace(/&lsquo;/g, "'")
     .replace(/&rdquo;/g, '"')
     .replace(/&ldquo;/g, '"')
-    // Clean up whitespace
-    .replace(/\n\s*\n/g, '\n\n') // Multiple line breaks to double
-    .replace(/\n{3,}/g, '\n\n') // No more than double line breaks
+    .replace(/&bull;/g, '•')
+    .replace(/&mdash;/g, '—')
+    .replace(/&ndash;/g, '–')
+    
+    // Clean up whitespace and formatting
+    .replace(/\n\s*\n\s*\n/g, '\n\n') // No more than double line breaks
+    .replace(/\n{4,}/g, '\n\n') // Maximum double line breaks
     .replace(/^\s+|\s+$/gm, '') // Trim each line
+    .replace(/[ \t]+/g, ' ') // Multiple spaces to single
+    .replace(/^\n+|\n+$/g, '') // Remove leading/trailing line breaks
+    .trim()
+}
+
+/**
+ * Format text content for better readability
+ */
+function formatTextContent(text: string): string {
+  if (!text) return ''
+  
+  return text
+    // Ensure proper sentence spacing
+    .replace(/\.(?=[A-Z])/g, '. ')
+    .replace(/\?(?=[A-Z])/g, '? ')
+    .replace(/!(?=[A-Z])/g, '! ')
+    
+    // Format bullet points consistently
+    .replace(/^[\s]*[-\*\+•]\s*/gm, '• ')
+    .replace(/^[\s]*\d+\.\s*/gm, (match, offset, string) => {
+      const number = match.match(/\d+/)?.[0] || '1'
+      return `${number}. `
+    })
+    
+    // Ensure proper paragraph spacing
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/([.!?])\n(?=[A-Z])/g, '$1\n\n')
+    
+    // Clean up common formatting issues
+    .replace(/\s+([,.!?;:])/g, '$1')
+    .replace(/([.!?])([A-Z])/g, '$1 $2')
+    
     .trim()
 }
 
@@ -1128,4 +1183,48 @@ export function getScrapingTips(url: string): string[] {
     'Avoid search result pages or listing pages',
     'Make sure the page is publicly accessible'
   ]
+}
+
+/**
+ * Format requirements list for better readability
+ */
+function formatRequirementsList(requirements: string): string {
+  if (!requirements) return ''
+  
+  // Clean and format the requirements
+  let formatted = requirements
+    // Ensure consistent bullet points
+    .replace(/^[\s]*[-\*\+•]\s*/gm, '• ')
+    
+    // Format numbered lists
+    .replace(/^[\s]*\d+\.\s*/gm, (match) => {
+      const number = match.match(/\d+/)?.[0] || '1'
+      return `${number}. `
+    })
+    
+    // Break up long lines into proper bullet points if they contain multiple requirements
+    .replace(/([.!?])\s*([A-Z][^.!?]*(?:experience|knowledge|skill|ability|proficiency|familiar)[^.!?]*[.!?])/g, '$1\n• $2')
+    
+    // Ensure proper capitalization after bullet points
+    .replace(/^•\s*([a-z])/gm, (match, letter) => `• ${letter.toUpperCase()}`)
+    .replace(/^\d+\.\s*([a-z])/gm, (match, letter) => match.replace(letter, letter.toUpperCase()))
+    
+    // Clean up spacing
+    .replace(/\n\s*\n/g, '\n')
+    .replace(/^\s+|\s+$/gm, '')
+    .trim()
+  
+  // If no bullet points or numbers were found, try to create them from sentences
+  if (!/^[•\d+\.]/.test(formatted)) {
+    const sentences = formatted.split(/[.!?]+/).filter(s => s.trim().length > 10)
+    if (sentences.length > 1) {
+      formatted = sentences
+        .map(s => s.trim())
+        .filter(s => s.length > 0)
+        .map(s => `• ${s.charAt(0).toUpperCase() + s.slice(1)}`)
+        .join('\n')
+    }
+  }
+  
+  return formatted
 }
