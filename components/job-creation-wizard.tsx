@@ -108,29 +108,92 @@ export default function JobCreationWizard() {
   }
 
   const populateFormFromData = (data: ScrapedJobData | ParsedJobData, source: "url" | "file", sourceIdentifier?: string) => {
-    console.log("🔄 Populating form with data:", data)
+    console.log("🔄 Populating form with extracted data:", data)
     
     const updates: Partial<JobFormData> = {}
     
-    if (data.title) updates.title = data.title
-    if (data.company) updates.company = data.company
-    if (data.location) updates.location = data.location
-    if (data.description) updates.description = data.description
-    if (data.requirements) updates.requirements = data.requirements
-    if (data.employmentType) updates.employment_type = mapEmploymentType(data.employmentType)
-    if (data.experienceLevel) updates.experience_level = mapExperienceLevel(data.experienceLevel)
+    // Clean and populate text fields
+    if (data.title && data.title.trim()) {
+      updates.title = data.title.trim()
+      console.log("📝 Title extracted:", updates.title)
+    }
     
-    // Handle salary
-    if (data.salary) {
-      const salaryMatch = data.salary.match(/\$?(\d{1,3}(?:,\d{3})*)\s*(?:-|to)\s*\$?(\d{1,3}(?:,\d{3})*)/)
-      if (salaryMatch) {
-        updates.salary_min = salaryMatch[1].replace(/,/g, "")
-        updates.salary_max = salaryMatch[2].replace(/,/g, "")
-      } else {
-        const singleSalaryMatch = data.salary.match(/\$?(\d{1,3}(?:,\d{3})*)/)
-        if (singleSalaryMatch) {
-          updates.salary_min = singleSalaryMatch[1].replace(/,/g, "")
+    if (data.company && data.company.trim()) {
+      updates.company = data.company.trim()
+      console.log("🏢 Company extracted:", updates.company)
+    }
+    
+    if (data.location && data.location.trim()) {
+      updates.location = data.location.trim()
+      console.log("📍 Location extracted:", updates.location)
+    }
+    
+    if (data.description && data.description.trim()) {
+      updates.description = data.description.trim()
+      console.log("📄 Description extracted (length):", updates.description.length)
+    }
+    
+    if (data.requirements && data.requirements.trim()) {
+      updates.requirements = data.requirements.trim()
+      console.log("📋 Requirements extracted (length):", updates.requirements.length)
+    }
+    
+    // Map employment type with better fallback
+    if (data.employmentType) {
+      updates.employment_type = mapEmploymentType(data.employmentType)
+      console.log("💼 Employment type mapped:", data.employmentType, "→", updates.employment_type)
+    }
+    
+    // Map experience level with better fallback  
+    if (data.experienceLevel) {
+      updates.experience_level = mapExperienceLevel(data.experienceLevel)
+      console.log("📊 Experience level mapped:", data.experienceLevel, "→", updates.experience_level)
+    }
+    
+    // Enhanced salary parsing
+    if (data.salary && data.salary.trim()) {
+      console.log("💰 Processing salary data:", data.salary)
+      
+      // Try multiple salary patterns
+      const patterns = [
+        // Range with currency symbols: $70,000 - $120,000 or $70k - $120k
+        /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/,
+        // Range without currency: 70000 - 120000 or 70k - 120k  
+        /(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/,
+        // Single salary with currency: $100,000 or $100k
+        /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/,
+        // Single salary without currency: 100000 or 100k
+        /(\d{1,3}(?:,?\d{3})*(?:k|K)?)/
+      ]
+      
+      let salaryParsed = false
+      
+      for (const pattern of patterns) {
+        const match = data.salary.match(pattern)
+        if (match) {
+          const convertSalary = (val: string) => {
+            let num = val.replace(/,/g, '').replace(/\$/g, '')
+            if (num.toLowerCase().includes('k')) {
+              return (parseFloat(num.replace(/k/i, '')) * 1000).toString()
+            }
+            return num
+          }
+          
+          if (match[2]) { // Range found
+            updates.salary_min = convertSalary(match[1])
+            updates.salary_max = convertSalary(match[2])
+            console.log("💰 Salary range parsed:", updates.salary_min, "-", updates.salary_max)
+          } else { // Single salary found
+            updates.salary_min = convertSalary(match[1])
+            console.log("💰 Minimum salary parsed:", updates.salary_min)
+          }
+          salaryParsed = true
+          break
         }
+      }
+      
+      if (!salaryParsed) {
+        console.log("⚠️ Could not parse salary:", data.salary)
       }
     }
     
@@ -143,25 +206,26 @@ export default function JobCreationWizard() {
       updates.source_filename = sourceIdentifier
     }
     
+    // Update form data
     setFormData(prev => ({ 
       ...prev, 
       ...updates,
       technical_skills: data.skills ? data.skills.join(', ') : prev.technical_skills
     }))
     
-    // Handle skills
+    // Handle skills separately to update both form data and skills array
     if (data.skills && data.skills.length > 0) {
+      console.log("🏷️ Skills extracted:", data.skills)
       setSkills(prev => {
-        const newSkills = data.skills!.filter(skill => !prev.includes(skill))
-        return [...prev, ...newSkills]
+        // Clear existing skills and set new ones from extracted data
+        const cleanedSkills = data.skills!
+          .filter(skill => skill && skill.trim())
+          .map(skill => skill.trim())
+        return [...cleanedSkills]
       })
     }
 
-    toast({
-      title: "Job data extracted!",
-      description: `Successfully extracted job information from ${source === "url" ? "URL" : "file"}.`,
-      variant: "default",
-    })
+    console.log("✅ Form population complete for", source, "extraction")
   }
 
   const mapEmploymentType = (type: string): string => {
@@ -195,18 +259,32 @@ export default function JobCreationWizard() {
 
     setIsScrapingUrl(true)
     try {
+      console.log("🌐 Starting URL scraping for:", jobUrl.trim())
       const result = await scrapeJobFromUrl(jobUrl.trim())
       
       if (result.success && result.data) {
+        console.log("✅ Scraping successful, populating form data:", result.data)
         populateFormFromData(result.data, "url", jobUrl.trim())
+        
+        // Auto-redirect to review section after successful scraping
+        setTimeout(() => {
+          setCurrentStep("review")
+          toast({
+            title: "Scraping complete!",
+            description: "Review the extracted job details below and make any necessary edits.",
+            variant: "default",
+          })
+        }, 500) // Small delay to let the form populate
+        
       } else {
         toast({
           title: "Scraping failed",
-          description: result.error || "Could not extract job data from the URL.",
+          description: result.error || "Could not extract job data from the URL. Please try a different URL or use manual entry.",
           variant: "destructive",
         })
       }
     } catch (error: any) {
+      console.error("❌ URL scraping error:", error)
       toast({
         title: "Scraping error",
         description: `Failed to scrape URL: ${error.message}`,
@@ -224,18 +302,32 @@ export default function JobCreationWizard() {
 
     setIsParsingFile(true)
     try {
+      console.log("📄 Starting file parsing for:", file.name)
       const result = await parseJobDescriptionFile(file)
       
       if (result.success && result.data) {
+        console.log("✅ File parsing successful, populating form data:", result.data)
         populateFormFromData(result.data, "file", file.name)
+        
+        // Auto-redirect to review section after successful parsing
+        setTimeout(() => {
+          setCurrentStep("review")
+          toast({
+            title: "File parsed successfully!",
+            description: "Review the extracted job details below and make any necessary edits.",
+            variant: "default",
+          })
+        }, 500) // Small delay to let the form populate
+        
       } else {
         toast({
           title: "File parsing failed",
-          description: result.error || "Could not extract job data from the file.",
+          description: result.error || "Could not extract job data from the file. Please try a different file or use manual entry.",
           variant: "destructive",
         })
       }
     } catch (error: any) {
+      console.error("❌ File parsing error:", error)
       toast({
         title: "File parsing error",
         description: `Failed to parse file: ${error.message}`,

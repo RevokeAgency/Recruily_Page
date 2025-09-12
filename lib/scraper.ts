@@ -113,30 +113,47 @@ function parseScrapedContent(
     siteType
   }
 
+  console.log("🔍 Processing scraped content for job data extraction")
+  
   // Use structured data first (from site-specific selectors and JSON-LD)
   if (structuredData) {
-    if (structuredData.title) jobData.title = cleanText(structuredData.title)
-    if (structuredData.company) jobData.company = cleanText(structuredData.company)
-    if (structuredData.location) jobData.location = cleanText(structuredData.location)
-    if (structuredData.description) jobData.description = cleanText(structuredData.description)
+    if (structuredData.title) {
+      jobData.title = cleanText(structuredData.title)
+      console.log("📝 Title from structured data:", jobData.title)
+    }
+    if (structuredData.company) {
+      jobData.company = cleanText(structuredData.company)
+      console.log("🏢 Company from structured data:", jobData.company)
+    }
+    if (structuredData.location) {
+      jobData.location = cleanText(structuredData.location)
+      console.log("📍 Location from structured data:", jobData.location)
+    }
+    if (structuredData.description) {
+      jobData.description = cleanText(structuredData.description)
+      console.log("📄 Description from structured data (length):", jobData.description.length)
+    }
   }
 
   // If no structured data or missing fields, parse from content
   const contentLower = content.toLowerCase()
 
-  // Extract title if not found
+  // Extract title if not found - with enhanced patterns
   if (!jobData.title) {
     jobData.title = extractTitleFromContent(content)
+    if (jobData.title) console.log("📝 Title from content extraction:", jobData.title)
   }
 
-  // Extract company if not found
+  // Extract company if not found - with enhanced patterns
   if (!jobData.company) {
     jobData.company = extractCompanyFromContent(content)
+    if (jobData.company) console.log("🏢 Company from content extraction:", jobData.company)
   }
 
-  // Extract location if not found
+  // Extract location if not found - with enhanced patterns
   if (!jobData.location) {
     jobData.location = extractLocationFromContent(content)
+    if (jobData.location) console.log("📍 Location from content extraction:", jobData.location)
   }
 
   // Extract employment type
@@ -150,18 +167,51 @@ function parseScrapedContent(
 
   // Extract skills
   jobData.skills = extractSkills(contentLower)
+  if (jobData.skills.length > 0) {
+    console.log("🏷️ Extracted skills:", jobData.skills.join(', '))
+  }
 
-  // Split description and requirements if we have a large description
+  // Enhanced description and requirements extraction
   if (jobData.description && jobData.description.length > 500) {
     const { description, requirements } = splitDescriptionAndRequirements(jobData.description)
     jobData.description = description
     jobData.requirements = requirements
-  } else if (!jobData.description) {
+    console.log("📄 Split long description into description + requirements")
+  } else if (!jobData.description || jobData.description.length < 100) {
     // Extract description and requirements from content
     const { description, requirements } = extractDescriptionAndRequirements(content)
-    jobData.description = description
-    jobData.requirements = requirements
+    if (description) {
+      jobData.description = description
+      console.log("📄 Extracted description from content (length):", description.length)
+    }
+    if (requirements) {
+      jobData.requirements = requirements
+      console.log("📋 Extracted requirements from content (length):", requirements.length)
+    }
   }
+
+  // Ensure we have some description
+  if (!jobData.description || jobData.description.length < 50) {
+    // Fallback: use first part of content as description
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20)
+    if (sentences.length > 0) {
+      jobData.description = sentences.slice(0, 3).join('. ').trim() + '.'
+      console.log("📄 Used fallback description from content sentences")
+    }
+  }
+
+  // Log final extraction summary
+  console.log("✅ Job data extraction complete:", {
+    title: !!jobData.title,
+    company: !!jobData.company,
+    location: !!jobData.location,
+    description: jobData.description ? jobData.description.length : 0,
+    requirements: jobData.requirements ? jobData.requirements.length : 0,
+    salary: !!jobData.salary,
+    employmentType: !!jobData.employmentType,
+    experienceLevel: !!jobData.experienceLevel,
+    skillsCount: jobData.skills ? jobData.skills.length : 0
+  })
 
   return jobData
 }
@@ -291,19 +341,31 @@ function extractExperienceLevel(lowerContent: string): string {
  */
 function extractSalary(content: string): string {
   const salaryPatterns = [
-    /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:-|to)\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g,
-    /salary[:\s]*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:-|to)?\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)?/i,
-    /compensation[:\s]*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:-|to)?\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)?/i,
-    /\$\s*(\d{1,3}(?:,\d{3})*)/g,
+    // Comprehensive salary patterns with k/K support
+    /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/g,
+    /salary[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/i,
+    /compensation[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/i,
+    /pay[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/i,
+    /wage[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/i,
+    // Range without currency symbols
+    /(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/g,
+    // Single salary with currency
+    /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/g,
+    // Annual salary patterns
+    /(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:per year|annually|\/year|pa)/gi,
   ]
 
   for (const pattern of salaryPatterns) {
-    const match = content.match(pattern)
-    if (match) {
-      return cleanText(match[0])
+    const matches = [...content.matchAll(pattern)]
+    if (matches.length > 0) {
+      const match = matches[0]
+      const salaryText = cleanText(match[0])
+      console.log("💰 Salary pattern matched:", salaryText)
+      return salaryText
     }
   }
 
+  console.log("⚠️ No salary information found in content")
   return ""
 }
 
