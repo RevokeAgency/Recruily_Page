@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,14 +9,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus, Briefcase, MapPin, DollarSign, Clock, Building } from "lucide-react"
+import { X, Plus, Briefcase, MapPin, DollarSign, Clock, Building, Link, Upload, Loader2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useJobs } from "@/hooks/use-jobs"
+import { scrapeJobFromUrl, type ScrapedJobData } from "@/lib/scraper"
+import { parseJobDescriptionFile, type ParsedJobData } from "@/lib/file-parser"
 
 export default function SimpleJobForm() {
   const router = useRouter()
   const { toast } = useToast()
   const { createJob, loading } = useJobs()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [formData, setFormData] = useState({
     title: "",
@@ -33,6 +36,33 @@ export default function SimpleJobForm() {
   
   const [skills, setSkills] = useState<string[]>([])
   const [currentSkill, setCurrentSkill] = useState("")
+  
+  // New state for URL scraping and file upload
+  const [jobUrl, setJobUrl] = useState("")
+  const [isScrapingUrl, setIsScrapingUrl] = useState(false)
+  const [isParsingFile, setIsParsingFile] = useState(false)
+  const [sourceType, setSourceType] = useState<"manual" | "url_scraping" | "file_upload">("manual")
+  const [sourceUrl, setSourceUrl] = useState<string>("")
+  const [sourceFilename, setSourceFilename] = useState<string>("")
+
+  // Helper functions for mapping extracted values to form values
+  const mapEmploymentType = (type: string): string => {
+    const lowerType = type.toLowerCase()
+    if (lowerType.includes('full') || lowerType.includes('permanent')) return 'full-time'
+    if (lowerType.includes('part')) return 'part-time'
+    if (lowerType.includes('contract') || lowerType.includes('freelance')) return 'contract'
+    if (lowerType.includes('intern')) return 'internship'
+    return 'full-time' // default
+  }
+
+  const mapExperienceLevel = (level: string): string => {
+    const lowerLevel = level.toLowerCase()
+    if (lowerLevel.includes('senior') || lowerLevel.includes('sr') || lowerLevel.includes('lead')) return 'senior-level'
+    if (lowerLevel.includes('junior') || lowerLevel.includes('jr') || lowerLevel.includes('entry')) return 'entry-level'
+    if (lowerLevel.includes('mid') || lowerLevel.includes('intermediate')) return 'mid-level'
+    if (lowerLevel.includes('executive') || lowerLevel.includes('director')) return 'executive'
+    return 'mid-level' // default
+  }
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
@@ -52,6 +82,162 @@ export default function SimpleJobForm() {
     setSkills(prev => prev.filter(skill => skill !== skillToRemove))
   }
 
+  // Auto-populate form fields from scraped or parsed data
+  const populateFormFromData = (data: ScrapedJobData | ParsedJobData, source: "url" | "file", sourceIdentifier?: string) => {
+    console.log("🔄 Populating form with data:", data)
+    
+    if (data.title) setFormData(prev => ({ ...prev, title: data.title! }))
+    if (data.company) setFormData(prev => ({ ...prev, company: data.company! }))
+    if (data.location) setFormData(prev => ({ ...prev, location: data.location! }))
+    if (data.description) setFormData(prev => ({ ...prev, description: data.description! }))
+    if (data.requirements) setFormData(prev => ({ ...prev, requirements: data.requirements! }))
+    // Handle employment type with mapping
+    if (data.employmentType) {
+      const mappedEmploymentType = mapEmploymentType(data.employmentType)
+      setFormData(prev => ({ ...prev, employment_type: mappedEmploymentType }))
+    }
+    
+    // Handle experience level with mapping
+    if (data.experienceLevel) {
+      const mappedExperienceLevel = mapExperienceLevel(data.experienceLevel)
+      setFormData(prev => ({ ...prev, experience_level: mappedExperienceLevel }))
+    }
+    
+    // Handle salary
+    if (data.salary) {
+      // Try to parse salary range
+      const salaryMatch = data.salary.match(/\$?(\d{1,3}(?:,\d{3})*)\s*(?:-|to)\s*\$?(\d{1,3}(?:,\d{3})*)/)
+      if (salaryMatch) {
+        setFormData(prev => ({ 
+          ...prev, 
+          salary_min: salaryMatch[1].replace(/,/g, ""),
+          salary_max: salaryMatch[2].replace(/,/g, "")
+        }))
+      } else {
+        // Single salary or couldn't parse range
+        const singleSalaryMatch = data.salary.match(/\$?(\d{1,3}(?:,\d{3})*)/)
+        if (singleSalaryMatch) {
+          setFormData(prev => ({ 
+            ...prev, 
+            salary_min: singleSalaryMatch[1].replace(/,/g, "")
+          }))
+        }
+      }
+    }
+    
+    // Handle skills
+    if (data.skills && data.skills.length > 0) {
+      setSkills(prev => {
+        const newSkills = data.skills!.filter(skill => !prev.includes(skill))
+        return [...prev, ...newSkills]
+      })
+    }
+    
+    // Set source tracking
+    if (source === "url") {
+      setSourceType("url_scraping")
+      setSourceUrl(sourceIdentifier || "")
+    } else if (source === "file") {
+      setSourceType("file_upload")
+      setSourceFilename(sourceIdentifier || "")
+    }
+
+    toast({
+      title: "Form auto-filled!",
+      description: `Job details have been extracted and populated from ${source === "url" ? "URL" : "file"}.`,
+      variant: "default",
+    })
+  }
+
+  // Handle URL scraping
+  const handleUrlScrape = async () => {
+    if (!jobUrl.trim()) {
+      toast({
+        title: "URL required",
+        description: "Please enter a job posting URL to scrape.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsScrapingUrl(true)
+    try {
+      const result = await scrapeJobFromUrl(jobUrl.trim())
+      
+      if (result.success && result.data) {
+        populateFormFromData(result.data, "url", jobUrl.trim())
+      } else {
+        toast({
+          title: "Scraping failed",
+          description: result.error || "Could not extract job data from the URL. Please try a different URL or fill the form manually.",
+          variant: "destructive",
+        })
+      }
+    } catch (error: any) {
+      toast({
+        title: "Scraping error",
+        description: `Failed to scrape URL: ${error.message}`,
+        variant: "destructive",
+      })
+    } finally {
+      setIsScrapingUrl(false)
+    }
+  }
+
+  // Handle file upload and parsing
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setIsParsingFile(true)
+    try {
+      const result = await parseJobDescriptionFile(file)
+      
+      if (result.success && result.data) {
+        populateFormFromData(result.data, "file", file.name)
+      } else {
+        toast({
+          title: "File parsing failed",
+          description: result.error || "Could not extract job data from the file. Please try a different file or fill the form manually.",
+          variant: "destructive",
+        })
+      }
+    } catch (error: any) {
+      toast({
+        title: "File parsing error",
+        description: `Failed to parse file: ${error.message}`,
+        variant: "destructive",
+      })
+    } finally {
+      setIsParsingFile(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
+  // Clear form data
+  const clearForm = () => {
+    setFormData({
+      title: "",
+      company: "",
+      location: "",
+      description: "",
+      requirements: "",
+      salary_min: "",
+      salary_max: "",
+      employment_type: "full-time",
+      experience_level: "mid-level",
+      remote_ok: false,
+    })
+    setSkills([])
+    setJobUrl("")
+    setSourceType("manual")
+    setSourceUrl("")
+    setSourceFilename("")
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -67,10 +253,18 @@ export default function SimpleJobForm() {
     try {
       const jobData = {
         ...formData,
-        skills,
-        salary_min: formData.salary_min ? parseInt(formData.salary_min) : null,
-        salary_max: formData.salary_max ? parseInt(formData.salary_max) : null,
-        status: 'open'
+        type: formData.employment_type, // Map employment_type to type
+        technical_skills: skills.join(", "), // Convert skills array to string
+        requirements: formData.requirements.split("\n").filter(r => r.trim()), // Convert to array
+        salary_range: formData.salary_min && formData.salary_max 
+          ? `$${formData.salary_min} - $${formData.salary_max}`
+          : formData.salary_min 
+            ? `$${formData.salary_min}+`
+            : undefined,
+        status: 'active' as const,
+        source_type: sourceType,
+        source_url: sourceUrl || undefined,
+        source_filename: sourceFilename || undefined,
       }
 
       await createJob(jobData)
@@ -98,6 +292,102 @@ export default function SimpleJobForm() {
         <h1 className="text-3xl font-bold text-gray-900">Create New Job</h1>
         <p className="text-gray-600 mt-2">Fill in the details to post a new job opening</p>
       </div>
+
+      {/* Input Methods Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            Quick Input Methods
+          </CardTitle>
+          <CardDescription>
+            Speed up job creation by importing from a URL or file, or continue with manual entry
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* URL Scraping Section */}
+          <div className="space-y-2">
+            <Label htmlFor="job-url" className="flex items-center gap-2">
+              <Link className="h-4 w-4" />
+              Import from Job URL
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="job-url"
+                placeholder="Paste job posting URL (LinkedIn, Indeed, Glassdoor, etc.)"
+                value={jobUrl}
+                onChange={(e) => setJobUrl(e.target.value)}
+                disabled={isScrapingUrl || isParsingFile}
+              />
+              <Button 
+                type="button" 
+                onClick={handleUrlScrape}
+                disabled={isScrapingUrl || isParsingFile || !jobUrl.trim()}
+                variant="outline"
+                className="shrink-0"
+              >
+                {isScrapingUrl ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Scraping...</>
+                ) : (
+                  <><Link className="h-4 w-4 mr-2" /> Import</>
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Supports LinkedIn, Indeed, Glassdoor, and other job boards
+            </p>
+          </div>
+
+          {/* File Upload Section */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Upload Job Description File
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.pdf,.docx"
+                onChange={handleFileUpload}
+                disabled={isScrapingUrl || isParsingFile}
+                className="file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+              />
+              {isParsingFile && (
+                <div className="flex items-center px-3 py-2 text-sm text-gray-600">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Parsing...
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">
+              Supports PDF, DOCX, and TXT files (max 10MB)
+            </p>
+          </div>
+
+          {/* Manual Entry Note */}
+          <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <p className="text-sm text-blue-800">
+              You can also continue filling the form manually below or modify auto-filled fields as needed.
+            </p>
+          </div>
+
+          {/* Clear Form Button */}
+          {(sourceType !== "manual" || formData.title || formData.company || formData.description) && (
+            <Button 
+              type="button" 
+              onClick={clearForm}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Clear All Fields
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>

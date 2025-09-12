@@ -21,6 +21,9 @@ export interface Job {
   organization_id?: string
   created_at?: string
   updated_at?: string
+  source_type?: "manual" | "url_scraping" | "file_upload"
+  source_url?: string
+  source_filename?: string
 }
 
 // Use centralized Supabase client
@@ -329,6 +332,9 @@ export function useJobs(organisationId?: string) {
           created_by: orgId,
           applications_count: 0,
           matches_count: 0,
+          source_type: jobData.source_type || "manual",
+          source_url: jobData.source_url,
+          source_filename: jobData.source_filename,
         }
 
         // Create the job object in our interface format
@@ -350,6 +356,9 @@ export function useJobs(organisationId?: string) {
           organization_id: orgId,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          source_type: jobData.source_type || "manual",
+          source_url: jobData.source_url,
+          source_filename: jobData.source_filename,
         }
 
         // Update local state immediately
