@@ -1,0 +1,52 @@
+Senior Full Stack Developer - Remote Position
+
+Company: InnovateTech Solutions
+Location: Remote (US-based)
+Employment Type: Full-time
+Experience Level: Senior (5+ years)
+
+Job Description:
+We are seeking a highly skilled Senior Full Stack Developer to join our innovative team at InnovateTech Solutions. This is a remote position perfect for a seasoned developer who thrives in a collaborative, fast-paced environment. You'll be working on cutting-edge web applications using modern technologies and will play a key role in shaping our technical architecture.
+
+Key Responsibilities:
+• Design and develop scalable web applications using React and Node.js
+• Collaborate with product managers and designers to implement new features
+• Write clean, maintainable, and well-documented code
+• Participate in code reviews and mentor junior developers
+• Optimize application performance and ensure security best practices
+• Work with databases (PostgreSQL, MongoDB) and cloud services (AWS, Docker)
+
+Required Qualifications:
+• 5+ years of professional software development experience
+• Expert-level proficiency in JavaScript, TypeScript, React, and Node.js
+• Strong experience with HTML5, CSS3, and modern CSS frameworks
+• Proficiency with Git version control and agile development practices
+• Experience with RESTful APIs and GraphQL
+• Knowledge of database design and optimization
+• Familiarity with cloud platforms (AWS, Azure, or GCP)
+• Strong problem-solving skills and attention to detail
+
+Preferred Skills:
+• Experience with Next.js, Express.js, or similar frameworks
+• Knowledge of containerization (Docker, Kubernetes)
+• Experience with CI/CD pipelines
+• Familiarity with microservices architecture
+• Understanding of automated testing (Jest, Cypress, etc.)
+
+Compensation & Benefits:
+• Salary Range: $130,000 - $180,000 annually
+• Comprehensive health insurance (medical, dental, vision)
+• 401(k) retirement plan with company matching
+• Flexible PTO and work-from-home stipend
+• Professional development budget ($2,000/year)
+• Latest MacBook Pro and home office setup allowance
+
+About InnovateTech Solutions:
+Founded in 2019, InnovateTech Solutions is a rapidly growing SaaS company focused on helping businesses streamline their operations through intelligent automation. We're backed by top-tier investors and serve over 10,000 customers worldwide. Our team of 150+ employees is distributed across the US, with a strong engineering culture that values innovation, collaboration, and work-life balance.
+
+How to Apply:
+Please submit your resume along with a brief cover letter explaining why you're interested in this position. Include links to your GitHub profile and any relevant project examples. We're an equal opportunity employer committed to diversity and inclusion.
+
+Contact: careers@innovatetech.com
+Application Deadline: Open until filled
+Posted: September 2024
