@@ -69,14 +69,22 @@ export async function scrapeJobFromUrl(url: string): Promise<ScrapeResult> {
 
     console.log(`✅ Successfully scraped content (${result.length} characters)`)
 
-    // Parse the scraped content into structured job data
-    const jobData = parseScrapedContent(result.content, result.structuredData, result.siteType)
-
-    return {
-      success: true,
-      data: jobData,
-      rawContent: result.content,
-      siteType: result.siteType
+    // Parse the scraped content into structured job data with error handling
+    try {
+      const jobData = parseScrapedContent(result.content, result.structuredData, result.siteType)
+      
+      return {
+        success: true,
+        data: jobData,
+        rawContent: result.content,
+        siteType: result.siteType
+      }
+    } catch (parseError: any) {
+      console.error("❌ Content parsing error:", parseError)
+      return {
+        success: false,
+        error: `Failed to parse scraped content: ${parseError.message}. The URL content may have an unusual format.`
+      }
     }
 
   } catch (error: any) {
@@ -341,27 +349,32 @@ function extractExperienceLevel(lowerContent: string): string {
  */
 function extractSalary(content: string): string {
   const salaryPatterns = [
-    // Comprehensive salary patterns with k/K support
-    /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/g,
-    /salary[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/i,
-    /compensation[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/i,
-    /pay[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/i,
-    /wage[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/i,
+    // Comprehensive salary patterns with k/K support - ALL with global flag for matchAll
+    /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/gi,
+    /salary[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/gi,
+    /compensation[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/gi,
+    /pay[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/gi,
+    /wage[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/gi,
     // Range without currency symbols
-    /(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/g,
+    /(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/gi,
     // Single salary with currency
-    /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/g,
+    /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/gi,
     // Annual salary patterns
     /(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:per year|annually|\/year|pa)/gi,
   ]
 
   for (const pattern of salaryPatterns) {
-    const matches = [...content.matchAll(pattern)]
-    if (matches.length > 0) {
-      const match = matches[0]
-      const salaryText = cleanText(match[0])
-      console.log("💰 Salary pattern matched:", salaryText)
-      return salaryText
+    try {
+      const matches = [...content.matchAll(pattern)]
+      if (matches.length > 0) {
+        const match = matches[0]
+        const salaryText = cleanText(match[0])
+        console.log("💰 Salary pattern matched:", salaryText)
+        return salaryText
+      }
+    } catch (error) {
+      console.warn("⚠️ Salary pattern error:", error.message, "Pattern:", pattern)
+      continue
     }
   }
 
