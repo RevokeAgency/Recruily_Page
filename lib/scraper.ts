@@ -138,7 +138,7 @@ function parseScrapedContent(
       console.log("📍 Location from structured data:", jobData.location)
     }
     if (structuredData.description) {
-      jobData.description = cleanText(structuredData.description)
+      jobData.description = cleanHtmlContent(structuredData.description)
       console.log("📄 Description from structured data (length):", jobData.description.length)
     }
   }
@@ -180,32 +180,40 @@ function parseScrapedContent(
   }
 
   // Enhanced description and requirements extraction
-  if (jobData.description && jobData.description.length > 500) {
-    const { description, requirements } = splitDescriptionAndRequirements(jobData.description)
-    jobData.description = description
-    jobData.requirements = requirements
-    console.log("📄 Split long description into description + requirements")
-  } else if (!jobData.description || jobData.description.length < 100) {
-    // Extract description and requirements from content
-    const { description, requirements } = extractDescriptionAndRequirements(content)
-    if (description) {
-      jobData.description = description
-      console.log("📄 Extracted description from content (length):", description.length)
-    }
-    if (requirements) {
-      jobData.requirements = requirements
-      console.log("📋 Extracted requirements from content (length):", requirements.length)
-    }
+  const { description, requirements } = extractDescriptionAndRequirements(content, jobData.description)
+  
+  if (description) {
+    jobData.description = cleanHtmlContent(description)
+    console.log("📄 Processed description (length):", jobData.description.length)
+  }
+  
+  if (requirements) {
+    jobData.requirements = cleanHtmlContent(requirements)
+    console.log("📋 Extracted requirements (length):", jobData.requirements.length)
   }
 
-  // Ensure we have some description
+  // Ensure we have some description - with better fallback
   if (!jobData.description || jobData.description.length < 50) {
-    // Fallback: use first part of content as description
-    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20)
-    if (sentences.length > 0) {
-      jobData.description = sentences.slice(0, 3).join('. ').trim() + '.'
-      console.log("📄 Used fallback description from content sentences")
+    // Try to extract the main content/first substantial paragraph
+    const cleanContent = cleanHtmlContent(content)
+    const paragraphs = cleanContent.split(/\n\s*\n/).filter(p => p.trim().length > 100)
+    
+    if (paragraphs.length > 0) {
+      jobData.description = paragraphs[0].trim()
+      console.log("📄 Used first substantial paragraph as description")
+    } else {
+      // Last resort: use cleaned sentences
+      const sentences = cleanContent.split(/[.!?]+/).filter(s => s.trim().length > 30)
+      if (sentences.length > 0) {
+        jobData.description = sentences.slice(0, 4).join('. ').trim() + '.'
+        console.log("📄 Used fallback description from content sentences")
+      }
     }
+  }
+  
+  // Ensure requirements are clean if they exist
+  if (jobData.requirements) {
+    jobData.requirements = cleanHtmlContent(jobData.requirements)
   }
 
   // Log final extraction summary
@@ -225,36 +233,113 @@ function parseScrapedContent(
 }
 
 /**
- * Clean extracted text
+ * Clean extracted text and remove HTML tags
  */
 function cleanText(text: string): string {
   return text
-    .replace(/\s+/g, ' ')
-    .replace(/[\r\n]+/g, ' ')
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .replace(/&nbsp;/g, ' ') // Replace HTML entities
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/\s+/g, ' ') // Multiple spaces to single
+    .replace(/[\r\n]+/g, ' ') // Remove line breaks
     .trim()
     .substring(0, 500) // Limit length
 }
 
 /**
- * Extract job title from content
+ * Clean HTML content more thoroughly for descriptions
+ */
+function cleanHtmlContent(html: string): string {
+  if (!html) return ''
+  
+  return html
+    // Replace block elements with line breaks
+    .replace(/<\/?(div|p|br|h[1-6])[^>]*>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '\n• ') // Convert list items to bullet points
+    .replace(/<\/li>/gi, '')
+    .replace(/<ul[^>]*>|<\/ul>/gi, '\n')
+    .replace(/<ol[^>]*>|<\/ol>/gi, '\n')
+    // Remove all other HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Clean up HTML entities
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&rsquo;/g, "'")
+    .replace(/&lsquo;/g, "'")
+    .replace(/&rdquo;/g, '"')
+    .replace(/&ldquo;/g, '"')
+    // Clean up whitespace
+    .replace(/\n\s*\n/g, '\n\n') // Multiple line breaks to double
+    .replace(/\n{3,}/g, '\n\n') // No more than double line breaks
+    .replace(/^\s+|\s+$/gm, '') // Trim each line
+    .trim()
+}
+
+/**
+ * Extract job title from content with enhanced patterns
  */
 function extractTitleFromContent(content: string): string {
   const titlePatterns = [
-    /job\s+title[:\s]+([^\n\r]{10,80})/i,
-    /position[:\s]+([^\n\r]{10,80})/i,
-    /role[:\s]+([^\n\r]{10,80})/i,
-    /hiring\s+(?:a|an)?\s*([^\n\r]{10,80})/i,
-    /seeking\s+(?:a|an)?\s*([^\n\r]{10,80})/i,
+    // Explicit title labels
+    /job\s+title[:\s-]+([^\n\r<>{};]{10,100})/gi,
+    /position\s+title[:\s-]+([^\n\r<>{};]{10,100})/gi,
+    /role\s+title[:\s-]+([^\n\r<>{};]{10,100})/gi,
+    /position[:\s-]+([^\n\r<>{};]{10,100})/gi,
+    /role[:\s-]+([^\n\r<>{};]{10,100})/gi,
+    
+    // Hiring patterns
+    /(?:hiring|seeking|looking\s+for)\s+(?:a|an)?\s*([^\n\r<>{};]{10,100})/gi,
+    /we\s+are\s+(?:hiring|seeking|looking\s+for)\s+(?:a|an)?\s*([^\n\r<>{};]{10,100})/gi,
+    /join\s+(?:us\s+)?as\s+(?:a|an)?\s*([^\n\r<>{};]{10,100})/gi,
+    
+    // Apply patterns
+    /apply\s+(?:for\s+)?(?:the\s+)?(?:position\s+of\s+)?(?:a|an)?\s*([^\n\r<>{};]{10,100})/gi,
+    
+    // Title at beginning of content
+    /^\s*([A-Z][^\n\r<>{};]{10,100})(?:\s*[-|:]|\n)/gm,
   ]
 
+  const foundTitles: string[] = []
+
   for (const pattern of titlePatterns) {
-    const match = content.match(pattern)
-    if (match && match[1]) {
-      const title = cleanText(match[1])
-      if (isValidJobTitle(title)) {
-        return title
+    try {
+      const matches = [...content.matchAll(pattern)]
+      for (const match of matches) {
+        if (match[1]) {
+          const title = cleanText(match[1])
+          if (isValidJobTitle(title) && !foundTitles.includes(title)) {
+            foundTitles.push(title)
+          }
+        }
       }
+    } catch (error) {
+      continue
     }
+  }
+
+  // Return the best title found (prefer more specific job keywords)
+  if (foundTitles.length > 0) {
+    // Prioritize titles with job-specific keywords
+    const specificTitles = foundTitles.filter(title => {
+      const lower = title.toLowerCase()
+      return ['engineer', 'developer', 'manager', 'analyst', 'designer', 'architect', 'specialist', 'coordinator', 'director', 'lead'].some(keyword => lower.includes(keyword))
+    })
+    
+    if (specificTitles.length > 0) {
+      return specificTitles[0]
+    }
+    
+    return foundTitles[0]
   }
 
   return ""
@@ -264,59 +349,218 @@ function extractTitleFromContent(content: string): string {
  * Check if extracted text looks like a job title
  */
 function isValidJobTitle(title: string): boolean {
+  if (!title || title.length < 5 || title.length > 120) return false
+  
   const jobKeywords = [
     'developer', 'engineer', 'manager', 'analyst', 'coordinator', 'specialist',
     'director', 'lead', 'senior', 'junior', 'associate', 'assistant', 'intern',
-    'architect', 'designer', 'consultant', 'administrator', 'technician'
+    'architect', 'designer', 'consultant', 'administrator', 'technician',
+    'officer', 'representative', 'executive', 'supervisor', 'operator',
+    'programmer', 'scientist', 'researcher', 'professor', 'teacher', 'instructor',
+    'clerk', 'agent', 'sales', 'marketing', 'finance', 'accountant',
+    'nurse', 'doctor', 'therapist', 'counselor', 'coach', 'trainer'
+  ]
+  
+  const jobTitlePatterns = [
+    /\b(?:software|web|mobile|frontend|backend|full[\s-]?stack|data|devops|cloud|security|network|database|system)\b/i,
+    /\b(?:ui|ux|product|project|program|operations|business|technical|customer|human\s+resources)\b/i,
+    /\b(?:quality\s+assurance|qa|seo|digital|content|social\s+media)\b/i
   ]
 
-  return jobKeywords.some(keyword => 
-    title.toLowerCase().includes(keyword)
-  ) && title.length >= 10 && title.length <= 100
+  const lower = title.toLowerCase()
+  
+  // Check for job keywords
+  const hasJobKeyword = jobKeywords.some(keyword => lower.includes(keyword))
+  
+  // Check for job title patterns
+  const hasJobPattern = jobTitlePatterns.some(pattern => pattern.test(title))
+  
+  // Check if it starts with a capital letter (proper job title format)
+  const properFormat = /^[A-Z]/.test(title)
+  
+  // Reject invalid patterns
+  const invalidPatterns = [
+    /^(and|or|the|is|are|was|were|will|can|could|should|would|must|may|might)\b/i,
+    /\b(company|website|email|phone|address|location|salary|benefits|apply|application)\b/i,
+    /^\d+$/, // Just numbers
+    /^[^a-zA-Z]*$/, // No letters
+  ]
+  
+  for (const pattern of invalidPatterns) {
+    if (pattern.test(title)) return false
+  }
+  
+  return (hasJobKeyword || hasJobPattern) && properFormat
 }
 
 /**
- * Extract company from content
+ * Extract company from content with enhanced patterns
  */
 function extractCompanyFromContent(content: string): string {
   const companyPatterns = [
-    /company[:\s]+([^\n\r]{2,50})/i,
-    /employer[:\s]+([^\n\r]{2,50})/i,
-    /organization[:\s]+([^\n\r]{2,50})/i,
-    /at\s+([A-Z][a-zA-Z\s&.,]{2,49})(?:\s+(?:inc|llc|ltd|corp|corporation|company)\.?)?/g,
-    /([A-Z][a-zA-Z\s&.,]{2,49})\s+(?:inc|llc|ltd|corp|corporation|company)\.?/gi,
+    // Explicit company labels
+    /company[:\s-]+([^\n\r<>{};]{2,60})/gi,
+    /employer[:\s-]+([^\n\r<>{};]{2,60})/gi,
+    /organization[:\s-]+([^\n\r<>{};]{2,60})/gi,
+    /hiring\s+company[:\s-]+([^\n\r<>{};]{2,60})/gi,
+    /about\s+(?:the\s+)?company[:\s-]+([^\n\r<>{};]{2,60})/gi,
+    
+    // Company name patterns
+    /at\s+([A-Z][a-zA-Z\s&.,-]{2,49})(?:\s+(?:inc|llc|ltd|corp|corporation|company|group|solutions|technologies|systems)\.?)?\b/gi,
+    /([A-Z][a-zA-Z\s&.,-]{2,49})\s+(?:inc|llc|ltd|corp|corporation|company|group|solutions|technologies|systems)\.?\b/gi,
+    /([A-Z][a-zA-Z\s&.,-]{2,49})\s+(?:is\s+)?(?:seeking|looking\s+for|hiring)\b/gi,
+    
+    // Join patterns
+    /join\s+(?:the\s+team\s+at\s+)?([A-Z][a-zA-Z\s&.,-]{2,49})\b/gi,
+    /work\s+(?:at|for|with)\s+([A-Z][a-zA-Z\s&.,-]{2,49})\b/gi,
   ]
 
+  const foundCompanies: string[] = []
+
   for (const pattern of companyPatterns) {
-    const match = content.match(pattern)
-    if (match && match[1]) {
-      return cleanText(match[1])
+    try {
+      const matches = [...content.matchAll(pattern)]
+      for (const match of matches) {
+        if (match[1]) {
+          const company = cleanText(match[1])
+          if (isValidCompany(company) && !foundCompanies.includes(company)) {
+            foundCompanies.push(company)
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("⚠️ Company pattern error:", error.message)
+      continue
     }
+  }
+
+  // Return the best company name found
+  if (foundCompanies.length > 0) {
+    // Prefer shorter, cleaner names
+    return foundCompanies.reduce((best, current) => 
+      current.length < best.length && current.length > 2 ? current : best
+    )
   }
 
   return ""
 }
 
 /**
- * Extract location from content
+ * Validate if extracted text looks like a valid company name
+ */
+function isValidCompany(company: string): boolean {
+  if (!company || company.length < 2 || company.length > 80) return false
+  
+  // Must start with a capital letter or number
+  if (!/^[A-Z0-9]/.test(company)) return false
+  
+  // Reject obviously invalid strings
+  const invalidPatterns = [
+    /^\d+$/, // Just numbers
+    /^(and|or|the|is|are|was|were|will|can|should|would|must|may|might|have|has|had)$/i,
+    /\b(job|position|role|candidate|application|resume|cv|salary|benefits)\b/i,
+    /^(http|https|www|email|phone|fax|address)\b/i,
+  ]
+  
+  for (const pattern of invalidPatterns) {
+    if (pattern.test(company)) return false
+  }
+  
+  return true
+}
+
+/**
+ * Extract location from content with enhanced patterns
  */
 function extractLocationFromContent(content: string): string {
   const locationPatterns = [
-    /location[:\s]+([^\n\r]{5,50})/i,
-    /based\s+in[:\s]+([^\n\r]{5,50})/i,
-    /office\s+in[:\s]+([^\n\r]{5,50})/i,
-    /\b([A-Z][a-zA-Z\s]{2,30},\s*[A-Z]{2,3})\b/g, // City, State format
-    /\b(remote|hybrid|on-site)\b/gi,
+    // Explicit location labels
+    /location[:\s-]+([^\n\r<>{};]{5,80})/gi,
+    /job\s+location[:\s-]+([^\n\r<>{};]{5,80})/gi,
+    /work\s+location[:\s-]+([^\n\r<>{};]{5,80})/gi,
+    /office\s+location[:\s-]+([^\n\r<>{};]{5,80})/gi,
+    /based\s+in[:\s-]+([^\n\r<>{};]{5,80})/gi,
+    /office\s+in[:\s-]+([^\n\r<>{};]{5,80})/gi,
+    /located\s+in[:\s-]+([^\n\r<>{};]{5,80})/gi,
+    
+    // City, State/Country patterns (more comprehensive)
+    /\b([A-Z][a-zA-Z\s\.]{2,35},\s*[A-Z]{2,4})\b/g, // City, State/Country
+    /\b([A-Z][a-zA-Z\s\.]{2,35},\s*[A-Z][a-zA-Z\s]{2,25})\b/g, // City, Full State/Country name
+    
+    // Work arrangement patterns
+    /\b(remote|hybrid|on-site|onsite|work\s+from\s+home|wfh)\b/gi,
+    
+    // Major cities (common job locations)
+    /\b(San Francisco|Los Angeles|New York|Chicago|Seattle|Boston|Austin|Denver|Portland|Atlanta|Miami|Dallas|Houston|Phoenix|Philadelphia|San Diego|Washington DC|Washington,\s*DC)\b/gi,
+    
+    // International cities
+    /\b(London|Berlin|Paris|Toronto|Vancouver|Sydney|Melbourne|Tokyo|Singapore|Amsterdam|Barcelona|Dublin|Zurich)\b/gi,
+    
+    // Remote work indicators
+    /\b(fully\s+remote|100%\s+remote|remote\s+work|work\s+remotely|telecommute|distributed\s+team)\b/gi
   ]
 
+  const foundLocations: string[] = []
+
   for (const pattern of locationPatterns) {
-    const match = content.match(pattern)
-    if (match && match[1]) {
-      return cleanText(match[1])
+    try {
+      const matches = [...content.matchAll(pattern)]
+      for (const match of matches) {
+        if (match[1]) {
+          const location = cleanText(match[1])
+          if (isValidLocation(location) && !foundLocations.includes(location)) {
+            foundLocations.push(location)
+          }
+        } else if (match[0]) {
+          // For patterns without capture groups (like city names)
+          const location = cleanText(match[0])
+          if (isValidLocation(location) && !foundLocations.includes(location)) {
+            foundLocations.push(location)
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("⚠️ Location pattern error:", error.message)
+      continue
     }
   }
 
+  // Return the best location found (prefer specific over generic)
+  if (foundLocations.length > 0) {
+    // Prioritize specific locations over generic terms
+    const specificLocations = foundLocations.filter(loc => 
+      !['remote', 'hybrid', 'on-site', 'onsite'].includes(loc.toLowerCase())
+    )
+    
+    if (specificLocations.length > 0) {
+      return specificLocations[0]
+    }
+    
+    return foundLocations[0]
+  }
+
   return ""
+}
+
+/**
+ * Validate if extracted text looks like a valid location
+ */
+function isValidLocation(location: string): boolean {
+  if (!location || location.length < 2 || location.length > 100) return false
+  
+  // Reject obviously non-location strings
+  const invalidPatterns = [
+    /^\d+$/, // Just numbers
+    /^[^a-zA-Z]*$/, // No letters
+    /\b(and|or|the|is|are|was|were|will|can|could|should|would|must|may|might)\b/i, // Common words that aren't locations
+    /^(http|https|www|email|phone|fax)\b/i, // URLs/contact info
+  ]
+  
+  for (const pattern of invalidPatterns) {
+    if (pattern.test(location)) return false
+  }
+  
+  return true
 }
 
 /**
@@ -345,41 +589,152 @@ function extractExperienceLevel(lowerContent: string): string {
 }
 
 /**
- * Extract salary information from content
+ * Extract and normalize salary information from content
  */
 function extractSalary(content: string): string {
   const salaryPatterns = [
-    // Comprehensive salary patterns with k/K support - ALL with global flag for matchAll
-    /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/gi,
-    /salary[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/gi,
-    /compensation[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/gi,
-    /pay[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/gi,
-    /wage[:\s]*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)?\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)?/gi,
-    // Range without currency symbols
-    /(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/gi,
-    // Single salary with currency
-    /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/gi,
+    // Range patterns with various formats
+    /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?\s*(?:-|to|–|—|through)\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?/gi,
+    /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)\s*(?:-|to|–|—|through)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)/gi,
+    
+    // Labeled salary ranges
+    /(?:salary|compensation|pay|wage)[:\s]*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?\s*(?:-|to|–|—|through)\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?/gi,
+    
     // Annual salary patterns
-    /(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:per year|annually|\/year|pa)/gi,
+    /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?\s*(?:per year|annually|\/year|\/yr|p\.?a\.?)/gi,
+    /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)\s*(?:per year|annually|\/year|\/yr|p\.?a\.?)/gi,
+    
+    // Hourly rates
+    /\$\s*(\d{1,3}(?:\.\d{2})?)\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3}(?:\.\d{2})?)\s*(?:per hour|\/hour|\/hr|hourly)/gi,
+    /\$\s*(\d{1,3}(?:\.\d{2})?)\s*(?:per hour|\/hour|\/hr|hourly)/gi,
+    
+    // Simple ranges without labels
+    /(\d{1,3})(?:,\d{3})*\s*(?:k|K)\s*(?:-|to|–|—)\s*(\d{1,3})(?:,\d{3})*\s*(?:k|K)/gi,
+    
+    // Single salary values with currency
+    /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?(?![\d\.])/gi,
   ]
+
+  const foundSalaries: string[] = []
 
   for (const pattern of salaryPatterns) {
     try {
       const matches = [...content.matchAll(pattern)]
-      if (matches.length > 0) {
-        const match = matches[0]
-        const salaryText = cleanText(match[0])
-        console.log("💰 Salary pattern matched:", salaryText)
-        return salaryText
+      for (const match of matches) {
+        const salaryText = normalizeSalaryText(match[0], match[1], match[2])
+        if (salaryText && isValidSalary(salaryText) && !foundSalaries.includes(salaryText)) {
+          foundSalaries.push(salaryText)
+          console.log("💰 Salary extracted:", salaryText)
+        }
       }
     } catch (error) {
-      console.warn("⚠️ Salary pattern error:", error.message, "Pattern:", pattern)
+      console.warn("⚠️ Salary pattern error:", error.message)
       continue
     }
   }
 
+  // Return the best salary found (prefer ranges over single values)
+  if (foundSalaries.length > 0) {
+    // Prioritize ranges over single values
+    const ranges = foundSalaries.filter(s => s.includes('-') || s.includes('to'))
+    if (ranges.length > 0) {
+      return ranges[0]
+    }
+    return foundSalaries[0]
+  }
+
   console.log("⚠️ No salary information found in content")
   return ""
+}
+
+/**
+ * Normalize salary text for consistent formatting
+ */
+function normalizeSalaryText(fullMatch: string, value1?: string, value2?: string): string {
+  if (!fullMatch) return ''
+  
+  let normalized = fullMatch.trim()
+  
+  // Convert k notation to full numbers for clarity
+  normalized = normalized.replace(/(\d+)k\b/gi, (match, num) => {
+    const number = parseInt(num)
+    if (number < 1000) {
+      return `${number * 1000}`
+    }
+    return match
+  })
+  
+  // Standardize range separators
+  normalized = normalized.replace(/\s*(?:–|—|through)\s*/g, ' - ')
+  normalized = normalized.replace(/\s+to\s+/gi, ' - ')
+  
+  // Clean up spacing around currency
+  normalized = normalized.replace(/\$\s+/g, '$')
+  
+  // Ensure proper formatting for ranges
+  if (value1 && value2) {
+    const num1 = normalizeNumber(value1)
+    const num2 = normalizeNumber(value2)
+    if (num1 && num2) {
+      return `$${num1} - $${num2}`
+    }
+  } else if (value1) {
+    const num1 = normalizeNumber(value1)
+    if (num1) {
+      // Check if it's an hourly rate
+      if (fullMatch.toLowerCase().includes('hour')) {
+        return `$${num1}/hour`
+      }
+      return `$${num1}`
+    }
+  }
+  
+  return normalized
+}
+
+/**
+ * Normalize a number string (handle k notation, commas, etc.)
+ */
+function normalizeNumber(numStr: string): string {
+  if (!numStr) return ''
+  
+  let num = numStr.replace(/,/g, '')
+  
+  // Handle k notation
+  if (num.toLowerCase().includes('k')) {
+    const value = parseFloat(num.replace(/k/gi, ''))
+    if (!isNaN(value)) {
+      return (value * 1000).toLocaleString()
+    }
+  }
+  
+  const value = parseFloat(num)
+  if (!isNaN(value)) {
+    return value.toLocaleString()
+  }
+  
+  return numStr
+}
+
+/**
+ * Validate if extracted text looks like a valid salary
+ */
+function isValidSalary(salary: string): boolean {
+  if (!salary || salary.length < 3) return false
+  
+  // Must contain numbers
+  if (!/\d/.test(salary)) return false
+  
+  // Reasonable salary ranges (very loose validation)
+  const numbers = salary.match(/\d+/g)
+  if (numbers) {
+    const values = numbers.map(n => parseInt(n.replace(/,/g, '')))
+    // Check if any number looks like a reasonable salary (15k - 1M)
+    return values.some(v => v >= 15000 && v <= 1000000) || 
+           values.some(v => v >= 15 && v <= 500) // For k notation like "80k"
+  }
+  
+  return true // Allow through if we can't determine
 }
 
 /**
@@ -410,55 +765,249 @@ function extractSkills(lowerContent: string): string[] {
 }
 
 /**
- * Extract description and requirements from content
+ * Extract description and requirements from content with enhanced parsing
  */
-function extractDescriptionAndRequirements(content: string): { description: string; requirements: string } {
+function extractDescriptionAndRequirements(
+  content: string, 
+  existingDescription?: string
+): { description: string; requirements: string } {
+  // First try to identify clear sections
   const sections = identifyJobSections(content)
   
+  let description = existingDescription || sections.description || ''
+  let requirements = sections.requirements || ''
+  
+  // If we have existing description but no requirements, try to split it
+  if (description && description.length > 300 && !requirements) {
+    const split = splitDescriptionAndRequirements(description)
+    description = split.description
+    requirements = split.requirements
+  }
+  
+  // If still no description, extract from content
+  if (!description || description.length < 50) {
+    description = extractBestDescription(content)
+  }
+  
+  // If still no requirements, try more aggressive extraction
+  if (!requirements || requirements.length < 20) {
+    requirements = extractRequirementsFromContent(content)
+  }
+  
   return {
-    description: sections.description || content.substring(0, 1000).trim(),
-    requirements: sections.requirements || ""
+    description: description || content.substring(0, 1000).trim(),
+    requirements: requirements || ""
   }
 }
 
 /**
- * Split existing description into description and requirements
+ * Extract the best description from content
+ */
+function extractBestDescription(content: string): string {
+  const descriptionPatterns = [
+    // Look for job description sections
+    /job\s+description[:\s-]*([\s\S]{100,2000}?)(?=\n\s*(?:requirements|qualifications|skills|responsibilities|what\s+you|we\s+are\s+looking)|$)/gi,
+    /about\s+(?:the\s+)?(?:role|position|job)[:\s-]*([\s\S]{100,2000}?)(?=\n\s*(?:requirements|qualifications|skills|responsibilities|what\s+you|we\s+are\s+looking)|$)/gi,
+    /role\s+overview[:\s-]*([\s\S]{100,2000}?)(?=\n\s*(?:requirements|qualifications|skills|responsibilities|what\s+you|we\s+are\s+looking)|$)/gi,
+    
+    // Look for descriptive paragraphs
+    /we\s+are\s+(?:looking|seeking)[\s\S]{20,100}?([\s\S]{100,1500}?)(?=\n\s*(?:requirements|qualifications|skills|responsibilities|what\s+you)|$)/gi,
+  ]
+  
+  for (const pattern of descriptionPatterns) {
+    try {
+      const matches = [...content.matchAll(pattern)]
+      if (matches.length > 0 && matches[0][1]) {
+        const desc = matches[0][1].trim()
+        if (desc.length > 50) {
+          return desc
+        }
+      }
+    } catch (error) {
+      continue
+    }
+  }
+  
+  // Fallback: take first substantial paragraph
+  const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim().length > 100)
+  if (paragraphs.length > 0) {
+    return paragraphs[0].trim()
+  }
+  
+  return content.substring(0, 800).trim()
+}
+
+/**
+ * Extract requirements from content with multiple strategies
+ */
+function extractRequirementsFromContent(content: string): string {
+  const requirementsPatterns = [
+    // Direct requirements sections
+    /(?:requirements|qualifications)[:\s-]*([\s\S]{50,2000}?)(?=\n\s*(?:responsibilities|benefits|what\s+we\s+offer|about\s+us|company|why\s+join)|$)/gi,
+    /(?:required\s+(?:skills|qualifications|experience))[:\s-]*([\s\S]{50,2000}?)(?=\n\s*(?:responsibilities|benefits|what\s+we\s+offer|about\s+us|company)|$)/gi,
+    /(?:what\s+(?:you|we)\s+(?:need|require|are\s+looking\s+for))[:\s-]*([\s\S]{50,2000}?)(?=\n\s*(?:responsibilities|benefits|what\s+we\s+offer|about\s+us|company)|$)/gi,
+    /(?:must\s+have)[:\s-]*([\s\S]{50,2000}?)(?=\n\s*(?:responsibilities|benefits|what\s+we\s+offer|about\s+us|company)|$)/gi,
+    /(?:skills\s+(?:required|needed))[:\s-]*([\s\S]{50,2000}?)(?=\n\s*(?:responsibilities|benefits|what\s+we\s+offer|about\s+us|company)|$)/gi,
+    
+    // Experience requirements
+    /(?:experience)[:\s-]*([\s\S]{30,1000}?)(?=\n\s*(?:responsibilities|benefits|what\s+we\s+offer|about\s+us|company|education)|$)/gi,
+    /(?:minimum\s+(?:qualifications|requirements))[:\s-]*([\s\S]{50,1500}?)(?=\n\s*(?:responsibilities|benefits|what\s+we\s+offer|about\s+us|company)|$)/gi,
+  ]
+  
+  const foundRequirements: string[] = []
+  
+  for (const pattern of requirementsPatterns) {
+    try {
+      const matches = [...content.matchAll(pattern)]
+      for (const match of matches) {
+        if (match[1]) {
+          const req = match[1].trim()
+          if (req.length > 30 && req.length < 2500) {
+            foundRequirements.push(req)
+          }
+        }
+      }
+    } catch (error) {
+      continue
+    }
+  }
+  
+  // Also look for bullet point lists (common for requirements)
+  const bulletRequirements = extractBulletPointLists(content)
+  if (bulletRequirements) {
+    foundRequirements.push(bulletRequirements)
+  }
+  
+  // Return the longest/best requirements section
+  if (foundRequirements.length > 0) {
+    return foundRequirements.reduce((longest, current) => 
+      current.length > longest.length ? current : longest
+    )
+  }
+  
+  return ''
+}
+
+/**
+ * Extract bullet point lists that likely contain requirements
+ */
+function extractBulletPointLists(content: string): string {
+  const bulletPatterns = [
+    // HTML lists
+    /<ul[^>]*>([\s\S]*?)<\/ul>/gi,
+    /<ol[^>]*>([\s\S]*?)<\/ol>/gi,
+    
+    // Text bullet points
+    /((?:^|\n)\s*[\u2022\-\*]\s+[^\n]{20,200}(?:\n\s*[\u2022\-\*]\s+[^\n]{20,200}){2,})/gm,
+    /((?:^|\n)\s*\d+\.\s+[^\n]{20,200}(?:\n\s*\d+\.\s+[^\n]{20,200}){2,})/gm,
+  ]
+  
+  for (const pattern of bulletPatterns) {
+    try {
+      const matches = [...content.matchAll(pattern)]
+      for (const match of matches) {
+        if (match[1] && match[1].length > 100) {
+          return match[1].trim()
+        }
+      }
+    } catch (error) {
+      continue
+    }
+  }
+  
+  return ''
+}
+
+/**
+ * Split existing description into description and requirements with enhanced logic
  */
 function splitDescriptionAndRequirements(text: string): { description: string; requirements: string } {
+  if (!text || text.length < 100) {
+    return { description: text || '', requirements: '' }
+  }
+
   const requirementsKeywords = [
     'requirements', 'qualifications', 'skills required', 'must have',
-    'experience required', 'necessary skills', 'prerequisites', 'what you need'
+    'experience required', 'necessary skills', 'prerequisites', 'what you need',
+    'required skills', 'minimum qualifications', 'ideal candidate',
+    'you should have', 'we are looking for', 'what we\'re looking for'
   ]
 
-  let splitPoint = -1
+  let bestSplitPoint = -1
+  let bestKeyword = ''
 
-  // Find the first requirements section
-  for (const keyword of requirementsKeywords) {
-    const index = text.toLowerCase().indexOf(keyword)
-    if (index !== -1 && (splitPoint === -1 || index < splitPoint)) {
-      splitPoint = index
+  // Find the best requirements section (prefer earlier, more explicit keywords)
+  for (let i = 0; i < requirementsKeywords.length; i++) {
+    const keyword = requirementsKeywords[i]
+    const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+    const match = text.search(regex)
+    
+    if (match !== -1) {
+      // Prefer earlier keywords and earlier positions
+      const score = (requirementsKeywords.length - i) * 1000 - match
+      if (bestSplitPoint === -1 || score > (requirementsKeywords.length - requirementsKeywords.indexOf(bestKeyword)) * 1000 - bestSplitPoint) {
+        bestSplitPoint = match
+        bestKeyword = keyword
+      }
     }
   }
 
-  if (splitPoint !== -1) {
-    return {
-      description: text.substring(0, splitPoint).trim(),
-      requirements: text.substring(splitPoint).trim()
+  if (bestSplitPoint !== -1) {
+    const description = text.substring(0, bestSplitPoint).trim()
+    const requirements = text.substring(bestSplitPoint).trim()
+    
+    // Only split if both parts are substantial
+    if (description.length > 50 && requirements.length > 30) {
+      return { description, requirements }
     }
   }
 
-  // If no clear split, try to detect bullet points or numbered lists
-  const bulletPointRegex = /\n\s*[•\-\*\d+\.]\s/
-  const bulletMatch = text.search(bulletPointRegex)
+  // Try to detect structural splits (bullet points, numbered lists)
+  const structuralPatterns = [
+    /\n\s*(?:requirements|qualifications)[:\s-]*\n/gi,
+    /\n\s*[•\-\*]\s+[A-Z]/g, // Bullet points starting with capital letters
+    /\n\s*\d+\.\s+[A-Z]/g, // Numbered lists starting with capital letters
+    /\n\s*•/g, // Unicode bullet points
+  ]
 
-  if (bulletMatch !== -1) {
-    return {
-      description: text.substring(0, bulletMatch).trim(),
-      requirements: text.substring(bulletMatch).trim()
+  for (const pattern of structuralPatterns) {
+    try {
+      const matches = [...text.matchAll(pattern)]
+      if (matches.length >= 2) { // At least 2 items in list
+        const splitPoint = matches[0].index || 0
+        const description = text.substring(0, splitPoint).trim()
+        const requirements = text.substring(splitPoint).trim()
+        
+        if (description.length > 50 && requirements.length > 50) {
+          return { description, requirements }
+        }
+      }
+    } catch (error) {
+      continue
     }
   }
 
-  // If no clear structure, put everything in description
+  // Look for paragraph breaks that might indicate section changes
+  const paragraphs = text.split(/\n\s*\n/)
+  if (paragraphs.length >= 2) {
+    // Check if later paragraphs look like requirements
+    for (let i = 1; i < paragraphs.length; i++) {
+      const paragraph = paragraphs[i].toLowerCase()
+      if (requirementsKeywords.some(kw => paragraph.includes(kw)) || 
+          /(?:experience|skills|knowledge)\s+(?:with|in|of)/.test(paragraph) ||
+          /\d+\+?\s+years?/.test(paragraph)) {
+        
+        const description = paragraphs.slice(0, i).join('\n\n').trim()
+        const requirements = paragraphs.slice(i).join('\n\n').trim()
+        
+        if (description.length > 50 && requirements.length > 30) {
+          return { description, requirements }
+        }
+      }
+    }
+  }
+
+  // If no good split found, keep everything in description
   return {
     description: text.trim(),
     requirements: ""
@@ -466,7 +1015,7 @@ function splitDescriptionAndRequirements(text: string): { description: string; r
 }
 
 /**
- * Identify different sections in job content
+ * Identify different sections in job content with enhanced parsing
  */
 function identifyJobSections(content: string): {
   description?: string
@@ -476,50 +1025,56 @@ function identifyJobSections(content: string): {
 } {
   const sections: any = {}
   
-  // Define section keywords
+  // Enhanced section patterns with more variations
   const sectionPatterns = {
     description: [
-      'job description', 'about the role', 'position overview', 'role description'
+      'job description', 'about the role', 'position overview', 'role description',
+      'about this position', 'position summary', 'role summary', 'job summary',
+      'what you\'ll be doing', 'the role', 'about the job', 'job details'
     ],
     requirements: [
       'requirements', 'qualifications', 'skills required', 'must have',
-      'experience required', 'what you need', 'prerequisites'
+      'experience required', 'what you need', 'prerequisites', 'required skills',
+      'minimum qualifications', 'required qualifications', 'what we\'re looking for',
+      'ideal candidate', 'you should have', 'required experience', 'skills and qualifications'
     ],
     responsibilities: [
       'responsibilities', 'duties', 'what you will do', 'key responsibilities',
-      'your role', 'day to day', 'tasks'
+      'your role', 'day to day', 'tasks', 'job responsibilities', 'primary responsibilities',
+      'what you\'ll do', 'role responsibilities', 'key duties', 'main responsibilities'
     ],
     benefits: [
       'benefits', 'what we offer', 'perks', 'compensation package',
-      'why join us', 'what you get'
+      'why join us', 'what you get', 'employee benefits', 'package includes',
+      'our benefits', 'compensation and benefits', 'what\'s in it for you'
     ]
   }
 
-  const lowerContent = content.toLowerCase()
-
+  // Use regex patterns to find section headers more reliably
   for (const [sectionName, keywords] of Object.entries(sectionPatterns)) {
     for (const keyword of keywords) {
-      const index = lowerContent.indexOf(keyword)
-      if (index !== -1) {
-        // Find the end of this section (next section or end of content)
-        let endIndex = content.length
-        
-        // Look for the start of the next section
-        for (const [otherSection, otherKeywords] of Object.entries(sectionPatterns)) {
-          if (otherSection !== sectionName) {
-            for (const otherKeyword of otherKeywords) {
-              const otherIndex = lowerContent.indexOf(otherKeyword, index + keyword.length)
-              if (otherIndex !== -1 && otherIndex < endIndex) {
-                endIndex = otherIndex
-              }
-            }
+      // Create a more flexible regex pattern
+      const pattern = new RegExp(
+        `(?:^|\n)\s*(?:<[^>]*>)?\s*${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*(?:<[^>]*>)?\s*[:\-\s]*\n?([\s\S]{50,3000}?)(?=\n\s*(?:${Object.values(sectionPatterns).flat().map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})|$)`,
+        'gi'
+      )
+      
+      try {
+        const matches = [...content.matchAll(pattern)]
+        if (matches.length > 0 && matches[0][1]) {
+          const sectionContent = matches[0][1]
+            .replace(/^[:\-\s<>]+/, '') // Remove leading punctuation and HTML
+            .replace(/<\/?[^>]+>/g, '') // Remove HTML tags
+            .trim()
+          
+          if (sectionContent.length > 30) {
+            sections[sectionName] = sectionContent
+            console.log(`📋 Found ${sectionName} section (${sectionContent.length} chars)`)
+            break
           }
         }
-
-        sections[sectionName] = content.substring(index + keyword.length, endIndex)
-          .replace(/^[:\-\s]+/, '') // Remove leading punctuation
-          .trim()
-        break
+      } catch (error) {
+        continue
       }
     }
   }
