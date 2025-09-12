@@ -215,12 +215,12 @@ function parseScrapedContent(
       jobData.description = paragraphs[0].trim()
       console.log("📄 Used first substantial paragraph as description")
     } else {
-      // Last resort: use cleaned sentences
+      // Last resort: use all cleaned sentences (no limit)
       const sentences = cleanContent.split(/[.!?]+/).filter(s => s.trim().length > 30)
       if (sentences.length > 0) {
-        const fallbackText = sentences.slice(0, 4).join('. ').trim() + '.'
+        const fallbackText = sentences.join('. ').trim() + '.'
         jobData.description = cleanHtmlContent(fallbackText)
-        console.log("📄 Used fallback description from content sentences")
+        console.log("📄 Used fallback description from all content sentences")
       }
     }
   }
@@ -1064,10 +1064,10 @@ function extractBestDescription(content: string): string {
     }
   }
   
-  // Fallback: take first substantial paragraph
+  // Fallback: combine all substantial paragraphs instead of just the first
   const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim().length > 100)
   if (paragraphs.length > 0) {
-    return paragraphs[0].trim()
+    return paragraphs.join('\n\n').trim()
   }
   
   return content.trim()
@@ -1114,11 +1114,11 @@ function extractRequirementsFromContent(content: string): string {
     foundRequirements.push(bulletRequirements)
   }
   
-  // Return the longest/best requirements section
+  // Combine all found requirements sections instead of just taking the longest
   if (foundRequirements.length > 0) {
-    return foundRequirements.reduce((longest, current) => 
-      current.length > longest.length ? current : longest
-    )
+    // Remove duplicates and combine all requirements
+    const uniqueRequirements = [...new Set(foundRequirements)]
+    return uniqueRequirements.join('\n\n').trim()
   }
   
   return ''
@@ -1138,17 +1138,26 @@ function extractBulletPointLists(content: string): string {
     /((?:^|\n)\s*\d+\.\s+[^\n]{20,200}(?:\n\s*\d+\.\s+[^\n]{20,200}){2,})/gm,
   ]
   
+  const allMatches: string[] = []
+  
   for (const pattern of bulletPatterns) {
     try {
       const matches = [...content.matchAll(pattern)]
       for (const match of matches) {
         if (match[1] && match[1].length > 100) {
-          return stripAllHtml(match[1].trim())
+          allMatches.push(stripAllHtml(match[1].trim()))
         }
       }
     } catch (error) {
       continue
     }
+  }
+  
+  // Combine all found bullet point lists instead of just returning the first one
+  if (allMatches.length > 0) {
+    // Remove duplicates and combine
+    const uniqueMatches = [...new Set(allMatches)]
+    return uniqueMatches.join('\n\n')
   }
   
   return ''
