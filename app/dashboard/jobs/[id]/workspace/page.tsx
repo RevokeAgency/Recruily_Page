@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useJobs } from "@/hooks/use-jobs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -22,79 +23,51 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-interface Job {
-  id: string
-  title: string
-  company: string
-  location: string
-  job_type: string
-  salary_range: string
-  description: string
-  requirements: string
-  benefits: string
-  skills: string
-  status: string
-  created_at: string
-  applications_count?: number
-  matches_count?: number
-}
+// Import Job interface from useJobs hook
+import type { Job } from "@/hooks/use-jobs"
 
 export default function JobWorkspace() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
-  const [job, setJob] = useState<Job | null>(null)
+  const { getJobById, loading: jobsLoading } = useJobs()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const jobId = params.id as string
+  const job = jobId ? getJobById(jobId) : null
 
   useEffect(() => {
-    const fetchJob = async () => {
+    const initializeWorkspace = async () => {
       try {
-        console.log("🔍 Fetching job details for ID:", jobId)
+        console.log("🔍 Loading job workspace for ID:", jobId)
         
-        // For now, we'll create a mock job based on the ID
-        // In a real app, this would fetch from the API
-        const mockJob: Job = {
-          id: jobId,
-          title: "Software Engineer",
-          company: "Tech Company",
-          location: "San Francisco, CA", 
-          job_type: "full-time",
-          salary_range: "$120,000 - $160,000",
-          description: "We are looking for a talented Software Engineer to join our team. You will work on exciting projects and collaborate with a dynamic team.",
-          requirements: "Bachelor's degree in Computer Science or related field\n3+ years of experience in software development\nProficiency in JavaScript, React, Node.js\nExperience with databases",
-          benefits: "Competitive salary\nHealth insurance\nProfessional development\nFlexible work arrangements",
-          skills: "JavaScript, React, Node.js, TypeScript, SQL",
-          status: "active",
-          created_at: new Date().toISOString(),
-          applications_count: 0,
-          matches_count: 0
+        // Wait for jobs to load
+        if (!jobsLoading) {
+          if (job) {
+            toast({
+              title: "Workspace Loaded",
+              description: `Job workspace for "${job.title}" is ready.`,
+              variant: "default"
+            })
+          } else if (jobId) {
+            setError("Job not found")
+          }
+          setLoading(false)
         }
-
-        setJob(mockJob)
-        setLoading(false)
-
-        toast({
-          title: "Workspace Loaded",
-          description: `Job workspace for "${mockJob.title}" is ready.`,
-          variant: "default"
-        })
-
       } catch (err) {
-        console.error("Error fetching job:", err)
+        console.error("Error loading workspace:", err)
         setError("Failed to load job workspace")
         setLoading(false)
       }
     }
 
     if (jobId) {
-      fetchJob()
+      initializeWorkspace()
     }
-  }, [jobId, toast])
+  }, [jobId, job, jobsLoading, toast])
 
-  if (loading) {
+  if (loading || jobsLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
@@ -138,7 +111,7 @@ export default function JobWorkspace() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
-            <p className="text-gray-600">{job.company} • {job.location}</p>
+            <p className="text-gray-600">{job.company} • {job.location || "Remote"}</p>
           </div>
         </div>
         
@@ -193,7 +166,7 @@ export default function JobWorkspace() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Posted</p>
                 <p className="text-2xl font-bold">
-                  {new Date(job.created_at).toLocaleDateString()}
+                  {job.created_at ? new Date(job.created_at).toLocaleDateString() : new Date(job.posted_date).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -208,7 +181,7 @@ export default function JobWorkspace() {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Type</p>
-                <p className="text-lg font-semibold capitalize">{job.job_type.replace('-', ' ')}</p>
+                <p className="text-lg font-semibold capitalize">{(job.type || 'full-time').replace('-', ' ')}</p>
               </div>
             </div>
           </CardContent>
@@ -245,7 +218,7 @@ export default function JobWorkspace() {
                   </div>
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm">{job.salary_range}</span>
+                    <span className="text-sm">{job.salary_range || "Salary not specified"}</span>
                   </div>
                 </div>
                 
@@ -257,23 +230,34 @@ export default function JobWorkspace() {
                 <div>
                   <h4 className="font-medium mb-2">Requirements</h4>
                   <div className="text-sm text-gray-600 space-y-1">
-                    {job.requirements.split('\n').map((req, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <span>{req}</span>
-                      </div>
-                    ))}
+                    {Array.isArray(job.requirements) ? 
+                      job.requirements.map((req, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                          <span>{req}</span>
+                        </div>
+                      )) :
+                      (job.requirements || "No specific requirements listed").split('\n').map((req, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                          <span>{req}</span>
+                        </div>
+                      ))
+                    }
                   </div>
                 </div>
 
                 <div>
                   <h4 className="font-medium mb-2">Skills</h4>
                   <div className="flex flex-wrap gap-2">
-                    {job.skills.split(', ').map((skill, index) => (
+                    {(job.technical_skills || "").split(',').filter(skill => skill.trim()).map((skill, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {skill.trim()}
                       </Badge>
                     ))}
+                    {(!job.technical_skills || !job.technical_skills.trim()) && (
+                      <span className="text-sm text-gray-500">No skills specified</span>
+                    )}
                   </div>
                 </div>
               </CardContent>

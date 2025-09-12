@@ -16,74 +16,165 @@ const JobActionsMenu = dynamic(() => import("@/components/job-actions-menu"), {
   loading: () => <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
 })
 
-// Job card component optimized for performance
-const JobCard = ({ job, onDelete }: { job: any, onDelete: (id: string, title: string) => void }) => (
-  <Card className="hover:shadow-md transition-shadow duration-200">
-    <CardHeader className="pb-3">
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <CardTitle className="text-lg font-semibold text-gray-900">{job.title}</CardTitle>
-          <div className="flex items-center text-sm text-gray-600 space-x-4">
-            <span className="flex items-center">
-              <Briefcase className="w-4 h-4 mr-1" />
-              {job.company}
-            </span>
-            <span className="flex items-center">
-              <MapPin className="w-4 h-4 mr-1" />
-              {job.location || "Remote"}
-            </span>
+// Job card component matching the design
+const JobCard = ({ job, onDelete }: { job: any, onDelete: (id: string, title: string) => void }) => {
+  const router = useRouter()
+  
+  const handleOpenWorkspace = () => {
+    router.push(`/dashboard/jobs/${job.id}/workspace`)
+  }
+
+  // Calculate match percentage (mock calculation based on applications)
+  const matchPercentage = job.applications_count > 0 ? 
+    Math.min(Math.round((job.matches_count || 0) / job.applications_count * 100), 100) : 0
+
+  // Format salary range
+  const salaryRange = job.salary_range || 
+    (job.salary_min && job.salary_max ? `$${job.salary_min.toLocaleString()} - $${job.salary_max.toLocaleString()}` : null)
+
+  return (
+    <Card className="hover:shadow-lg transition-all duration-300 border border-gray-200 bg-white">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="space-y-2 flex-1">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg font-semibold text-gray-900 leading-tight">
+                {job.title}
+              </CardTitle>
+              <Badge 
+                variant={job.status === 'active' ? 'default' : 'secondary'}
+                className={job.status === 'active' ? 'bg-green-100 text-green-800 border-green-200' : ''}
+              >
+                {job.status === 'active' ? 'ACTIVE' : job.status?.toUpperCase()}
+              </Badge>
+            </div>
+            <div className="text-sm text-gray-600 space-y-1">
+              <div className="font-medium">{job.company}</div>
+              <div className="flex items-center">
+                <MapPin className="w-3 h-3 mr-1" />
+                {job.location || "Remote"}
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
-            {job.status}
-          </Badge>
-          <Suspense fallback={<div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>}>
+          <Suspense fallback={<div className="w-6 h-6 bg-gray-200 rounded animate-pulse"></div>}>
             <JobActionsMenu job={job} onDelete={onDelete} />
           </Suspense>
         </div>
-      </div>
-    </CardHeader>
-    <CardContent className="pt-0">
-      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-        {job.description?.substring(0, 150)}...
-      </p>
-      <div className="flex items-center justify-between">
-        <div className="flex flex-wrap gap-1">
-          {job.skills?.slice(0, 3).map((skill: string) => (
-            <Badge key={skill} variant="outline" className="text-xs">
-              {skill}
-            </Badge>
-          ))}
-          {job.skills?.length > 3 && (
-            <Badge variant="outline" className="text-xs">+{job.skills.length - 3}</Badge>
-          )}
+
+        {/* Stats Row */}
+        <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-4 py-3">
+          <div className="flex items-center space-x-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">
+                {job.applications_count || 0}
+              </div>
+              <div className="text-xs text-gray-500">Candidates</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">
+                {matchPercentage}%
+              </div>
+              <div className="text-xs text-gray-500">Match</div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center text-xs text-gray-500">
+                <span className={job.status === 'active' ? 'text-green-600' : 'text-gray-400'}>
+                  {job.status === 'active' ? 'Invalid Date' : 'Closed'}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center text-sm text-gray-600">
-          {job.salary_min && job.salary_max && (
-            <span className="flex items-center">
-              <DollarSign className="w-4 h-4 mr-1" />
-              ${job.salary_min.toLocaleString()}-${job.salary_max.toLocaleString()}
-            </span>
-          )}
+      </CardHeader>
+
+      <CardContent className="pt-0">
+        {/* Job Description Preview */}
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+            {job.description ? job.description.substring(0, 120) + "..." : "No description available"}
+          </p>
         </div>
-      </div>
-    </CardContent>
-  </Card>
-)
+
+        {/* Salary and Work Type */}
+        {(salaryRange || job.type || job.experience_level) && (
+          <div className="mb-4 space-y-2">
+            {salaryRange && (
+              <div className="flex items-center text-sm">
+                <span className="font-medium text-gray-700">Full time:</span>
+                <span className="ml-2 text-gray-600">{salaryRange}</span>
+              </div>
+            )}
+            {job.experience_level && (
+              <div className="text-xs text-gray-500">
+                Experience: {job.experience_level}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Skills Tags */}
+        {job.technical_skills && (
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-1">
+              {job.technical_skills.split(',').slice(0, 4).map((skill: string, index: number) => (
+                <Badge key={index} variant="outline" className="text-xs px-2 py-1 bg-blue-50 text-blue-700 border-blue-200">
+                  {skill.trim()}
+                </Badge>
+              ))}
+              {job.technical_skills.split(',').length > 4 && (
+                <Badge variant="outline" className="text-xs px-2 py-1">
+                  +{job.technical_skills.split(',').length - 4}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Open Workspace Button */}
+        <Button 
+          onClick={handleOpenWorkspace}
+          className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+        >
+          <Users className="w-4 h-4" />
+          Open Workspace
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
 
 // Loading skeleton component
 const JobsSkeleton = () => (
-  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
     {[...Array(6)].map((_, i) => (
       <Card key={i} className="animate-pulse">
-        <CardHeader>
-          <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between mb-3">
+            <div className="space-y-2 flex-1">
+              <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+            </div>
+          </div>
+          <div className="bg-gray-100 rounded-lg px-4 py-3">
+            <div className="flex items-center space-x-6">
+              <div className="text-center">
+                <div className="h-6 bg-gray-200 rounded w-8 mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-12"></div>
+              </div>
+              <div className="text-center">
+                <div className="h-6 bg-gray-200 rounded w-8 mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-8"></div>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+          <div className="space-y-3">
+            <div className="h-4 bg-gray-200 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            <div className="h-10 bg-gray-200 rounded w-full mt-4"></div>
+          </div>
         </CardContent>
       </Card>
     ))}
@@ -209,7 +300,7 @@ export default function JobsPageOptimized() {
         {loading ? (
           <JobsSkeleton />
         ) : filteredJobs.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
             {filteredJobs.map((job) => (
               <JobCard 
                 key={job.id} 
