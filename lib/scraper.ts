@@ -7,11 +7,8 @@ export interface ScrapedJobData {
   title?: string
   company?: string
   location?: string
-  department?: string
   description?: string
   requirements?: string
-  responsibilities?: string
-  benefits?: string
   skills?: string[]
   employmentType?: string
   experienceLevel?: string
@@ -183,11 +180,7 @@ function parseScrapedContent(
     console.log("🏷️ Extracted skills:", jobData.skills.join(', '))
   }
 
-  // Extract department
-  jobData.department = extractDepartment(content)
-  if (jobData.department) {
-    console.log("🏢 Department extracted:", jobData.department)
-  }
+
 
   // Extract application deadline
   jobData.applicationDeadline = extractApplicationDeadline(content)
@@ -196,7 +189,7 @@ function parseScrapedContent(
   }
 
   // Enhanced description, requirements, responsibilities and benefits extraction
-  const { description, requirements, responsibilities, benefits } = extractJobSections(content, jobData.description)
+  const { description, requirements } = extractJobSections(content, jobData.description)
   
   if (description) {
     jobData.description = cleanHtmlContent(description)
@@ -208,15 +201,7 @@ function parseScrapedContent(
     console.log("📋 Extracted requirements (length):", jobData.requirements.length)
   }
   
-  if (responsibilities) {
-    jobData.responsibilities = formatRequirementsList(responsibilities)
-    console.log("📝 Extracted responsibilities (length):", jobData.responsibilities.length)
-  }
-  
-  if (benefits) {
-    jobData.benefits = cleanHtmlContent(benefits)
-    console.log("🎁 Extracted benefits (length):", jobData.benefits.length)
-  }
+
 
   // Ensure we have some description - with better fallback
   if (!jobData.description || jobData.description.length < 50) {
@@ -776,26 +761,34 @@ function extractExperienceLevel(lowerContent: string): string {
  */
 function extractSalary(content: string): string {
   const salaryPatterns = [
-    // Range patterns with various formats
-    /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?\s*(?:-|to|–|—|through)\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?/gi,
-    /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)\s*(?:-|to|–|—|through)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)/gi,
+    // Exact salary patterns with comprehensive matching
     
-    // Labeled salary ranges
-    /(?:salary|compensation|pay|wage)[:\s]*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?\s*(?:-|to|–|—|through)\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?/gi,
+    // 1. Ranges with currency and k notation: $80k - $120k, $80,000 - $120,000
+    /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?\s*(?:\s*-\s*|\s+to\s+|\s*–\s*|\s*—\s*|\s+through\s+)\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?(?:\s*(?:per\s+year|annually|\/year|\/yr|p\.?a\.?))?/gi,
     
-    // Annual salary patterns
-    /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?\s*(?:per year|annually|\/year|\/yr|p\.?a\.?)/gi,
-    /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)\s*(?:per year|annually|\/year|\/yr|p\.?a\.?)/gi,
+    // 2. Labeled ranges: "Salary: $80,000 - $120,000", "Pay: 80k-120k"
+    /(?:salary|compensation|pay|wage|income|package)[:\s-]*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?\s*(?:\s*-\s*|\s+to\s+|\s*–\s*|\s*—\s*)\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?/gi,
     
-    // Hourly rates
-    /\$\s*(\d{1,3}(?:\.\d{2})?)\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3}(?:\.\d{2})?)\s*(?:per hour|\/hour|\/hr|hourly)/gi,
-    /\$\s*(\d{1,3}(?:\.\d{2})?)\s*(?:per hour|\/hour|\/hr|hourly)/gi,
+    // 3. Annual salary with single values: "$100,000 annually", "100k per year"
+    /(?:salary|compensation|pay|wage)?\s*[:\s-]*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?\s*(?:per\s+year|annually|\/year|\/yr|p\.?a\.?)/gi,
     
-    // Simple ranges without labels
-    /(\d{1,3})(?:,\d{3})*\s*(?:k|K)\s*(?:-|to|–|—)\s*(\d{1,3})(?:,\d{3})*\s*(?:k|K)/gi,
+    // 4. Hourly rates: "$25 - $35/hour", "$50 per hour"
+    /\$\s*(\d{1,3}(?:\.\d{2})?)\s*(?:\s*-\s*|\s+to\s+|\s*–\s*)\s*\$?\s*(\d{1,3}(?:\.\d{2})?)\s*(?:per\s+hour|\/hour|\/hr|hourly)/gi,
+    /\$\s*(\d{1,3}(?:\.\d{2})?)\s*(?:per\s+hour|\/hour|\/hr|hourly)/gi,
     
-    // Single salary values with currency
-    /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:k|K)?(?![\d\.])/gi,
+    // 5. Simple number ranges without currency: "80000-120000", "80-120k"
+    /(?<![\d$])\s*(\d{5,7})\s*(?:\s*-\s*|\s+to\s+)\s*(\d{5,7})\s*(?:per\s+year|annually|\/year)?/gi,
+    /(?<![\d$])\s*(\d{2,3})\s*k?\s*(?:\s*-\s*|\s+to\s+)\s*(\d{2,3})\s*k\s*(?:per\s+year|annually|\/year)?/gi,
+    
+    // 6. Single values with explicit context: "$100,000", "100k", "$50/hour" 
+    /(?:salary|compensation|pay|wage)[:\s-]*\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?(?!\s*(?:-|to|–|—))/gi,
+    /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?(?:\s*(?:per\s+year|annually|\/year|\/yr))?(?!\s*(?:-|to|–|—))/gi,
+    
+    // 7. Context-specific patterns: "Starting at $X", "Up to $X"
+    /(?:starting\s+at|up\s+to|base\s+salary|minimum|maximum)[:\s]*\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?/gi,
+    
+    // 8. Range indicators: "between $X and $Y", "from $X to $Y"
+    /(?:between|from)\s+\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?\s+(?:and|to)\s+\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?/gi
   ]
 
   const foundSalaries: string[] = []
@@ -804,25 +797,29 @@ function extractSalary(content: string): string {
     try {
       const matches = [...content.matchAll(pattern)]
       for (const match of matches) {
-        const salaryText = normalizeSalaryText(match[0], match[1], match[2])
+        const salaryText = extractExactSalaryText(match[0], match[1], match[2])
         if (salaryText && isValidSalary(salaryText) && !foundSalaries.includes(salaryText)) {
           foundSalaries.push(salaryText)
-          console.log("💰 Salary extracted:", salaryText)
+          console.log("💰 Exact salary extracted:", salaryText, "from:", match[0].trim())
         }
       }
     } catch (error) {
-      console.warn("⚠️ Salary pattern error:", error.message)
+      console.warn("⚠️ Salary pattern error:", error?.message || error)
       continue
     }
   }
 
-  // Return the best salary found (prefer ranges over single values)
+  // Return the most specific salary found (prefer ranges over single values, prefer labeled over unlabeled)
   if (foundSalaries.length > 0) {
-    // Prioritize ranges over single values
+    // Prioritize by specificity: ranges > singles, labeled > unlabeled
     const ranges = foundSalaries.filter(s => s.includes('-') || s.includes('to'))
-    if (ranges.length > 0) {
-      return ranges[0]
-    }
+    const hourlyRates = foundSalaries.filter(s => s.includes('/hour') || s.includes(' per hour'))
+    const annualSalaries = foundSalaries.filter(s => !s.includes('/hour') && !s.includes(' per hour'))
+    
+    // Return in order of preference
+    if (ranges.length > 0) return ranges[0]
+    if (annualSalaries.length > 0) return annualSalaries[0]
+    if (hourlyRates.length > 0) return hourlyRates[0]
     return foundSalaries[0]
   }
 
@@ -831,52 +828,106 @@ function extractSalary(content: string): string {
 }
 
 /**
- * Normalize salary text for consistent formatting
+ * Extract exact salary text with precise formatting preservation
  */
-function normalizeSalaryText(fullMatch: string, value1?: string, value2?: string): string {
+function extractExactSalaryText(fullMatch: string, value1?: string, value2?: string): string {
   if (!fullMatch) return ''
   
-  let normalized = fullMatch.trim()
+  // Extract clean salary information while preserving original formatting intent
+  let extracted = fullMatch.trim()
   
-  // Convert k notation to full numbers for clarity
-  normalized = normalized.replace(/(\d+)k\b/gi, (match, num) => {
-    const number = parseInt(num)
-    if (number < 1000) {
-      return `${number * 1000}`
-    }
-    return match
-  })
+  // Remove common prefix text but keep salary structure
+  extracted = extracted.replace(/^(?:salary|compensation|pay|wage|income|package)[:\s-]*/gi, '').trim()
+  extracted = extracted.replace(/^(?:starting\s+at|up\s+to|base\s+salary|between|from)[:\s]*/gi, '').trim()
   
-  // Standardize range separators
-  normalized = normalized.replace(/\s*(?:–|—|through)\s*/g, ' - ')
-  normalized = normalized.replace(/\s+to\s+/gi, ' - ')
-  
-  // Clean up spacing around currency
-  normalized = normalized.replace(/\$\s+/g, '$')
-  
-  // Ensure proper formatting for ranges
+  // Handle two-value ranges (ranges)
   if (value1 && value2) {
-    const num1 = normalizeNumber(value1)
-    const num2 = normalizeNumber(value2)
+    const num1 = cleanSalaryNumber(value1)
+    const num2 = cleanSalaryNumber(value2) 
+    
     if (num1 && num2) {
+      // Determine if it's hourly
+      if (fullMatch.toLowerCase().includes('hour')) {
+        return `$${num1} - $${num2}/hour`
+      }
+      // Handle k notation properly
+      if (fullMatch.toLowerCase().includes('k')) {
+        return `$${num1}k - $${num2}k`
+      }
+      // Full format for large numbers
+      if (parseInt(num1.replace(/,/g, '')) >= 1000) {
+        return `$${addCommas(num1)} - $${addCommas(num2)}`
+      }
       return `$${num1} - $${num2}`
     }
-  } else if (value1) {
-    const num1 = normalizeNumber(value1)
+  }
+  
+  // Handle single values  
+  if (value1) {
+    const num1 = cleanSalaryNumber(value1)
     if (num1) {
-      // Check if it's an hourly rate
+      // Check if it's hourly
       if (fullMatch.toLowerCase().includes('hour')) {
         return `$${num1}/hour`
+      }
+      // Check if it has k notation in original
+      if (fullMatch.toLowerCase().includes('k')) {
+        return `$${num1}k`
+      }
+      // Check if it's annual
+      if (fullMatch.toLowerCase().match(/annually|per\s+year|\/year/)) {
+        return `$${addCommas(num1)} annually`
+      }
+      // Default format based on number size
+      const numValue = parseInt(num1.replace(/,/g, ''))
+      if (numValue >= 1000) {
+        return `$${addCommas(num1)}`
       }
       return `$${num1}`
     }
   }
   
-  return normalized
+  // Fallback: clean up the original match
+  let fallback = extracted
+    .replace(/\s*(?:–|—|through)\s*/g, ' - ')
+    .replace(/\s+to\s+/gi, ' - ')
+    .replace(/\$\s+/g, '$')
+    .replace(/\s+/g, ' ')
+    .trim()
+    
+  return fallback || ''
 }
 
 /**
- * Normalize a number string (handle k notation, commas, etc.)
+ * Clean salary number while preserving format
+ */
+function cleanSalaryNumber(numStr: string): string {
+  if (!numStr) return ''
+  
+  // Remove currency symbols and extra spaces
+  let cleaned = numStr.replace(/[$\s]/g, '')
+  
+  // Validate it's a reasonable number
+  const numValue = parseFloat(cleaned.replace(/[k,]/gi, ''))
+  if (isNaN(numValue) || numValue <= 0) return ''
+  
+  return cleaned
+}
+
+/**
+ * Add commas to large numbers for readability
+ */
+function addCommas(numStr: string): string {
+  if (!numStr) return ''
+  
+  const num = parseFloat(numStr.replace(/,/g, ''))
+  if (isNaN(num)) return numStr
+  
+  return num.toLocaleString()
+}
+
+/**
+ * Normalize a number string (legacy function for compatibility)
  */
 function normalizeNumber(numStr: string): string {
   if (!numStr) return ''
@@ -1431,60 +1482,7 @@ function createRequirementStructure(text: string): string {
   return requirements.join('\n')
 }
 
-/**
- * Extract department from content
- */
-function extractDepartment(content: string): string {
-  const departmentPatterns = [
-    /department[:\s-]+([^\n\r<>{};]{2,50})/gi,
-    /team[:\s-]+([^\n\r<>{};]{2,50})/gi,
-    /division[:\s-]+([^\n\r<>{};]{2,50})/gi,
-    /join\s+(?:our\s+)?([^\n\r<>{};]{2,50})\s+(?:department|team|division)/gi,
-    /\b(engineering|marketing|sales|finance|hr|human\s+resources|operations|product|design|analytics|data|security|legal|customer\s+success|support)\b/gi,
-  ]
 
-  const foundDepartments: string[] = []
-
-  for (const pattern of departmentPatterns) {
-    try {
-      const matches = [...content.matchAll(pattern)]
-      for (const match of matches) {
-        if (match[1]) {
-          const dept = cleanText(match[1])
-          if (isValidDepartment(dept) && !foundDepartments.includes(dept)) {
-            foundDepartments.push(dept)
-          }
-        } else if (match[0]) {
-          const dept = cleanText(match[0])
-          if (isValidDepartment(dept) && !foundDepartments.includes(dept)) {
-            foundDepartments.push(dept)
-          }
-        }
-      }
-    } catch (error) {
-      continue
-    }
-  }
-
-  return foundDepartments.length > 0 ? foundDepartments[0] : ""
-}
-
-/**
- * Validate department name
- */
-function isValidDepartment(dept: string): boolean {
-  if (!dept || dept.length < 2 || dept.length > 50) return false
-  
-  const commonDepts = [
-    'engineering', 'marketing', 'sales', 'finance', 'hr', 'human resources',
-    'operations', 'product', 'design', 'analytics', 'data', 'security',
-    'legal', 'customer success', 'support', 'it', 'technology', 'research'
-  ]
-  
-  const lowerDept = dept.toLowerCase()
-  return commonDepts.some(common => lowerDept.includes(common)) || 
-         /^[a-zA-Z\s&-]+$/.test(dept)
-}
 
 /**
  * Extract application deadline from content
@@ -1554,28 +1552,22 @@ function formatDate(dateStr: string): string {
 }
 
 /**
- * Enhanced job sections extraction including responsibilities and benefits
+ * Enhanced job sections extraction for description and requirements
  */
 function extractJobSections(content: string, existingDescription?: string): {
   description: string
   requirements: string
-  responsibilities: string
-  benefits: string
 } {
   // First try to identify clear sections
-  const sections = identifyAllJobSections(content)
+  const sections = identifyJobSections(content)
   
   let description = existingDescription || sections.description || ''
   let requirements = sections.requirements || ''
-  let responsibilities = sections.responsibilities || ''
-  let benefits = sections.benefits || ''
   
-  // If we have existing description but missing other sections, try to split it
-  if (description && description.length > 300 && (!requirements || !responsibilities)) {
+  // If we have existing description but missing requirements, try to split it
+  if (description && description.length > 300 && !requirements) {
     const split = splitDescriptionIntoSections(description)
     if (!requirements && split.requirements) requirements = split.requirements
-    if (!responsibilities && split.responsibilities) responsibilities = split.responsibilities
-    if (!benefits && split.benefits) benefits = split.benefits
     description = split.description
   }
   
@@ -1584,93 +1576,25 @@ function extractJobSections(content: string, existingDescription?: string): {
     description = extractBestDescription(content)
   }
   
-  // If still missing sections, try more aggressive extraction
+  // If still missing requirements, try more aggressive extraction
   if (!requirements || requirements.length < 20) {
     requirements = extractRequirementsFromContent(content)
   }
   
-  if (!responsibilities || responsibilities.length < 20) {
-    responsibilities = extractResponsibilitiesFromContent(content)
-  }
-  
-  if (!benefits || benefits.length < 20) {
-    benefits = extractBenefitsFromContent(content)
-  }
-  
   return {
     description: description || content.substring(0, 1000).trim(),
-    requirements: requirements || "",
-    responsibilities: responsibilities || "",
-    benefits: benefits || ""
+    requirements: requirements || ""
   }
 }
 
-/**
- * Extract responsibilities from content
- */
-function extractResponsibilitiesFromContent(content: string): string {
-  const responsibilityPatterns = [
-    /(?:responsibilities|duties|tasks|role)[:\s-]*([\\s\\S]{50,2000}?)(?=\\n\\s*(?:requirements|qualifications|benefits|what\\s+we\\s+offer|about\\s+us|company)|$)/gi,
-    /(?:what\\s+you\\s+(?:will\\s+)?do|your\\s+role|day\\s+to\\s+day)[:\s-]*([\\s\\S]{50,2000}?)(?=\\n\\s*(?:requirements|qualifications|benefits|what\\s+we\\s+offer|about\\s+us|company)|$)/gi,
-    /(?:key\\s+(?:responsibilities|duties)|main\\s+tasks)[:\s-]*([\\s\\S]{50,2000}?)(?=\\n\\s*(?:requirements|qualifications|benefits|what\\s+we\\s+offer|about\\s+us|company)|$)/gi,
-  ]
-  
-  for (const pattern of responsibilityPatterns) {
-    try {
-      const matches = [...content.matchAll(pattern)]
-      for (const match of matches) {
-        if (match[1]) {
-          const resp = match[1].trim()
-          if (resp.length > 30 && resp.length < 2500) {
-            return resp
-          }
-        }
-      }
-    } catch (error) {
-      continue
-    }
-  }
-  
-  return ''
-}
+
 
 /**
- * Extract benefits from content
+ * Identify job sections with enhanced parsing
  */
-function extractBenefitsFromContent(content: string): string {
-  const benefitPatterns = [
-    /(?:benefits|perks|what\\s+we\\s+offer|compensation\\s+package)[:\s-]*([\\s\\S]{30,1500}?)(?=\\n\\s*(?:requirements|qualifications|responsibilities|about\\s+us|company|how\\s+to\\s+apply)|$)/gi,
-    /(?:why\\s+(?:join\\s+us|work\\s+here)|what\\s+you\\s+get)[:\s-]*([\\s\\S]{30,1500}?)(?=\\n\\s*(?:requirements|qualifications|responsibilities|about\\s+us|company|how\\s+to\\s+apply)|$)/gi,
-    /(?:employee\\s+benefits|our\\s+benefits)[:\s-]*([\\s\\S]{30,1500}?)(?=\\n\\s*(?:requirements|qualifications|responsibilities|about\\s+us|company)|$)/gi,
-  ]
-  
-  for (const pattern of benefitPatterns) {
-    try {
-      const matches = [...content.matchAll(pattern)]
-      for (const match of matches) {
-        if (match[1]) {
-          const benefits = match[1].trim()
-          if (benefits.length > 20 && benefits.length < 2000) {
-            return benefits
-          }
-        }
-      }
-    } catch (error) {
-      continue
-    }
-  }
-  
-  return ''
-}
-
-/**
- * Identify all job sections with enhanced parsing
- */
-function identifyAllJobSections(content: string): {
+function identifyJobSections(content: string): {
   description?: string
   requirements?: string
-  responsibilities?: string
-  benefits?: string
 } {
   const sections: any = {}
   
@@ -1683,16 +1607,6 @@ function identifyAllJobSections(content: string): {
       'requirements', 'qualifications', 'skills required', 'must have',
       'experience required', 'what you need', 'prerequisites', 'required skills',
       'minimum qualifications', 'ideal candidate', 'what we\'re looking for'
-    ],
-    responsibilities: [
-      'responsibilities', 'duties', 'what you will do', 'key responsibilities',
-      'your role', 'day to day', 'tasks', 'job responsibilities',
-      'what you\'ll do', 'role responsibilities', 'main tasks'
-    ],
-    benefits: [
-      'benefits', 'what we offer', 'perks', 'compensation package',
-      'why join us', 'what you get', 'employee benefits', 'our benefits',
-      'why work here', 'what\'s in it for you'
     ]
   }
 
@@ -1733,38 +1647,30 @@ function identifyAllJobSections(content: string): {
 function splitDescriptionIntoSections(text: string): {
   description: string
   requirements: string
-  responsibilities: string
-  benefits: string
 } {
   const sections = {
     description: text,
-    requirements: "",
-    responsibilities: "",
-    benefits: ""
+    requirements: ""
   }
   
   const sectionKeywords = {
-    requirements: ['requirements', 'qualifications', 'skills required', 'must have', 'what you need'],
-    responsibilities: ['responsibilities', 'duties', 'what you will do', 'your role', 'tasks'],
-    benefits: ['benefits', 'what we offer', 'perks', 'why join us', 'compensation package']
+    requirements: ['requirements', 'qualifications', 'skills required', 'must have', 'what you need']
   }
   
   let remainingText = text
   
-  // Find and extract each section
-  for (const [sectionName, keywords] of Object.entries(sectionKeywords)) {
-    for (const keyword of keywords) {
-      const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b[:\\s-]*([\\s\\S]*?)(?=\\b(?:${Object.values(sectionKeywords).flat().map(k => k.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).join('|')})|$)`, 'gi')
-      
-      const match = remainingText.match(regex)
-      if (match && match[0]) {
-        const content = match[0].replace(new RegExp(`^\\b${keyword.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b[:\\s-]*`, 'gi'), '').trim()
-        if (content.length > 20) {
-          sections[sectionName as keyof typeof sections] = content
-          // Remove this section from remaining text
-          remainingText = remainingText.replace(match[0], '').trim()
-          break
-        }
+  // Find and extract requirements section
+  for (const keyword of sectionKeywords.requirements) {
+    const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b[:\\s-]*([\\s\\S]*?)(?=\\b(?:${sectionKeywords.requirements.map(k => k.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).join('|')})|$)`, 'gi')
+    
+    const match = remainingText.match(regex)
+    if (match && match[0]) {
+      const content = match[0].replace(new RegExp(`^\\b${keyword.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b[:\\s-]*`, 'gi'), '').trim()
+      if (content.length > 20) {
+        sections.requirements = content
+        // Remove this section from remaining text
+        remainingText = remainingText.replace(match[0], '').trim()
+        break
       }
     }
   }

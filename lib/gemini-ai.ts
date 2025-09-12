@@ -1044,52 +1044,56 @@ export async function normalizeJobDataWithGemini(
         },
       })
 
-      const prompt = `You are a job data normalization expert. Analyze and enhance the following job data to ensure consistent formatting and complete information extraction.
+      const prompt = `You are a precise job data extraction and normalization expert. Your task is to analyze and enhance job data with 100% accuracy and perfect formatting.
 
 CURRENT EXTRACTED DATA:
 ${JSON.stringify(rawData, null, 2)}
 
 ${originalContent ? `ORIGINAL CONTENT FOR REFERENCE:
-${originalContent.substring(0, 3000)}` : ''}
+${originalContent.substring(0, 4000)}` : ''}
 
-Please normalize and enhance this data according to these requirements:
+CRITICAL REQUIREMENTS - Extract and format with absolute precision:
 
-1. **Title**: Clean and professional job title
-2. **Company**: Full company name (no abbreviations unless necessary)
-3. **Location**: Standardized format (City, State/Country or "Remote")
-4. **Department**: Extract or infer department (Engineering, Marketing, Sales, etc.)
-5. **Description**: Clean, well-formatted paragraph (2-4 sentences)
-6. **Requirements**: Extract and format as clear bullet points (3-8 items)
-7. **Responsibilities**: Extract key job responsibilities as bullet points (3-6 items)
-8. **Benefits**: Company benefits and perks as bullet points (2-5 items)
-9. **Employment Type**: Standardize (full-time, part-time, contract, internship)
-10. **Experience Level**: Categorize (entry-level, mid-level, senior-level, executive)
-11. **Skills**: Technical and soft skills as array (5-10 items)
-12. **Salary**: Clean format with currency and range if available
-13. **Application Deadline**: Date in YYYY-MM-DD format if mentioned
+1. **Title**: Extract the exact job title, clean and professional
+2. **Company**: Extract the full, exact company name 
+3. **Location**: Standardized format (City, State/Country or "Remote" or "Hybrid")
+4. **Description**: Clean, comprehensive job description (2-4 well-formed sentences)
+5. **Requirements**: Extract ALL requirements and format as bullet points (minimum 3, maximum 10)
+6. **Employment Type**: Exact classification (full-time, part-time, contract, internship, freelance)
+7. **Experience Level**: Precise categorization (entry-level, mid-level, senior-level, executive)
+8. **Skills**: All mentioned technical and soft skills as array (5-15 items)
+9. **Salary**: EXACT salary extraction - preserve original format, numbers, currency, ranges
+10. **Application Deadline**: Extract exact deadline in YYYY-MM-DD format if mentioned
+
+SALARY EXTRACTION RULES:
+- If range found (e.g., "$80,000 - $120,000", "80k-120k"): preserve exact format
+- If single number (e.g., "$100,000", "100k"): use as-is  
+- If hourly rate (e.g., "$50/hour"): keep hourly format
+- If annual notation (e.g., "100k annually"): include notation
+- If no salary: leave empty string ""
+- DO NOT invent or estimate salaries - extract EXACTLY what's written
 
 Return ONLY a JSON object with this exact structure:
 {
-  "title": "Clean job title",
-  "company": "Company Name",
-  "location": "City, State/Country or Remote",
-  "department": "Department name",
-  "description": "Professional description paragraph",
-  "requirements": "• Requirement 1\\n• Requirement 2\\n• Requirement 3",
-  "responsibilities": "• Responsibility 1\\n• Responsibility 2\\n• Responsibility 3", 
-  "benefits": "• Benefit 1\\n• Benefit 2\\n• Benefit 3",
+  "title": "Exact job title from posting",
+  "company": "Exact company name", 
+  "location": "Exact location or Remote",
+  "description": "Complete professional description",
+  "requirements": "• Requirement 1\\n• Requirement 2\\n• Requirement 3\\n• Requirement 4",
   "employmentType": "full-time",
-  "experienceLevel": "mid-level",
+  "experienceLevel": "mid-level", 
   "skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
-  "salary": "$80,000 - $120,000",
-  "applicationDeadline": "2024-12-31"
+  "salary": "Exact salary as written in original (or empty string)",
+  "applicationDeadline": "YYYY-MM-DD or empty string"
 }
 
-IMPORTANT: 
-- Use bullet points (•) for lists in requirements, responsibilities, and benefits
-- Ensure all text is clean and professional
+ABSOLUTE REQUIREMENTS:
+- Extract data with 100% accuracy - do not invent information
+- Preserve exact salary formatting and numbers from original content
+- Use bullet points (•) for requirements formatting
 - Return ONLY the JSON object, no additional text
-- If information is missing, use reasonable defaults or leave empty strings`
+- If information is not clearly present, use empty strings
+- Focus on precision over completeness`
 
       const result = await model.generateContent([prompt])
       const response = await result.response

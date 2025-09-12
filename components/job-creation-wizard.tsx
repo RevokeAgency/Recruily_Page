@@ -33,11 +33,8 @@ interface JobFormData {
   title: string
   company: string
   location: string
-  department: string
   description: string
   requirements: string
-  responsibilities: string
-  benefits: string
   salary_min: string
   salary_max: string
   employment_type: string
@@ -70,11 +67,8 @@ export default function JobCreationWizard() {
     title: "",
     company: "",
     location: "",
-    department: "",
     description: "",
     requirements: "",
-    responsibilities: "",
-    benefits: "",
     salary_min: "",
     salary_max: "",
     employment_type: "full-time",
@@ -146,20 +140,7 @@ export default function JobCreationWizard() {
       console.log("📋 Requirements extracted (length):", updates.requirements.length)
     }
     
-    if (data.responsibilities && data.responsibilities.trim()) {
-      updates.responsibilities = data.responsibilities.trim()
-      console.log("📝 Responsibilities extracted (length):", updates.responsibilities.length)
-    }
-    
-    if (data.benefits && data.benefits.trim()) {
-      updates.benefits = data.benefits.trim()
-      console.log("🎁 Benefits extracted (length):", updates.benefits.length)
-    }
-    
-    if (data.department && data.department.trim()) {
-      updates.department = data.department.trim()
-      console.log("🏢 Department extracted:", updates.department)
-    }
+
     
     if (data.applicationDeadline && data.applicationDeadline.trim()) {
       updates.application_deadline = data.applicationDeadline.trim()
@@ -178,20 +159,26 @@ export default function JobCreationWizard() {
       console.log("📊 Experience level mapped:", data.experienceLevel, "→", updates.experience_level)
     }
     
-    // Enhanced salary parsing
+    // Enhanced salary parsing with exact extraction
     if (data.salary && data.salary.trim()) {
       console.log("💰 Processing salary data:", data.salary)
       
-      // Try multiple salary patterns
+      // Comprehensive salary patterns for exact extraction
       const patterns = [
-        // Range with currency symbols: $70,000 - $120,000 or $70k - $120k
-        /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/,
-        // Range without currency: 70000 - 120000 or 70k - 120k  
-        /(\d{1,3}(?:,?\d{3})*(?:k|K)?)\s*(?:-|to|–|—)\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/,
-        // Single salary with currency: $100,000 or $100k
-        /\$\s*(\d{1,3}(?:,?\d{3})*(?:k|K)?)/,
-        // Single salary without currency: 100000 or 100k
-        /(\d{1,3}(?:,?\d{3})*(?:k|K)?)/
+        // Ranges with various separators and currencies
+        /(?:salary|compensation|pay|wage)?\s*[:\-]?\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?\s*(?:-|to|–|—|\s)\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*k?\s*(?:per\s+year|annually|\/year)?/i,
+        // Range patterns with k notation: 80k-120k, $80k-$120k  
+        /\$?\s*(\d{1,3})\s*k\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3})\s*k/i,
+        // Full number ranges: $80,000 - $120,000
+        /\$\s*(\d{1,3}(?:,\d{3})+)\s*(?:-|to|–|—)\s*\$?\s*(\d{1,3}(?:,\d{3})+)/,
+        // Range without commas: 80000-120000
+        /(\d{5,7})\s*(?:-|to|–|—)\s*(\d{5,7})/,
+        // Single salary with k: $100k, 100k
+        /\$?\s*(\d{1,3})\s*k\s*(?:per\s+year|annually|\/year)?/i,
+        // Single salary full: $100,000
+        /\$\s*(\d{1,3}(?:,\d{3})+)(?:\.\d{2})?/,
+        // Simple number: 100000
+        /(?:salary|compensation|pay)?\s*[:\-]?\s*(\d{5,7})(?:\.\d{2})?/i
       ]
       
       let salaryParsed = false
@@ -200,20 +187,31 @@ export default function JobCreationWizard() {
         const match = data.salary.match(pattern)
         if (match) {
           const convertSalary = (val: string) => {
-            let num = val.replace(/,/g, '').replace(/\$/g, '')
-            if (num.toLowerCase().includes('k')) {
-              return (parseFloat(num.replace(/k/i, '')) * 1000).toString()
+            if (!val) return ''
+            
+            // Remove non-numeric characters except decimal points
+            let cleanNum = val.replace(/[,$]/g, '')
+            
+            // Handle k notation
+            if (/k$/i.test(val)) {
+              const baseNum = parseFloat(cleanNum.replace(/k$/i, ''))
+              return (baseNum * 1000).toString()
             }
-            return num
+            
+            // Return clean number
+            return cleanNum
           }
           
-          if (match[2]) { // Range found
+          if (match[2]) { 
+            // Range found
             updates.salary_min = convertSalary(match[1])
             updates.salary_max = convertSalary(match[2])
             console.log("💰 Salary range parsed:", updates.salary_min, "-", updates.salary_max)
-          } else { // Single salary found
-            updates.salary_min = convertSalary(match[1])
-            console.log("💰 Minimum salary parsed:", updates.salary_min)
+          } else if (match[1]) { 
+            // Single salary found
+            const singleSalary = convertSalary(match[1])
+            updates.salary_min = singleSalary
+            console.log("💰 Salary extracted:", updates.salary_min)
           }
           salaryParsed = true
           break

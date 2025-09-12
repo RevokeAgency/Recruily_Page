@@ -5,10 +5,7 @@
 
 import { normalizeJobDataWithGemini } from '@/lib/gemini-ai'
 import { 
-  extractDepartment, 
-  extractApplicationDeadline, 
-  extractResponsibilities, 
-  extractBenefits,
+  extractApplicationDeadline,
   extractJobType,
   extractExperienceLevel 
 } from '@/lib/scraper'
@@ -18,11 +15,8 @@ export interface ParsedJobData {
   title?: string
   company?: string
   location?: string
-  department?: string
   description?: string
   requirements?: string
-  responsibilities?: string
-  benefits?: string
   skills?: string[]
   employmentType?: string
   experienceLevel?: string
@@ -220,10 +214,7 @@ function parseJobDataFromText(text: string): ParsedJobData {
   parsedData.skills = extractSkills(lowerText)
   
   // Extract enhanced job information using new extractors
-  parsedData.department = extractDepartment(cleanText)
   parsedData.applicationDeadline = extractApplicationDeadline(cleanText)
-  parsedData.responsibilities = extractResponsibilities(cleanText)
-  parsedData.benefits = extractBenefits(cleanText)
   
   // Split description and requirements
   const { description, requirements } = splitDescriptionAndRequirements(cleanText)
