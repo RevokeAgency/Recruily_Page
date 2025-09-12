@@ -1682,17 +1682,17 @@ function identifyAllJobSections(content: string): {
     requirements: [
       'requirements', 'qualifications', 'skills required', 'must have',
       'experience required', 'what you need', 'prerequisites', 'required skills',
-      'minimum qualifications', 'ideal candidate', 'what we\\'re looking for'
+      'minimum qualifications', 'ideal candidate', 'what we\'re looking for'
     ],
     responsibilities: [
       'responsibilities', 'duties', 'what you will do', 'key responsibilities',
       'your role', 'day to day', 'tasks', 'job responsibilities',
-      'what you\\'ll do', 'role responsibilities', 'main tasks'
+      'what you\'ll do', 'role responsibilities', 'main tasks'
     ],
     benefits: [
       'benefits', 'what we offer', 'perks', 'compensation package',
       'why join us', 'what you get', 'employee benefits', 'our benefits',
-      'why work here', 'what\\'s in it for you'
+      'why work here', 'what\'s in it for you'
     ]
   }
 
@@ -1708,8 +1708,8 @@ function identifyAllJobSections(content: string): {
         const matches = [...content.matchAll(pattern)]
         if (matches.length > 0 && matches[0][1]) {
           const sectionContent = matches[0][1]
-            .replace(/^[:\\-\\s<>]+/, '')
-            .replace(/<\\/?[^>]+>/g, '')
+            .replace(/^[:\-\s<>]+/, '')
+            .replace(/<\/?[^>]+>/g, '')
             .trim()
           
           if (sectionContent.length > 30) {
