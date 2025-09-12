@@ -1248,73 +1248,7 @@ function splitDescriptionAndRequirements(text: string): { description: string; r
   }
 }
 
-/**
- * Identify different sections in job content with enhanced parsing
- */
-function identifyJobSections(content: string): {
-  description?: string
-  requirements?: string
-  benefits?: string
-  responsibilities?: string
-} {
-  const sections: any = {}
-  
-  // Enhanced section patterns with more variations
-  const sectionPatterns = {
-    description: [
-      'job description', 'about the role', 'position overview', 'role description',
-      'about this position', 'position summary', 'role summary', 'job summary',
-      'what you\'ll be doing', 'the role', 'about the job', 'job details'
-    ],
-    requirements: [
-      'requirements', 'qualifications', 'skills required', 'must have',
-      'experience required', 'what you need', 'prerequisites', 'required skills',
-      'minimum qualifications', 'required qualifications', 'what we\'re looking for',
-      'ideal candidate', 'you should have', 'required experience', 'skills and qualifications'
-    ],
-    responsibilities: [
-      'responsibilities', 'duties', 'what you will do', 'key responsibilities',
-      'your role', 'day to day', 'tasks', 'job responsibilities', 'primary responsibilities',
-      'what you\'ll do', 'role responsibilities', 'key duties', 'main responsibilities'
-    ],
-    benefits: [
-      'benefits', 'what we offer', 'perks', 'compensation package',
-      'why join us', 'what you get', 'employee benefits', 'package includes',
-      'our benefits', 'compensation and benefits', 'what\'s in it for you'
-    ]
-  }
 
-  // Use regex patterns to find section headers more reliably
-  for (const [sectionName, keywords] of Object.entries(sectionPatterns)) {
-    for (const keyword of keywords) {
-      // Create a more flexible regex pattern
-      const pattern = new RegExp(
-        `(?:^|\n)\s*(?:<[^>]*>)?\s*${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*(?:<[^>]*>)?\s*[:\-\s]*\n?([\s\S]{50,3000}?)(?=\n\s*(?:${Object.values(sectionPatterns).flat().map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})|$)`,
-        'gi'
-      )
-      
-      try {
-        const matches = [...content.matchAll(pattern)]
-        if (matches.length > 0 && matches[0][1]) {
-          const sectionContent = matches[0][1]
-            .replace(/^[:\-\s<>]+/, '') // Remove leading punctuation and HTML
-            .replace(/<\/?[^>]+>/g, '') // Remove HTML tags
-            .trim()
-          
-          if (sectionContent.length > 30) {
-            sections[sectionName] = sectionContent
-            console.log(`📋 Found ${sectionName} section (${sectionContent.length} chars)`)
-            break
-          }
-        }
-      } catch (error) {
-        continue
-      }
-    }
-  }
-
-  return sections
-}
 
 /**
  * Get popular job sites that are supported
