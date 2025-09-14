@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
 import { normalizeCandidateDataWithGemini } from "@/lib/gemini-ai"
+import { parseDocumentServerSide } from "@/lib/server-pdf-parser"
 
 interface CandidateData {
   name?: string
@@ -67,8 +68,24 @@ export async function POST(request: NextRequest) {
 
     console.log(`📁 Processing file: ${file.name} (${file.type}, ${file.size} bytes)`)
 
-    // Parse the CV file
-    const parsedData = await parseCVFile(file)
+    // Parse the CV file using server-side parser
+    const parseResult = await parseDocumentServerSide(file)
+    
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { success: false, error: parseResult.error },
+        { status: 400 }
+      )
+    }
+    
+    const rawText = parseResult.text!
+    const candidateData = extractCandidateData(rawText)
+    
+    const parsedData = {
+      success: true,
+      data: candidateData,
+      rawText: rawText
+    }
     
     if (!parsedData.success) {
       return NextResponse.json(
@@ -203,81 +220,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// CV parsing function
-async function parseCVFile(file: File): Promise<{
-  success: boolean
-  data?: CandidateData
-  rawText?: string
-  error?: string
-}> {
-  try {
-    let rawText = ""
-
-    if (file.type === "text/plain" || file.name.endsWith('.txt')) {
-      rawText = await file.text()
-    } else if (file.type === "application/pdf" || file.name.endsWith('.pdf')) {
-      rawText = await parsePdfFile(file)
-    } else if (
-      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-      file.name.endsWith('.docx')
-    ) {
-      rawText = await parseDocxFile(file)
-    } else {
-      return {
-        success: false,
-        error: "Unsupported file format"
-      }
-    }
-
-    if (!rawText.trim()) {
-      return {
-        success: false,
-        error: "No text content found in file"
-      }
-    }
-
-    // Extract candidate data from text
-    const candidateData = extractCandidateData(rawText)
-
-    return {
-      success: true,
-      data: candidateData,
-      rawText: rawText
-    }
-
-  } catch (error: any) {
-    return {
-      success: false,
-      error: `Failed to parse file: ${error.message}`
-    }
-  }
-}
-
-// PDF parsing (simplified version)
-async function parsePdfFile(file: File): Promise<string> {
-  try {
-    // For now, return placeholder - in production, use PDF.js or server-side parser
-    const buffer = await file.arrayBuffer()
-    // This is a simplified implementation
-    // In a real app, you'd use a proper PDF parser
-    return "PDF content parsing would be implemented here with proper PDF.js integration"
-  } catch (error) {
-    throw new Error("Failed to parse PDF file")
-  }
-}
-
-// DOCX parsing (simplified version)
-async function parseDocxFile(file: File): Promise<string> {
-  try {
-    // For now, return placeholder - in production, use mammoth.js
-    const buffer = await file.arrayBuffer()
-    // This is a simplified implementation
-    // In a real app, you'd use mammoth.js or similar
-    return "DOCX content parsing would be implemented here with proper mammoth.js integration"
-  } catch (error) {
-    throw new Error("Failed to parse DOCX file")
-  }
-}
+// This function is now replaced by the server-side parser
 
 // Extract candidate data from raw text
 function extractCandidateData(text: string): CandidateData {

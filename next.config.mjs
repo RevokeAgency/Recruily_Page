@@ -32,6 +32,16 @@ const nextConfig = {
     config.resolve.fallback = {
       ...config.resolve.fallback,
     }
+
+    // Exclude server-only packages from client bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        'pdf-parse': false,
+      }
+    }
     
     return config
   },
