@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     let jobRequirements = null
     try {
       const { data: jobData, error: jobError } = await supabase
-        .from('jobs')
+        .from('job_postings')
         .select('title, description, requirements, technical_skills, experience_level, location, job_type')
         .eq('id', jobId)
         .single()
@@ -122,6 +122,15 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.warn("⚠️ Gemini CV analysis failed, using fallback:", error)
       normalizedData = generateFallbackCVData(file.name, jobRequirements)
+    }
+
+    // Ensure we have normalized data
+    if (!normalizedData) {
+      console.error("❌ Both Gemini analysis and fallback failed")
+      return NextResponse.json(
+        { success: false, error: "Failed to analyze CV content" },
+        { status: 500 }
+      )
     }
 
     // Upload file to Supabase Storage (with fallback)
@@ -183,7 +192,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save candidate to database (with fallback)
-    let candidate = candidateRecord
+    let candidate = candidateRecord // Always start with our candidateRecord as fallback
     try {
       const { data: savedCandidate, error: candidateError } = await supabase
         .from('candidates')
@@ -193,14 +202,23 @@ export async function POST(request: NextRequest) {
 
       if (candidateError) {
         console.warn("⚠️ Failed to save to database, using local candidate data:", candidateError)
-        // Continue with the candidate data we have
-      } else {
+        // Keep candidate = candidateRecord (our fallback)
+      } else if (savedCandidate) {
         candidate = savedCandidate
         console.log(`✅ Candidate saved to database: ${candidate.id}`)
+      } else {
+        console.warn("⚠️ Supabase returned null, using local candidate data")
+        // Keep candidate = candidateRecord (our fallback)
       }
     } catch (error) {
       console.warn("⚠️ Database operation failed, continuing with local data:", error)
-      // Continue with the candidate data we have
+      // Keep candidate = candidateRecord (our fallback)
+    }
+
+    // Additional safety check - ensure candidate is never null
+    if (!candidate) {
+      console.error("🚨 Critical: candidate is null, using candidateRecord as absolute fallback")
+      candidate = candidateRecord
     }
 
     // Save resume record (if resume table exists)
@@ -237,12 +255,29 @@ export async function POST(request: NextRequest) {
       console.warn("⚠️ Resume record operation failed (continuing):", error)
     }
 
+    // Ensure we return the complete candidate data
+    const responseCandidate = {
+      id: candidate.id,
+      name: candidate.name,
+      email: candidate.email,
+      phone: candidate.phone,
+      location: candidate.location,
+      skills: candidate.skills,
+      experience_years: candidate.experience_years,
+      education: candidate.education,
+      summary: candidate.summary,
+      languages: candidate.languages,
+      certifications: candidate.certifications,
+      status: candidate.status,
+      source: candidate.source,
+      tags: candidate.tags,
+      organisation_id: candidate.organisation_id,
+      resume_path: storagePath
+    }
+
     return NextResponse.json({
       success: true,
-      candidate: {
-        ...candidate,
-        resume_path: storagePath
-      },
+      candidate: responseCandidate,
       message: "CV uploaded and processed successfully"
     })
 

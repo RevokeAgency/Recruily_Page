@@ -50,28 +50,33 @@ function createSupabaseInstance() {
 function createMockClient() {
   const mockResponse = { data: [], error: null }
   const mockSingleResponse = { data: null, error: null }
+  
+  // Create a chainable query builder that supports all query patterns
+  const createQueryBuilder = () => {
+    // Base query builder that can chain methods
+    const createChainableQuery = (baseData: any = null) => {
+      return {
+        select: (columns?: string) => createChainableQuery(mockResponse),
+        insert: (data: any) => createChainableQuery({ data, error: null }),
+        update: (data: any) => createChainableQuery({ data, error: null }),
+        delete: () => createChainableQuery(mockSingleResponse),
+        upsert: (data: any) => createChainableQuery({ data, error: null }),
+        eq: (column: string, value: any) => createChainableQuery(baseData),
+        order: (column: string, options?: any) => createChainableQuery(baseData),
+        limit: (count: number) => createChainableQuery(baseData),
+        single: () => Promise.resolve(mockSingleResponse),
+        then: (onFulfilled: any) => {
+          // Make it thenable so it can be awaited
+          return Promise.resolve(baseData || mockResponse).then(onFulfilled)
+        }
+      }
+    }
+    
+    return createChainableQuery()
+  }
 
   return {
-    from: (table: string) => ({
-      select: (columns?: string) => Promise.resolve(mockResponse),
-      insert: (data: any) => Promise.resolve({ data, error: null }),
-      update: (data: any) => Promise.resolve({ data, error: null }),
-      delete: () => Promise.resolve(mockSingleResponse),
-      upsert: (data: any) => Promise.resolve({ data, error: null }),
-      eq: (column: string, value: any) => ({
-        select: (columns?: string) => Promise.resolve(mockResponse),
-        update: (data: any) => Promise.resolve({ data, error: null }),
-        delete: () => Promise.resolve(mockSingleResponse),
-        single: () => Promise.resolve(mockSingleResponse),
-      }),
-      order: (column: string, options?: any) => ({
-        select: (columns?: string) => Promise.resolve(mockResponse),
-      }),
-      limit: (count: number) => ({
-        select: (columns?: string) => Promise.resolve(mockResponse),
-      }),
-      single: () => Promise.resolve(mockSingleResponse),
-    }),
+    from: (table: string) => createQueryBuilder(),
     auth: {
       getUser: () => Promise.resolve({ data: { user: null }, error: null }),
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
