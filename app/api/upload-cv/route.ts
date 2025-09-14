@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
 import { normalizeCandidateDataWithGemini } from "@/lib/gemini-ai"
+import { parseDocumentServerSide } from "@/lib/server-pdf-parser"
 
 interface CandidateData {
   name?: string
@@ -74,8 +75,24 @@ export async function POST(request: NextRequest) {
 
     console.log(`📁 Processing file: ${file.name} (${file.type}, ${file.size} bytes)`)
 
-    // Parse the CV file
-    const parsedData = await parseCVFile(file)
+    // Parse the CV file using server-side parser
+    const parseResult = await parseDocumentServerSide(file)
+    
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { success: false, error: parseResult.error },
+        { status: 400 }
+      )
+    }
+    
+    const rawText = parseResult.text!
+    const candidateData = extractCandidateData(rawText)
+    
+    const parsedData = {
+      success: true,
+      data: candidateData,
+      rawText: rawText
+    }
     
     if (!parsedData.success) {
       return NextResponse.json(
@@ -228,134 +245,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// CV parsing function
-async function parseCVFile(file: File): Promise<{
-  success: boolean
-  data?: CandidateData
-  rawText?: string
-  error?: string
-}> {
-  try {
-    console.log(`🔍 Starting to parse file: ${file.name} (${file.type})`)
-    let rawText = ""
-
-    if (file.type === "text/plain" || file.name.endsWith('.txt')) {
-      console.log("📄 Parsing as TXT file")
-      rawText = await file.text()
-    } else if (file.type === "application/pdf" || file.name.endsWith('.pdf')) {
-      console.log("📄 Parsing as PDF file")
-      rawText = await parsePdfFile(file)
-    } else if (
-      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-      file.name.endsWith('.docx')
-    ) {
-      console.log("📄 Parsing as DOCX file")
-      rawText = await parseDocxFile(file)
-    } else {
-      console.error("❌ Unsupported file format:", file.type)
-      return {
-        success: false,
-        error: `Unsupported file format: ${file.type}. Please upload PDF, DOCX, or TXT files.`
-      }
-    }
-
-    console.log(`📝 Extracted text length: ${rawText.length} characters`)
-
-    if (!rawText.trim()) {
-      console.error("❌ No text content found in file")
-      return {
-        success: false,
-        error: "No text content found in file. The file may be corrupted or empty."
-      }
-    }
-
-    if (rawText.trim().length < 20) {
-      console.warn("⚠️ Very short text content extracted")
-      return {
-        success: false,
-        error: "Insufficient text content found in file. Please ensure the CV contains readable text."
-      }
-    }
-
-    // Extract candidate data from text
-    console.log("🔍 Extracting candidate data from text...")
-    const candidateData = extractCandidateData(rawText)
-    
-    console.log("✅ Candidate data extracted:", {
-      name: candidateData.name,
-      email: candidateData.email,
-      skillsCount: candidateData.skills?.length || 0
-    })
-
-    return {
-      success: true,
-      data: candidateData,
-      rawText: rawText
-    }
-
-  } catch (error: any) {
-    console.error("❌ File parsing failed:", error)
-    return {
-      success: false,
-      error: `Failed to parse file: ${error.message}`
-    }
-  }
-}
-
-// PDF parsing with dynamic import to avoid build issues
-async function parsePdfFile(file: File): Promise<string> {
-  try {
-    console.log("🔍 Parsing PDF file:", file.name)
-    const buffer = await file.arrayBuffer()
-    
-    // Dynamic import to avoid build issues
-    const pdfParse = (await import('pdf-parse')).default
-    const uint8Array = new Uint8Array(buffer)
-    
-    // Use pdf-parse to extract text
-    const pdfData = await pdfParse(uint8Array)
-    const extractedText = pdfData.text
-    
-    console.log(`📄 Extracted ${extractedText.length} characters from PDF`)
-    
-    if (!extractedText || extractedText.trim().length < 50) {
-      throw new Error("PDF appears to be empty or contains insufficient text")
-    }
-    
-    return extractedText
-  } catch (error: any) {
-    console.error("❌ PDF parsing error:", error)
-    throw new Error(`Failed to parse PDF file: ${error.message}`)
-  }
-}
-
-// DOCX parsing with mammoth.js
-async function parseDocxFile(file: File): Promise<string> {
-  try {
-    console.log("🔍 Parsing DOCX file:", file.name)
-    const buffer = await file.arrayBuffer()
-    
-    // Use mammoth to extract text from DOCX
-    const result = await mammoth.extractRawText({ arrayBuffer: buffer })
-    const extractedText = result.value
-    
-    console.log(`📄 Extracted ${extractedText.length} characters from DOCX`)
-    
-    if (!extractedText || extractedText.trim().length < 50) {
-      throw new Error("DOCX appears to be empty or contains insufficient text")
-    }
-    
-    // Log any warnings from mammoth
-    if (result.messages.length > 0) {
-      console.warn("⚠️ DOCX parsing warnings:", result.messages)
-    }
-    
-    return extractedText
-  } catch (error: any) {
-    console.error("❌ DOCX parsing error:", error)
-    throw new Error(`Failed to parse DOCX file: ${error.message}`)
-  }
-}
+// CV parsing functions replaced by server-side parser (lib/server-pdf-parser.ts)
+// This provides better error handling and avoids client-side bundling issues
 
 // Extract candidate data from raw text
 function extractCandidateData(text: string): CandidateData {
