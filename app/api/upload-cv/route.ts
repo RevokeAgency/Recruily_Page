@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
-import { normalizeCandidateDataWithGemini } from "@/lib/gemini-ai"
-import { parseDocumentServerSide } from "@/lib/server-pdf-parser"
+import { analyzeCVWithGemini, generateFallbackCVData } from "@/lib/gemini-ai"
 
 interface CandidateData {
   name?: string
@@ -75,44 +74,54 @@ export async function POST(request: NextRequest) {
 
     console.log(`📁 Processing file: ${file.name} (${file.type}, ${file.size} bytes)`)
 
-    // Parse the CV file using server-side parser
-    const parseResult = await parseDocumentServerSide(file)
-    
-    if (!parseResult.success) {
-      return NextResponse.json(
-        { success: false, error: parseResult.error },
-        { status: 400 }
-      )
-    }
-    
-    const rawText = parseResult.text!
-    const candidateData = extractCandidateData(rawText)
-    
-    const parsedData = {
-      success: true,
-      data: candidateData,
-      rawText: rawText
-    }
-    
-    if (!parsedData.success) {
-      return NextResponse.json(
-        { success: false, error: parsedData.error },
-        { status: 400 }
-      )
-    }
-
-    console.log("🤖 Normalizing candidate data with Gemini AI...")
-    
-    // Normalize with Gemini AI
-    let normalizedData = parsedData.data
+    // Fetch job requirements for context (optional)
+    let jobRequirements = null
     try {
-      const geminiResult = await normalizeCandidateDataWithGemini(parsedData.data!, parsedData.rawText!)
-      if (geminiResult) {
-        normalizedData = geminiResult
-        console.log("✅ Gemini normalization successful")
+      const { data: jobData, error: jobError } = await supabase
+        .from('jobs')
+        .select('title, description, requirements, technical_skills, experience_level, location, job_type')
+        .eq('id', jobId)
+        .single()
+      
+      if (jobError) {
+        console.warn("⚠️ Could not fetch job details:", jobError.message)
+      } else {
+        jobRequirements = {
+          title: jobData.title || "",
+          description: jobData.description || "",
+          requirements: jobData.requirements || "",
+          skills: jobData.technical_skills || "",
+          technical_skills: jobData.technical_skills || "",
+          experience_level: jobData.experience_level || "",
+          location: jobData.location || "",
+          job_type: jobData.job_type || ""
+        }
+        console.log(`✅ Job context loaded: ${jobRequirements.title}`)
       }
     } catch (error) {
-      console.warn("⚠️ Gemini normalization failed, using parsed data:", error)
+      console.warn("⚠️ Error fetching job context (proceeding without):", error)
+    }
+
+    console.log("🤖 Analyzing CV directly with Gemini AI (no text conversion)...")
+    
+    // Send PDF/file directly to Gemini for analysis
+    let normalizedData = null
+    try {
+      const geminiResult = await analyzeCVWithGemini(file, jobRequirements)
+      if (geminiResult) {
+        normalizedData = geminiResult
+        console.log("✅ Gemini CV analysis successful:", {
+          name: geminiResult.name,
+          position: geminiResult.position,
+          matchScore: geminiResult.match
+        })
+      } else {
+        console.warn("⚠️ Gemini analysis returned null, using fallback")
+        normalizedData = generateFallbackCVData(file.name, jobRequirements)
+      }
+    } catch (error) {
+      console.warn("⚠️ Gemini CV analysis failed, using fallback:", error)
+      normalizedData = generateFallbackCVData(file.name, jobRequirements)
     }
 
     // Upload file to Supabase Storage (with fallback)
@@ -139,7 +148,7 @@ export async function POST(request: NextRequest) {
       storagePath = `error_fallback_${Date.now()}_${file.name}`
     }
 
-    // Create candidate record
+    // Create candidate record from Gemini analysis
     const candidateId = crypto.randomUUID()
     const candidateRecord = {
       id: candidateId,
@@ -148,24 +157,28 @@ export async function POST(request: NextRequest) {
       phone: normalizedData?.phone || null,
       location: normalizedData?.location || null,
       skills: normalizedData?.skills || [],
-      experience_years: normalizedData?.experience_years || 0,
-      education: normalizedData?.education || null,
-      degree: normalizedData?.degree || null,
-      university: normalizedData?.university || null,
-      graduation_year: normalizedData?.graduation_year || null,
+      experience_years: normalizedData?.yearsOfExperience || 0,
+      education: Array.isArray(normalizedData?.education) 
+        ? normalizedData.education.join('; ') 
+        : normalizedData?.education || null,
+      degree: Array.isArray(normalizedData?.education) && normalizedData.education.length > 0
+        ? normalizedData.education[0] 
+        : null,
+      university: null, // Extract from education if needed
+      graduation_year: null, // Would need to parse from education
       summary: normalizedData?.summary || null,
-      linkedin_url: normalizedData?.linkedin_url || null,
-      portfolio_url: normalizedData?.portfolio_url || null,
-      github_url: normalizedData?.github_url || null,
+      linkedin_url: null, // Not in CandidateProfile, could be added
+      portfolio_url: null, // Not in CandidateProfile, could be added
+      github_url: null, // Not in CandidateProfile, could be added
       languages: normalizedData?.languages || ['English'],
       certifications: normalizedData?.certifications || [],
-      salary_expectation_min: normalizedData?.salary_expectation_min || null,
-      salary_expectation_max: normalizedData?.salary_expectation_max || null,
-      visa_status: normalizedData?.visa_status || null,
-      availability: normalizedData?.availability || 'available',
+      salary_expectation_min: null, // Not in CandidateProfile
+      salary_expectation_max: null, // Not in CandidateProfile
+      visa_status: null, // Not in CandidateProfile
+      availability: 'available',
       status: 'active',
       source: 'cv_upload',
-      tags: ['uploaded'],
+      tags: ['uploaded', 'gemini_analyzed'],
       organisation_id: 'demo-org-123' // TODO: Get from user context
     }
 
@@ -200,8 +213,8 @@ export async function POST(request: NextRequest) {
       file_size: file.size,
       original_name: file.name,
       parsed_content: normalizedData,
-      parsed_text: parsedData.rawText,
-      parsing_status: 'completed',
+      parsed_text: null, // Direct Gemini analysis - no intermediate text parsing
+      parsing_status: 'gemini_analyzed',
       version: 1,
       is_current: true,
       uploaded_by: null // TODO: Get from user context
@@ -245,193 +258,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// CV parsing functions replaced by server-side parser (lib/server-pdf-parser.ts)
-// This provides better error handling and avoids client-side bundling issues
-
-// Extract candidate data from raw text
-function extractCandidateData(text: string): CandidateData {
-  const lowerText = text.toLowerCase()
-  
-  return {
-    name: extractName(text),
-    email: extractEmail(text),
-    phone: extractPhone(text),
-    location: extractLocation(text),
-    skills: extractSkills(lowerText),
-    experience_years: extractExperienceYears(lowerText),
-    education: extractEducation(text),
-    summary: extractSummary(text),
-    linkedin_url: extractLinkedInUrl(text),
-    languages: extractLanguages(lowerText),
-    certifications: extractCertifications(text)
-  }
-}
-
-function extractName(text: string): string {
-  // Look for name patterns at the beginning of the text
-  const namePatterns = [
-    /^([A-Z][a-zA-Z\s]{2,40})\n/,
-    /name:\s*([A-Z][a-zA-Z\s]{2,40})/i,
-    /^([A-Z][a-zA-Z]+\s+[A-Z][a-zA-Z]+)/
-  ]
-  
-  for (const pattern of namePatterns) {
-    const match = text.match(pattern)
-    if (match && match[1]) {
-      return match[1].trim()
-    }
-  }
-  
-  return ""
-}
-
-function extractEmail(text: string): string {
-  const emailPattern = /[\w\.-]+@[\w\.-]+\.\w+/
-  const match = text.match(emailPattern)
-  return match ? match[0] : ""
-}
-
-function extractPhone(text: string): string {
-  const phonePatterns = [
-    /\+?1?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/,
-    /\+?[\d\s\-\(\)]{10,15}/
-  ]
-  
-  for (const pattern of phonePatterns) {
-    const match = text.match(pattern)
-    if (match) {
-      return match[0].trim()
-    }
-  }
-  
-  return ""
-}
-
-function extractLocation(text: string): string {
-  const locationPatterns = [
-    /(?:location|address):\s*([^\n]{5,50})/i,
-    /([A-Z][a-zA-Z\s]+,\s*[A-Z]{2,3})/,
-    /([A-Z][a-zA-Z\s]+,\s*[A-Z][a-zA-Z\s]+)/
-  ]
-  
-  for (const pattern of locationPatterns) {
-    const match = text.match(pattern)
-    if (match && match[1]) {
-      return match[1].trim()
-    }
-  }
-  
-  return ""
-}
-
-function extractSkills(lowerText: string): string[] {
-  const commonSkills = [
-    'javascript', 'typescript', 'python', 'java', 'react', 'angular', 'vue',
-    'node.js', 'nodejs', 'express', 'mongodb', 'sql', 'mysql', 'postgresql',
-    'html', 'css', 'git', 'docker', 'kubernetes', 'aws', 'azure', 'gcp',
-    'redux', 'graphql', 'rest api', 'microservices', 'agile', 'scrum',
-    'project management', 'leadership', 'communication', 'teamwork'
-  ]
-  
-  const foundSkills: string[] = []
-  
-  for (const skill of commonSkills) {
-    if (lowerText.includes(skill)) {
-      foundSkills.push(skill)
-    }
-  }
-  
-  return foundSkills
-}
-
-function extractExperienceYears(lowerText: string): number {
-  const yearPatterns = [
-    /(\d+)\+?\s*years?\s*(?:of\s*)?experience/,
-    /experience:\s*(\d+)\s*years?/,
-    /(\d+)\s*years?\s*in\s*(?:the\s*)?field/
-  ]
-  
-  for (const pattern of yearPatterns) {
-    const match = lowerText.match(pattern)
-    if (match && match[1]) {
-      return parseInt(match[1], 10)
-    }
-  }
-  
-  return 0
-}
-
-function extractEducation(text: string): string {
-  const educationPatterns = [
-    /(?:education|degree):\s*([^\n]{10,100})/i,
-    /(bachelor|master|phd|doctorate).*?(?:in|of)\s*([^\n]{5,50})/i,
-    /(university|college|institute).*?([^\n]{10,100})/i
-  ]
-  
-  for (const pattern of educationPatterns) {
-    const match = text.match(pattern)
-    if (match && match[1]) {
-      return match[1].trim()
-    }
-  }
-  
-  return ""
-}
-
-function extractSummary(text: string): string {
-  const summaryPatterns = [
-    /(?:summary|profile|about):\s*([\s\S]{50,500}?)(?:\n\n|$)/i,
-    /(?:objective|goal):\s*([\s\S]{50,300}?)(?:\n\n|$)/i
-  ]
-  
-  for (const pattern of summaryPatterns) {
-    const match = text.match(pattern)
-    if (match && match[1]) {
-      return match[1].trim()
-    }
-  }
-  
-  return ""
-}
-
-function extractLinkedInUrl(text: string): string {
-  const linkedinPattern = /(?:linkedin\.com\/in\/|linkedin\.com\/profile\/)[A-Za-z0-9\-_]+/i
-  const match = text.match(linkedinPattern)
-  return match ? `https://${match[0]}` : ""
-}
-
-function extractLanguages(lowerText: string): string[] {
-  const languages = ['english', 'spanish', 'french', 'german', 'chinese', 'japanese', 'portuguese', 'italian', 'russian', 'arabic']
-  const foundLanguages = ['english'] // Default to English
-  
-  for (const lang of languages) {
-    if (lowerText.includes(lang) && !foundLanguages.includes(lang)) {
-      foundLanguages.push(lang)
-    }
-  }
-  
-  return foundLanguages
-}
-
-function extractCertifications(text: string): string[] {
-  const certPatterns = [
-    /(?:certified|certification):\s*([^\n]{5,100})/gi,
-    /(?:cert|certificate):\s*([^\n]{5,100})/gi
-  ]
-  
-  const certifications: string[] = []
-  
-  for (const pattern of certPatterns) {
-    const matches = text.matchAll(pattern)
-    for (const match of matches) {
-      if (match[1]) {
-        certifications.push(match[1].trim())
-      }
-    }
-  }
-  
-  return certifications
-}
+// All CV parsing now handled directly by Gemini AI
+// No intermediate text parsing needed - PDF/DOCX files sent directly to Gemini
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
