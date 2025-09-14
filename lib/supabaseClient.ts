@@ -51,27 +51,33 @@ function createMockClient() {
   const mockResponse = { data: [], error: null }
   const mockSingleResponse = { data: null, error: null }
 
-  return {
-    from: (table: string) => ({
-      select: (columns?: string) => Promise.resolve(mockResponse),
-      insert: (data: any) => Promise.resolve({ data, error: null }),
+  // Create a chainable query builder that supports the full Supabase query pattern
+  const createChainableBuilder = () => {
+    const builder = {
+      select: (columns?: string) => createChainableBuilder(), // Return chainable builder, not Promise
+      insert: (data: any) => {
+        const insertResult = { data, error: null }
+        // Return a thenable that also has chainable methods
+        const thenable = Promise.resolve(insertResult)
+        Object.assign(thenable, {
+          select: (columns?: string) => Promise.resolve({ data, error: null }),
+          single: () => Promise.resolve({ data: Array.isArray(data) ? data[0] : data, error: null })
+        })
+        return thenable
+      },
       update: (data: any) => Promise.resolve({ data, error: null }),
       delete: () => Promise.resolve(mockSingleResponse),
       upsert: (data: any) => Promise.resolve({ data, error: null }),
-      eq: (column: string, value: any) => ({
-        select: (columns?: string) => Promise.resolve(mockResponse),
-        update: (data: any) => Promise.resolve({ data, error: null }),
-        delete: () => Promise.resolve(mockSingleResponse),
-        single: () => Promise.resolve(mockSingleResponse),
-      }),
-      order: (column: string, options?: any) => ({
-        select: (columns?: string) => Promise.resolve(mockResponse),
-      }),
-      limit: (count: number) => ({
-        select: (columns?: string) => Promise.resolve(mockResponse),
-      }),
-      single: () => Promise.resolve(mockSingleResponse),
-    }),
+      eq: (column: string, value: any) => createChainableBuilder(), // Return another chainable builder
+      order: (column: string, options?: any) => createChainableBuilder(),
+      limit: (count: number) => createChainableBuilder(),
+      single: () => Promise.resolve(mockSingleResponse), // This ends the chain and returns a Promise
+    }
+    return builder
+  }
+
+  return {
+    from: (table: string) => createChainableBuilder(),
     auth: {
       getUser: () => Promise.resolve({ data: { user: null }, error: null }),
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
