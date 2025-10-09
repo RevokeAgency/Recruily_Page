@@ -6,7 +6,9 @@ export async function GET() {
   
   try {
     // Check for API key
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY || 
+                  process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+                  "AIzaSyDXJ1miQZF8wEc8ks4v7MyGI5dD4SWjRfY"
     
     if (!apiKey) {
       return NextResponse.json({
@@ -29,7 +31,7 @@ export async function GET() {
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       generationConfig: {
         temperature: 0.1,
         maxOutputTokens: 100,
@@ -51,7 +53,7 @@ export async function GET() {
       message: 'Gemini API is working correctly',
       response: text.trim(),
       apiKeyLength: apiKey.length,
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       status: 'ready_for_cv_parsing'
     })
     

@@ -5,7 +5,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Initialize Gemini AI
 const getGeminiClient = () => {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+  // Use provided API key or fallback to environment variables
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || 
+                process.env.GEMINI_API_KEY || 
+                "AIzaSyDXJ1miQZF8wEc8ks4v7MyGI5dD4SWjRfY"
   
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY_MISSING')
@@ -242,7 +245,7 @@ async function extractCVDataWithGemini(file: File, jobData: any) {
     
     // Get the generative model
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       generationConfig: {
         temperature: 0.1, // Lower temperature for more consistent extraction
         topK: 1,
