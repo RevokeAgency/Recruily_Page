@@ -67,44 +67,61 @@ export async function POST(request: NextRequest) {
 
     console.log('📋 Job requirements:', jobRequirements)
 
-    // Parse CV with AI
+    // Parse CV with AI - Enhanced error handling
     let cvAnalysis
     try {
-      cvAnalysis = await analyzeCVWithGemini(file, jobRequirements)
-      console.log('✅ CV analysis completed:', cvAnalysis?.candidate?.name)
-    } catch (error) {
-      console.error('❌ CV analysis failed:', error)
+      console.log('🤖 Starting Gemini AI analysis for:', file.name, 'Size:', file.size, 'Type:', file.type)
       
-      // Fallback to mock data for development
-      cvAnalysis = {
-        candidate: {
-          name: 'John Smith',
-          email: 'john.smith@email.com',
-          phone: '+1 (555) 123-4567',
-          location: 'San Francisco, CA',
-          summary: 'Experienced software developer with strong technical skills.',
-          skills: ['JavaScript', 'React', 'Node.js', 'Python'],
-          experience: [
-            {
-              title: 'Software Developer',
-              company: 'Tech Company',
-              duration: '2021 - Present',
-              description: 'Developed web applications using modern technologies.'
-            }
-          ],
-          education: [
-            {
-              degree: 'Bachelor of Computer Science',
-              school: 'University of Technology',
-              year: '2020'
-            }
-          ],
-          languages: ['English', 'Spanish'],
-          certifications: ['AWS Certified Developer']
-        },
-        analysis: {
-          strengths: ['Strong technical background', 'Relevant experience'],
-          gaps: ['Could use more frontend experience']
+      cvAnalysis = await analyzeCVWithGemini(file, jobRequirements)
+      
+      if (cvAnalysis && cvAnalysis.candidate) {
+        console.log('✅ CV analysis completed successfully:', cvAnalysis.candidate.name)
+      } else {
+        console.warn('⚠️ Gemini returned null result, trying text extraction fallback')
+        cvAnalysis = await extractTextAndAnalyze(file, jobRequirements)
+      }
+    } catch (error) {
+      console.error('❌ Primary CV analysis failed:', error)
+      
+      // Try text extraction fallback before using mock data
+      try {
+        console.log('🔄 Attempting text extraction fallback...')
+        cvAnalysis = await extractTextAndAnalyze(file, jobRequirements)
+      } catch (fallbackError) {
+        console.error('❌ Text extraction fallback also failed:', fallbackError)
+        
+        // Only use mock data as absolute last resort with clear indication
+        console.warn('🚨 Using mock data as last resort - this should not happen in production')
+        cvAnalysis = {
+          candidate: {
+            name: `CV_${file.name.split('.')[0]}_MOCK`,
+            email: 'extracted@placeholder.com',
+            phone: '+1 (555) MOCK-CV',
+            location: 'Location not extracted',
+            summary: `This is mock data - CV parsing failed for ${file.name}. Please implement proper text extraction.`,
+            skills: ['CV_PARSING_FAILED'],
+            experience: [
+              {
+                title: 'MOCK DATA - CV parsing failed',
+                company: 'Please check CV format',
+                duration: 'Unknown',
+                description: `Real CV parsing failed for ${file.name}`
+              }
+            ],
+            education: [
+              {
+                degree: 'MOCK - CV parsing failed',
+                school: 'Please check file format',
+                year: 'Unknown'
+              }
+            ],
+            languages: ['PARSING_FAILED'],
+            certifications: ['CV_EXTRACTION_ERROR']
+          },
+          analysis: {
+            strengths: ['MOCK DATA - CV parsing failed'],
+            gaps: ['Please implement proper CV text extraction']
+          }
         }
       }
     }
@@ -250,10 +267,118 @@ async function analyzeCVWithGemini(file: File, jobRequirements: any) {
   try {
     // Use existing Gemini AI functionality from lib/gemini-ai.ts
     const { analyzeCVWithGemini: existingAnalyzer } = await import('@/lib/gemini-ai')
-    return await existingAnalyzer(file, jobRequirements)
+    const result = await existingAnalyzer(file, jobRequirements)
+    
+    if (!result) {
+      throw new Error('Gemini AI returned null result')
+    }
+    
+    // Convert Gemini result format to our expected format
+    return {
+      candidate: {
+        name: result.name || 'Unknown Name',
+        email: result.email || null,
+        phone: result.phone || null,
+        location: result.location || null,
+        summary: result.summary || result.experience || null,
+        skills: Array.isArray(result.skills) ? result.skills : [],
+        experience: result.experience ? [{
+          title: result.position || 'Unknown Position',
+          company: 'From CV',
+          duration: 'Unknown',
+          description: result.experience
+        }] : [],
+        education: Array.isArray(result.education) ? result.education.map(edu => ({
+          degree: edu,
+          school: 'From CV',
+          year: 'Unknown'
+        })) : [],
+        languages: Array.isArray(result.languages) ? result.languages : ['English'],
+        certifications: Array.isArray(result.certifications) ? result.certifications : [],
+        experience_years: result.yearsOfExperience || 0
+      },
+      analysis: {
+        strengths: [`Match score: ${result.match || 'N/A'}%`],
+        gaps: ['Detailed analysis not available']
+      }
+    }
   } catch (error) {
     console.error('Gemini analysis error:', error)
     throw error
+  }
+}
+
+// Fallback text extraction function
+async function extractTextAndAnalyze(file: File, jobRequirements: any) {
+  try {
+    console.log('📄 Attempting basic text extraction from CV')
+    
+    if (file.type === 'text/plain') {
+      // For TXT files, we can read the content directly
+      const text = await file.text()
+      return analyzeExtractedText(text, file.name, jobRequirements)
+    } else {
+      // For PDF/DOCX, we need a more sophisticated approach
+      // For now, return structured mock data that indicates we need proper extraction
+      throw new Error('Advanced text extraction not implemented for binary files')
+    }
+  } catch (error) {
+    console.error('Text extraction failed:', error)
+    throw error
+  }
+}
+
+// Basic text analysis function
+function analyzeExtractedText(text: string, filename: string, jobRequirements: any) {
+  // Simple regex-based extraction
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+  const phoneRegex = /[\+]?[1-9]?[\-\s\(\)]?[(]?[0-9]{3}[)]?[\-\s\.]?[0-9]{3,4}[\-\s\.]?[0-9]{3,6}/g
+  
+  const emails = text.match(emailRegex) || []
+  const phones = text.match(phoneRegex) || []
+  
+  // Extract name (first line that looks like a name)
+  const lines = text.split('\n').filter(line => line.trim().length > 0)
+  const nameCandidate = lines.find(line => 
+    line.length > 5 && line.length < 50 && 
+    /^[A-Za-z\s]+$/.test(line.trim()) &&
+    !line.toLowerCase().includes('resume') &&
+    !line.toLowerCase().includes('cv')
+  )
+  
+  // Extract skills (look for common programming languages and technologies)
+  const skillKeywords = ['javascript', 'python', 'java', 'react', 'node', 'angular', 'vue', 'typescript', 'css', 'html', 'sql', 'mongodb', 'postgresql', 'aws', 'docker', 'kubernetes', 'git']
+  const foundSkills = skillKeywords.filter(skill => 
+    text.toLowerCase().includes(skill)
+  )
+  
+  return {
+    candidate: {
+      name: nameCandidate?.trim() || `Extracted_${filename.split('.')[0]}`,
+      email: emails[0] || null,
+      phone: phones[0] || null,
+      location: null, // Would need more sophisticated extraction
+      summary: text.substring(0, 200) + '...', // First 200 chars as summary
+      skills: foundSkills.length > 0 ? foundSkills : ['Skills not clearly identified'],
+      experience: [{
+        title: 'Position extracted from CV',
+        company: 'Company from CV',
+        duration: 'Duration not extracted',
+        description: 'Experience details extracted from CV text'
+      }],
+      education: [{
+        degree: 'Education extracted from CV',
+        school: 'Institution from CV', 
+        year: 'Year not extracted'
+      }],
+      languages: ['English'],
+      certifications: [],
+      experience_years: foundSkills.length // Rough estimate based on skills
+    },
+    analysis: {
+      strengths: ['Basic text extraction completed'],
+      gaps: ['Needs more sophisticated parsing']
+    }
   }
 }
 
@@ -265,12 +390,19 @@ function calculateExperienceYears(experience: any[]): number {
   
   experience.forEach((exp) => {
     if (exp.duration) {
-      const match = exp.duration.match(/(\d+)/)
-      if (match) {
-        totalYears += parseInt(match[1])
+      // Try to extract years from duration string
+      const yearMatches = exp.duration.match(/(\d+)\s*(?:years?|yrs?)/i)
+      if (yearMatches) {
+        totalYears += parseInt(yearMatches[1])
+      } else {
+        // Fallback: just look for any number
+        const numberMatch = exp.duration.match(/(\d+)/)
+        if (numberMatch) {
+          totalYears += Math.min(parseInt(numberMatch[1]), 10) // Cap at 10 years per role
+        }
       }
     }
   })
   
-  return Math.max(totalYears, 0)
+  return Math.max(totalYears, 1) // Minimum 1 year if we have experience entries
 }

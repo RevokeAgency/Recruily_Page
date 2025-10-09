@@ -1,0 +1,65 @@
+Sarah Johnson
+Senior Frontend Developer
+
+Contact Information:
+Email: sarah.johnson@email.com
+Phone: +1 (555) 123-4567
+Location: San Francisco, CA
+LinkedIn: https://linkedin.com/in/sarahjohnson
+
+Professional Summary:
+Experienced Senior Frontend Developer with 6+ years of expertise in React, TypeScript, and modern web technologies. Passionate about creating intuitive user experiences and leading development teams. Strong background in full-stack development with a focus on performance optimization and scalable architecture.
+
+Technical Skills:
+- Frontend: React, TypeScript, Next.js, Vue.js, Angular
+- Backend: Node.js, Express, Python, Django
+- Databases: PostgreSQL, MongoDB, Redis
+- Cloud & DevOps: AWS, Docker, Kubernetes, CI/CD
+- Tools: Git, Webpack, Jest, Cypress
+
+Work Experience:
+
+Senior Frontend Developer | TechCorp Inc. | 2021 - Present
+• Led a team of 4 developers in building scalable React applications
+• Implemented CI/CD pipelines reducing deployment time by 60%
+• Architected and developed a customer-facing dashboard serving 10k+ users
+• Mentored junior developers and conducted code reviews
+• Technologies: React, TypeScript, Next.js, AWS, Docker
+
+Frontend Developer | StartupXYZ | 2019 - 2021  
+• Developed responsive web applications using React and TypeScript
+• Collaborated with UX team to improve user engagement by 40%
+• Integrated third-party APIs and payment systems
+• Optimized application performance improving load times by 30%
+• Technologies: React, JavaScript, Node.js, MongoDB
+
+Junior Web Developer | WebSolutions Ltd. | 2018 - 2019
+• Built and maintained client websites using modern JavaScript frameworks
+• Gained experience in full-stack development and database design
+• Worked closely with designers to implement pixel-perfect UIs
+• Technologies: JavaScript, HTML5, CSS3, PHP, MySQL
+
+Education:
+
+Master of Science in Computer Science | Stanford University | 2018
+GPA: 3.8/4.0
+Relevant Coursework: Software Engineering, Database Systems, Web Development
+
+Bachelor of Science in Software Engineering | UC Berkeley | 2016  
+GPA: 3.6/4.0
+Relevant Coursework: Data Structures, Algorithms, Computer Networks
+
+Certifications:
+- AWS Solutions Architect Associate (2023)
+- Google Cloud Professional Developer (2022)
+- Certified Scrum Master (2021)
+
+Languages:
+- English (Native)
+- Spanish (Fluent) 
+- French (Conversational)
+
+Projects:
+- E-commerce Platform: Built a full-stack e-commerce solution using React and Node.js
+- Task Management App: Developed a collaborative task management application
+- Open Source Contributor: Active contributor to several React-based open source projects

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import React, { useState, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,8 +14,10 @@ import { useDropzone } from "react-dropzone"
 import { cn } from "@/lib/utils"
 
 interface InviteCandidatesModalProps {
+  isOpen?: boolean
+  onClose?: () => void
   jobId: string
-  jobTitle: string
+  jobTitle?: string
   onCandidateAdded?: (candidate: any) => void
   trigger?: React.ReactNode
 }
@@ -29,13 +31,15 @@ interface UploadState {
   candidate: any | null
 }
 
-export function InviteCandidatesModal({
+function InviteCandidatesModal({
+  isOpen = false,
+  onClose,
   jobId,
-  jobTitle,
+  jobTitle = "Job Position",
   onCandidateAdded,
   trigger
 }: InviteCandidatesModalProps) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(isOpen)
   const [activeTab, setActiveTab] = useState("upload")
   const [uploadState, setUploadState] = useState<UploadState>({
     uploading: false,
@@ -56,9 +60,24 @@ export function InviteCandidatesModal({
     summary: ""
   })
 
+  // Handle external state changes
+  React.useEffect(() => {
+    if (isOpen !== undefined) {
+      setOpen(isOpen)
+    }
+  }, [isOpen])
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose()
+    } else {
+      setOpen(false)
+    }
+    resetState()
+  }
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0]
-    if (!file) return
+    if (acceptedFiles.length === 0) return
 
     setUploadState({
       uploading: true,
@@ -70,78 +89,121 @@ export function InviteCandidatesModal({
     })
 
     try {
-      // Simulate upload progress
-      setUploadState(prev => ({ ...prev, progress: 30 }))
+      console.log(`📄 Processing ${acceptedFiles.length} CV file(s)`)
+      const processedCandidates = []
+      let totalProgress = 0
+      
+      for (let i = 0; i < acceptedFiles.length; i++) {
+        const file = acceptedFiles[i]
+        console.log(`📋 Processing file ${i + 1}/${acceptedFiles.length}: ${file.name}`)
+        
+        // Update progress for current file
+        const baseProgress = (i / acceptedFiles.length) * 100
+        setUploadState(prev => ({ 
+          ...prev, 
+          progress: baseProgress + 10,
+          processing: true,
+          uploading: false
+        }))
 
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('jobId', jobId)
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('jobId', jobId)
 
-      setUploadState(prev => ({ ...prev, progress: 60, processing: true, uploading: false }))
+        setUploadState(prev => ({ ...prev, progress: baseProgress + 30 }))
 
-      const response = await fetch('/api/parse-cv', {
-        method: 'POST',
-        body: formData
-      })
+        const response = await fetch('/api/parse-cv', {
+          method: 'POST',
+          body: formData
+        })
 
-      const result = await response.json()
+        const result = await response.json()
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to process CV')
+        if (!response.ok || !result.success) {
+          console.error(`❌ Failed to process ${file.name}:`, result.error)
+          continue // Skip this file and continue with others
+        }
+
+        console.log(`✅ Successfully processed ${file.name}:`, result.candidate.name)
+        setUploadState(prev => ({ ...prev, progress: baseProgress + 60 }))
+
+        // Auto-match candidate to job
+        try {
+          const matchResponse = await fetch('/api/match-candidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jobId: jobId,
+              candidateId: result.candidate.id
+            })
+          })
+
+          const matchResult = await matchResponse.json()
+          
+          const candidateWithMatch = {
+            ...result.candidate,
+            match_score: matchResult.success ? matchResult.match.overall_score : 75,
+            filename: file.name
+          }
+          
+          processedCandidates.push(candidateWithMatch)
+          
+          // Notify parent component for each candidate
+          if (onCandidateAdded) {
+            onCandidateAdded(candidateWithMatch)
+          }
+          
+          console.log(`🎯 Match score for ${result.candidate.name}: ${candidateWithMatch.match_score}%`)
+        } catch (matchError) {
+          console.error(`⚠️ Matching failed for ${file.name}:`, matchError)
+          // Still add candidate even if matching fails
+          const candidateWithoutMatch = {
+            ...result.candidate,
+            match_score: 50,
+            filename: file.name
+          }
+          processedCandidates.push(candidateWithoutMatch)
+          
+          if (onCandidateAdded) {
+            onCandidateAdded(candidateWithoutMatch)
+          }
+        }
+
+        setUploadState(prev => ({ ...prev, progress: baseProgress + 90 }))
       }
 
-      setUploadState(prev => ({ ...prev, progress: 90 }))
-
-      // Auto-match candidate to job
-      const matchResponse = await fetch('/api/match-candidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobId: jobId,
-          candidateId: result.candidate.id
-        })
-      })
-
-      const matchResult = await matchResponse.json()
-
+      // Final success state
       setUploadState({
         uploading: false,
         processing: false,
         progress: 100,
         error: null,
         success: true,
-        candidate: {
-          ...result.candidate,
-          match_score: matchResult.success ? matchResult.match.score : result.candidate.match_score
-        }
+        candidate: processedCandidates.length > 0 ? {
+          ...processedCandidates[0],
+          totalProcessed: processedCandidates.length
+        } : null
       })
 
-      // Notify parent component
-      if (onCandidateAdded) {
-        onCandidateAdded({
-          ...result.candidate,
-          match_score: matchResult.success ? matchResult.match.score : result.candidate.match_score
-        })
-      }
+      console.log(`🎉 Successfully processed ${processedCandidates.length}/${acceptedFiles.length} CV files`)
 
       // Auto-close modal after success
       setTimeout(() => {
-        setOpen(false)
-        resetState()
-      }, 3000)
+        handleClose()
+      }, 4000)
 
     } catch (error) {
-      console.error('CV upload error:', error)
+      console.error('❌ CV upload batch error:', error)
       setUploadState({
         uploading: false,
         processing: false,
         progress: 0,
-        error: error instanceof Error ? error.message : 'Failed to process CV',
+        error: error instanceof Error ? error.message : 'Failed to process CV files',
         success: false,
         candidate: null
       })
     }
-  }, [jobId, onCandidateAdded])
+  }, [jobId, onCandidateAdded, onClose])
 
   const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone({
     onDrop,
@@ -150,7 +212,7 @@ export function InviteCandidatesModal({
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'text/plain': ['.txt']
     },
-    maxFiles: 1,
+    maxFiles: 10, // Allow multiple CV uploads
     maxSize: 10 * 1024 * 1024, // 10MB
     disabled: uploadState.uploading || uploadState.processing
   })
@@ -277,7 +339,7 @@ export function InviteCandidatesModal({
         success: true,
         candidate: {
           ...result.candidate,
-          match_score: matchResult.success ? matchResult.match.score : 50
+          match_score: matchResult.success ? matchResult.match.overall_score : 50
         }
       })
 
@@ -285,14 +347,13 @@ export function InviteCandidatesModal({
       if (onCandidateAdded) {
         onCandidateAdded({
           ...result.candidate,
-          match_score: matchResult.success ? matchResult.match.score : 50
+          match_score: matchResult.success ? matchResult.match.overall_score : 50
         })
       }
 
       // Auto-close modal after success
       setTimeout(() => {
-        setOpen(false)
-        resetState()
+        handleClose()
       }, 3000)
 
     } catch (error) {
@@ -309,7 +370,7 @@ export function InviteCandidatesModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogTrigger asChild>
         {trigger || (
           <Button size="sm" className="gap-2">
@@ -349,9 +410,15 @@ export function InviteCandidatesModal({
                   <div className="space-y-3">
                     <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
                     <div>
-                      <h3 className="font-semibold text-lg">CV Processed Successfully!</h3>
+                      <h3 className="font-semibold text-lg">
+                        {uploadState.candidate?.totalProcessed > 1 
+                          ? `${uploadState.candidate.totalProcessed} CVs Processed Successfully!` 
+                          : 'CV Processed Successfully!'}
+                      </h3>
                       <p className="text-gray-600">
-                        Candidate: <strong>{uploadState.candidate?.name}</strong>
+                        {uploadState.candidate?.totalProcessed > 1 
+                          ? `Latest: ${uploadState.candidate?.name}` 
+                          : `Candidate: ${uploadState.candidate?.name}`}
                       </p>
                       <p className="text-gray-600">
                         Match Score: <strong>{uploadState.candidate?.match_score}%</strong>
@@ -363,7 +430,7 @@ export function InviteCandidatesModal({
                     <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto" />
                     <div>
                       <h3 className="font-semibold">
-                        {uploadState.uploading ? "Uploading CV..." : "Processing with AI..."}
+                        {uploadState.uploading ? "Uploading CVs..." : "Processing with AI..."}
                       </h3>
                       <Progress value={uploadState.progress} className="w-full max-w-xs mx-auto mt-2" />
                     </div>
@@ -373,13 +440,13 @@ export function InviteCandidatesModal({
                     <Upload className="h-12 w-12 text-gray-400 mx-auto" />
                     <div>
                       <h3 className="font-semibold">
-                        {isDragActive ? "Drop CV here" : "Upload Candidate CV"}
+                        {isDragActive ? "Drop CV files here" : "Upload Candidate CVs"}
                       </h3>
                       <p className="text-gray-600">
-                        Drag and drop or click to select PDF, DOCX, or TXT files
+                        Drag and drop or click to select PDF, DOCX, or TXT files (up to 10 CVs)
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
-                        Maximum file size: 10MB
+                        Maximum file size: 10MB each
                       </p>
                     </div>
                   </div>
@@ -395,7 +462,12 @@ export function InviteCandidatesModal({
 
               {acceptedFiles.length > 0 && !uploadState.success && (
                 <div className="text-sm text-gray-600">
-                  <p>Selected file: {acceptedFiles[0].name}</p>
+                  <p>
+                    Selected {acceptedFiles.length === 1 ? 'file' : 'files'}: {' '}
+                    {acceptedFiles.length === 1 
+                      ? acceptedFiles[0].name 
+                      : `${acceptedFiles.length} CV files`}
+                  </p>
                 </div>
               )}
             </div>
@@ -560,3 +632,7 @@ export function InviteCandidatesModal({
     </Dialog>
   )
 }
+
+// Export both named and default
+export { InviteCandidatesModal }
+export default InviteCandidatesModal
