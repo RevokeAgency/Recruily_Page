@@ -252,7 +252,7 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
                 <SelectItem value="all">All Candidates</SelectItem>
                 <SelectItem value="high">High Match (80%+)</SelectItem>
                 <SelectItem value="medium">Medium Match (60-79%)</SelectItem>
-                <SelectItem value="low">Low Match (<60%)</SelectItem>
+                <SelectItem value="low">Low Match (&lt;60%)</SelectItem>
               </SelectContent>
             </Select>
 
