@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Upload, FileText, User, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { Upload, FileText, User, CheckCircle, AlertCircle, Loader2, X } from "lucide-react"
 import { useDropzone } from "react-dropzone"
 import { cn } from "@/lib/utils"
 
@@ -22,13 +22,20 @@ interface InviteCandidatesModalProps {
   trigger?: React.ReactNode
 }
 
-interface UploadState {
-  uploading: boolean
-  processing: boolean
+interface FileProcessingState {
+  file: File
+  status: 'pending' | 'processing' | 'completed' | 'error'
   progress: number
-  error: string | null
-  success: boolean
-  candidate: any | null
+  candidate?: any
+  error?: string
+}
+
+interface UploadState {
+  processing: boolean
+  files: FileProcessingState[]
+  completedCount: number
+  errorCount: number
+  overallProgress: number
 }
 
 function InviteCandidatesModal({
@@ -42,22 +49,11 @@ function InviteCandidatesModal({
   const [open, setOpen] = useState(isOpen)
   const [activeTab, setActiveTab] = useState("upload")
   const [uploadState, setUploadState] = useState<UploadState>({
-    uploading: false,
     processing: false,
-    progress: 0,
-    error: null,
-    success: false,
-    candidate: null
-  })
-  const [linkedinUrl, setLinkedinUrl] = useState("")
-  const [manualData, setManualData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    location: "",
-    skills: "",
-    experience: "",
-    summary: ""
+    files: [],
+    completedCount: 0,
+    errorCount: 0,
+    overallProgress: 0
   })
 
   // Handle external state changes
@@ -76,296 +72,238 @@ function InviteCandidatesModal({
     resetState()
   }
 
+  const resetState = () => {
+    setUploadState({
+      processing: false,
+      files: [],
+      completedCount: 0,
+      errorCount: 0,
+      overallProgress: 0
+    })
+  }
+
+  const removeFile = (index: number) => {
+    setUploadState(prev => ({
+      ...prev,
+      files: prev.files.filter((_, i) => i !== index)
+    }))
+  }
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
 
+    console.log(`🚀 Starting processing of ${acceptedFiles.length} CV files`)
+
+    // Initialize file processing states
+    const fileStates: FileProcessingState[] = acceptedFiles.map(file => ({
+      file,
+      status: 'pending',
+      progress: 0
+    }))
+
     setUploadState({
-      uploading: true,
-      processing: false,
-      progress: 0,
-      error: null,
-      success: false,
-      candidate: null
+      processing: true,
+      files: fileStates,
+      completedCount: 0,
+      errorCount: 0,
+      overallProgress: 0
     })
 
     try {
-      console.log(`📄 Processing ${acceptedFiles.length} CV file(s)`)
-      const processedCandidates = []
-      let totalProgress = 0
-      
-      for (let i = 0; i < acceptedFiles.length; i++) {
-        const file = acceptedFiles[i]
-        console.log(`📋 Processing file ${i + 1}/${acceptedFiles.length}: ${file.name}`)
+      // Process files sequentially to avoid overwhelming the API
+      for (let i = 0; i < fileStates.length; i++) {
+        const fileState = fileStates[i]
         
-        // Update progress for current file
-        const baseProgress = (i / acceptedFiles.length) * 100
-        setUploadState(prev => ({ 
-          ...prev, 
-          progress: baseProgress + 10,
-          processing: true,
-          uploading: false
+        console.log(`📄 Processing file ${i + 1}/${fileStates.length}: ${fileState.file.name}`)
+        
+        // Update file status to processing
+        setUploadState(prev => ({
+          ...prev,
+          files: prev.files.map((f, index) => 
+            index === i ? { ...f, status: 'processing', progress: 10 } : f
+          )
         }))
 
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('jobId', jobId)
-
-        setUploadState(prev => ({ ...prev, progress: baseProgress + 30 }))
-
-        const response = await fetch('/api/parse-cv', {
-          method: 'POST',
-          body: formData
-        })
-
-        const result = await response.json()
-
-        if (!response.ok || !result.success) {
-          console.error(`❌ Failed to process ${file.name}:`, result.error)
-          continue // Skip this file and continue with others
-        }
-
-        console.log(`✅ Successfully processed ${file.name}:`, result.candidate.name)
-        setUploadState(prev => ({ ...prev, progress: baseProgress + 60 }))
-
-        // Auto-match candidate to job
         try {
-          const matchResponse = await fetch('/api/match-candidate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jobId: jobId,
-              candidateId: result.candidate.id
-            })
+          // Step 1: Parse CV with enhanced API
+          const parseResult = await processSingleCV(fileState.file, jobId, (progress) => {
+            setUploadState(prev => ({
+              ...prev,
+              files: prev.files.map((f, index) => 
+                index === i ? { ...f, progress } : f
+              )
+            }))
           })
 
-          const matchResult = await matchResponse.json()
-          
-          const candidateWithMatch = {
-            ...result.candidate,
-            match_score: matchResult.success ? matchResult.match.overall_score : 75,
-            filename: file.name
+          if (parseResult.success) {
+            console.log(`✅ Successfully processed: ${parseResult.candidate.name}`)
+            
+            // Update file state with success
+            setUploadState(prev => ({
+              ...prev,
+              files: prev.files.map((f, index) => 
+                index === i ? { 
+                  ...f, 
+                  status: 'completed', 
+                  progress: 100,
+                  candidate: parseResult.candidate
+                } : f
+              ),
+              completedCount: prev.completedCount + 1
+            }))
+
+            // Notify parent component
+            if (onCandidateAdded) {
+              onCandidateAdded(parseResult.candidate)
+            }
+
+          } else {
+            console.error(`❌ Failed to process: ${fileState.file.name}`)
+            
+            // Update file state with error
+            setUploadState(prev => ({
+              ...prev,
+              files: prev.files.map((f, index) => 
+                index === i ? { 
+                  ...f, 
+                  status: 'error', 
+                  progress: 0,
+                  error: parseResult.error
+                } : f
+              ),
+              errorCount: prev.errorCount + 1
+            }))
           }
+
+          // Update overall progress
+          setUploadState(prev => ({
+            ...prev,
+            overallProgress: ((i + 1) / fileStates.length) * 100
+          }))
+
+        } catch (error) {
+          console.error(`❌ Error processing ${fileState.file.name}:`, error)
           
-          processedCandidates.push(candidateWithMatch)
-          
-          // Notify parent component for each candidate
-          if (onCandidateAdded) {
-            onCandidateAdded(candidateWithMatch)
-          }
-          
-          console.log(`🎯 Match score for ${result.candidate.name}: ${candidateWithMatch.match_score}%`)
-        } catch (matchError) {
-          console.error(`⚠️ Matching failed for ${file.name}:`, matchError)
-          // Still add candidate even if matching fails
-          const candidateWithoutMatch = {
-            ...result.candidate,
-            match_score: 50,
-            filename: file.name
-          }
-          processedCandidates.push(candidateWithoutMatch)
-          
-          if (onCandidateAdded) {
-            onCandidateAdded(candidateWithoutMatch)
-          }
+          setUploadState(prev => ({
+            ...prev,
+            files: prev.files.map((f, index) => 
+              index === i ? { 
+                ...f, 
+                status: 'error', 
+                progress: 0,
+                error: error instanceof Error ? error.message : 'Processing failed'
+              } : f
+            ),
+            errorCount: prev.errorCount + 1,
+            overallProgress: ((i + 1) / fileStates.length) * 100
+          }))
         }
 
-        setUploadState(prev => ({ ...prev, progress: baseProgress + 90 }))
+        // Small delay between files to prevent API overwhelming
+        if (i < fileStates.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
       }
 
-      // Final success state
-      setUploadState({
-        uploading: false,
+      // Final processing state
+      setUploadState(prev => ({
+        ...prev,
         processing: false,
-        progress: 100,
-        error: null,
-        success: true,
-        candidate: processedCandidates.length > 0 ? {
-          ...processedCandidates[0],
-          totalProcessed: processedCandidates.length
-        } : null
-      })
+        overallProgress: 100
+      }))
 
-      console.log(`🎉 Successfully processed ${processedCandidates.length}/${acceptedFiles.length} CV files`)
+      console.log(`🎉 Batch processing completed: ${uploadState.completedCount} success, ${uploadState.errorCount} errors`)
 
-      // Auto-close modal after success
-      setTimeout(() => {
-        handleClose()
-      }, 4000)
+      // Auto-close modal after successful processing
+      if (uploadState.completedCount > 0) {
+        setTimeout(() => {
+          handleClose()
+        }, 3000)
+      }
 
-    } catch (error) {
-      console.error('❌ CV upload batch error:', error)
-      setUploadState({
-        uploading: false,
-        processing: false,
-        progress: 0,
-        error: error instanceof Error ? error.message : 'Failed to process CV files',
-        success: false,
-        candidate: null
-      })
+    } catch (batchError) {
+      console.error('❌ Batch processing error:', batchError)
+      setUploadState(prev => ({
+        ...prev,
+        processing: false
+      }))
     }
-  }, [jobId, onCandidateAdded, onClose])
+  }, [jobId, onCandidateAdded, uploadState.completedCount, uploadState.errorCount])
 
-  const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone({
+  // Process a single CV file
+  async function processSingleCV(file: File, jobId: string, onProgress: (progress: number) => void) {
+    onProgress(20)
+
+    // Step 1: Parse CV data
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('jobId', jobId)
+
+    onProgress(40)
+
+    const parseResponse = await fetch('/api/parse-cv', {
+      method: 'POST',
+      body: formData
+    })
+
+    const parseResult = await parseResponse.json()
+
+    if (!parseResponse.ok || !parseResult.success) {
+      throw new Error(parseResult.error || 'Failed to parse CV')
+    }
+
+    onProgress(70)
+
+    // Step 2: Create match
+    const matchResponse = await fetch('/api/match-candidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        candidateId: parseResult.candidate.id,
+        jobId: jobId,
+        extractedData: parseResult.extractedData
+      })
+    })
+
+    const matchResult = await matchResponse.json()
+
+    onProgress(100)
+
+    // Return combined result
+    return {
+      success: true,
+      candidate: {
+        ...parseResult.candidate,
+        match_score: matchResult.success ? matchResult.match.overall_score : 75,
+        filename: file.name
+      },
+      match: matchResult.success ? matchResult.match : null
+    }
+  }
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/msword': ['.doc'],
       'text/plain': ['.txt']
     },
-    maxFiles: 10, // Allow multiple CV uploads
-    maxSize: 10 * 1024 * 1024, // 10MB
-    disabled: uploadState.uploading || uploadState.processing
+    maxFiles: 10,
+    maxSize: 10 * 1024 * 1024,
+    disabled: uploadState.processing
   })
 
-  const resetState = () => {
-    setUploadState({
-      uploading: false,
-      processing: false,
-      progress: 0,
-      error: null,
-      success: false,
-      candidate: null
-    })
-    setLinkedinUrl("")
-    setManualData({
-      name: "",
-      email: "",
-      phone: "",
-      location: "",
-      skills: "",
-      experience: "",
-      summary: ""
-    })
-  }
-
-  const handleLinkedinSubmit = async () => {
-    if (!linkedinUrl.trim()) return
-
-    setUploadState({
-      uploading: false,
-      processing: true,
-      progress: 50,
-      error: null,
-      success: false,
-      candidate: null
-    })
-
-    try {
-      // Placeholder for LinkedIn URL processing
-      // In a real implementation, you would scrape the LinkedIn profile
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      setUploadState({
-        uploading: false,
-        processing: false,
-        progress: 100,
-        error: "LinkedIn URL processing is not yet implemented. Please use CV upload instead.",
-        success: false,
-        candidate: null
-      })
-    } catch (error) {
-      setUploadState({
-        uploading: false,
-        processing: false,
-        progress: 0,
-        error: "Failed to process LinkedIn URL",
-        success: false,
-        candidate: null
-      })
-    }
-  }
-
-  const handleManualSubmit = async () => {
-    if (!manualData.name || !manualData.email) {
-      setUploadState(prev => ({
-        ...prev,
-        error: "Name and email are required"
-      }))
-      return
-    }
-
-    setUploadState({
-      uploading: false,
-      processing: true,
-      progress: 50,
-      error: null,
-      success: false,
-      candidate: null
-    })
-
-    try {
-      const candidateData = {
-        name: manualData.name,
-        email: manualData.email,
-        phone: manualData.phone,
-        location: manualData.location,
-        skills: manualData.skills.split(',').map(s => s.trim()).filter(s => s.length > 0),
-        experience_years: 0,
-        summary: manualData.summary,
-        source: 'manual_entry',
-        organisation_id: 'demo-org-123'
-      }
-
-      // Create candidate record
-      const response = await fetch('/api/candidates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(candidateData)
-      })
-
-      const result = await response.json()
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to create candidate')
-      }
-
-      // Auto-match candidate to job
-      const matchResponse = await fetch('/api/match-candidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobId: jobId,
-          candidateId: result.candidate.id
-        })
-      })
-
-      const matchResult = await matchResponse.json()
-
-      setUploadState({
-        uploading: false,
-        processing: false,
-        progress: 100,
-        error: null,
-        success: true,
-        candidate: {
-          ...result.candidate,
-          match_score: matchResult.success ? matchResult.match.overall_score : 50
-        }
-      })
-
-      // Notify parent component
-      if (onCandidateAdded) {
-        onCandidateAdded({
-          ...result.candidate,
-          match_score: matchResult.success ? matchResult.match.overall_score : 50
-        })
-      }
-
-      // Auto-close modal after success
-      setTimeout(() => {
-        handleClose()
-      }, 3000)
-
-    } catch (error) {
-      console.error('Manual candidate creation error:', error)
-      setUploadState({
-        uploading: false,
-        processing: false,
-        progress: 0,
-        error: error instanceof Error ? error.message : 'Failed to create candidate',
-        success: false,
-        candidate: null
-      })
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />
+      case 'error':
+        return <AlertCircle className="h-4 w-4 text-red-500" />
+      case 'processing':
+        return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+      default:
+        return <FileText className="h-4 w-4 text-gray-400" />
     }
   }
 
@@ -379,7 +317,7 @@ function InviteCandidatesModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
@@ -389,243 +327,142 @@ function InviteCandidatesModal({
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="upload">Upload CV</TabsTrigger>
+            <TabsTrigger value="upload">Upload CVs</TabsTrigger>
             <TabsTrigger value="linkedin">LinkedIn URL</TabsTrigger>
             <TabsTrigger value="manual">Manual Entry</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="upload" className="space-y-4">
-            <div className="space-y-4">
-              <div
-                {...getRootProps()}
-                className={cn(
-                  "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-                  isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400",
-                  (uploadState.uploading || uploadState.processing) && "cursor-not-allowed opacity-50"
-                )}
-              >
-                <input {...getInputProps()} />
-                
-                {uploadState.success ? (
-                  <div className="space-y-3">
-                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-                    <div>
-                      <h3 className="font-semibold text-lg">
-                        {uploadState.candidate?.totalProcessed > 1 
-                          ? `${uploadState.candidate.totalProcessed} CVs Processed Successfully!` 
-                          : 'CV Processed Successfully!'}
-                      </h3>
-                      <p className="text-gray-600">
-                        {uploadState.candidate?.totalProcessed > 1 
-                          ? `Latest: ${uploadState.candidate?.name}` 
-                          : `Candidate: ${uploadState.candidate?.name}`}
-                      </p>
-                      <p className="text-gray-600">
-                        Match Score: <strong>{uploadState.candidate?.match_score}%</strong>
-                      </p>
-                    </div>
-                  </div>
-                ) : uploadState.uploading || uploadState.processing ? (
-                  <div className="space-y-3">
-                    <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto" />
-                    <div>
-                      <h3 className="font-semibold">
-                        {uploadState.uploading ? "Uploading CVs..." : "Processing with AI..."}
-                      </h3>
-                      <Progress value={uploadState.progress} className="w-full max-w-xs mx-auto mt-2" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Upload className="h-12 w-12 text-gray-400 mx-auto" />
-                    <div>
-                      <h3 className="font-semibold">
-                        {isDragActive ? "Drop CV files here" : "Upload Candidate CVs"}
-                      </h3>
-                      <p className="text-gray-600">
-                        Drag and drop or click to select PDF, DOCX, or TXT files (up to 10 CVs)
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Maximum file size: 10MB each
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {uploadState.error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{uploadState.error}</AlertDescription>
-                </Alert>
+          <TabsContent value="upload" className="space-y-6">
+            {/* Upload Area */}
+            <div
+              {...getRootProps()}
+              className={cn(
+                "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400",
+                uploadState.processing && "cursor-not-allowed opacity-50"
               )}
-
-              {acceptedFiles.length > 0 && !uploadState.success && (
-                <div className="text-sm text-gray-600">
-                  <p>
-                    Selected {acceptedFiles.length === 1 ? 'file' : 'files'}: {' '}
-                    {acceptedFiles.length === 1 
-                      ? acceptedFiles[0].name 
-                      : `${acceptedFiles.length} CV files`}
+            >
+              <input {...getInputProps()} />
+              
+              <div className="space-y-3">
+                <Upload className="h-12 w-12 text-gray-400 mx-auto" />
+                <div>
+                  <h3 className="font-semibold text-lg">
+                    {isDragActive ? "Drop CV files here" : "Upload Multiple CVs"}
+                  </h3>
+                  <p className="text-gray-600">
+                    Drag and drop up to 10 CV files (PDF, DOC, DOCX, TXT)
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Maximum file size: 10MB each • Real-time AI extraction
                   </p>
                 </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="linkedin" className="space-y-4">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="linkedin-url">LinkedIn Profile URL</Label>
-                <Input
-                  id="linkedin-url"
-                  type="url"
-                  placeholder="https://www.linkedin.com/in/candidate-name"
-                  value={linkedinUrl}
-                  onChange={(e) => setLinkedinUrl(e.target.value)}
-                  disabled={uploadState.processing}
-                />
-              </div>
-
-              <Button 
-                onClick={handleLinkedinSubmit}
-                disabled={!linkedinUrl.trim() || uploadState.processing}
-                className="w-full"
-              >
-                {uploadState.processing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Processing LinkedIn Profile...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Import from LinkedIn
-                  </>
-                )}
-              </Button>
-
-              {uploadState.error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{uploadState.error}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="manual" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={manualData.name}
-                  onChange={(e) => setManualData(prev => ({ ...prev, name: e.target.value }))}
-                  disabled={uploadState.processing}
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={manualData.email}
-                  onChange={(e) => setManualData(prev => ({ ...prev, email: e.target.value }))}
-                  disabled={uploadState.processing}
-                />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={manualData.phone}
-                  onChange={(e) => setManualData(prev => ({ ...prev, phone: e.target.value }))}
-                  disabled={uploadState.processing}
-                />
+            {/* Processing Status */}
+            {uploadState.processing && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Processing CVs...</h4>
+                  <span className="text-sm text-gray-500">
+                    {uploadState.completedCount + uploadState.errorCount} / {uploadState.files.length}
+                  </span>
+                </div>
+                <Progress value={uploadState.overallProgress} className="w-full" />
               </div>
-              <div>
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  value={manualData.location}
-                  onChange={(e) => setManualData(prev => ({ ...prev, location: e.target.value }))}
-                  disabled={uploadState.processing}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="skills">Skills (comma-separated)</Label>
-              <Input
-                id="skills"
-                placeholder="JavaScript, React, Node.js, Sales, Marketing"
-                value={manualData.skills}
-                onChange={(e) => setManualData(prev => ({ ...prev, skills: e.target.value }))}
-                disabled={uploadState.processing}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="experience">Experience Summary</Label>
-              <Textarea
-                id="experience"
-                placeholder="Brief summary of work experience..."
-                value={manualData.experience}
-                onChange={(e) => setManualData(prev => ({ ...prev, experience: e.target.value }))}
-                disabled={uploadState.processing}
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="summary">Professional Summary</Label>
-              <Textarea
-                id="summary"
-                placeholder="Professional summary or bio..."
-                value={manualData.summary}
-                onChange={(e) => setManualData(prev => ({ ...prev, summary: e.target.value }))}
-                disabled={uploadState.processing}
-                rows={3}
-              />
-            </div>
-
-            <Button 
-              onClick={handleManualSubmit}
-              disabled={!manualData.name || !manualData.email || uploadState.processing}
-              className="w-full"
-            >
-              {uploadState.processing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Creating Candidate...
-                </>
-              ) : (
-                <>
-                  <User className="h-4 w-4 mr-2" />
-                  Create Candidate Profile
-                </>
-              )}
-            </Button>
-
-            {uploadState.error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{uploadState.error}</AlertDescription>
-              </Alert>
             )}
 
-            {uploadState.success && (
+            {/* File List */}
+            {uploadState.files.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-medium">Files ({uploadState.files.length})</h4>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {uploadState.files.map((fileState, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3 flex-1">
+                        {getStatusIcon(fileState.status)}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{fileState.file.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-gray-500">
+                              {Math.round(fileState.file.size / 1024)} KB
+                            </p>
+                            {fileState.candidate && (
+                              <p className="text-xs text-green-600 font-medium">
+                                → {fileState.candidate.name} ({fileState.candidate.match_score}% match)
+                              </p>
+                            )}
+                            {fileState.error && (
+                              <p className="text-xs text-red-600">{fileState.error}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {fileState.status === 'processing' && (
+                        <div className="flex items-center gap-2">
+                          <Progress value={fileState.progress} className="w-20" />
+                          <span className="text-xs text-gray-500">{fileState.progress}%</span>
+                        </div>
+                      )}
+                      
+                      {fileState.status === 'pending' && !uploadState.processing && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Results Summary */}
+            {!uploadState.processing && uploadState.files.length > 0 && (
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{uploadState.completedCount}</div>
+                  <div className="text-sm text-gray-600">Successfully Processed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{uploadState.errorCount}</div>
+                  <div className="text-sm text-gray-600">Failed</div>
+                </div>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {!uploadState.processing && uploadState.completedCount > 0 && (
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Candidate created successfully! Match Score: {uploadState.candidate?.match_score}%
+                  🎉 Successfully processed {uploadState.completedCount} CV{uploadState.completedCount > 1 ? 's' : ''} with real data extraction and job matching!
                 </AlertDescription>
               </Alert>
             )}
+          </TabsContent>
+
+          <TabsContent value="linkedin" className="space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                LinkedIn URL processing is not yet implemented. Please use CV upload for now.
+              </AlertDescription>
+            </Alert>
+          </TabsContent>
+
+          <TabsContent value="manual" className="space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Manual entry is available in the existing interface. Use CV upload for automated data extraction.
+              </AlertDescription>
+            </Alert>
           </TabsContent>
         </Tabs>
       </DialogContent>
@@ -633,6 +470,5 @@ function InviteCandidatesModal({
   )
 }
 
-// Export both named and default
 export { InviteCandidatesModal }
 export default InviteCandidatesModal

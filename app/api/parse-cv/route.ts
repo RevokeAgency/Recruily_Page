@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 import { v4 as uuidv4 } from 'uuid'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY || 
+  process.env.GEMINI_API_KEY || 
+  "AIzaSyAFSoQGqe6TOsLPWo6NsGwmhEhRNRpMbjQ"
+)
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 Enhanced CV parsing request received')
+  
   try {
-    console.log('🔍 CV parsing request received')
-    
     const formData = await request.formData()
     const file = formData.get('file') as File
     const jobId = formData.get('jobId') as string
@@ -24,12 +32,20 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    console.log(`📄 Processing CV file: ${file.name}, Size: ${file.size} bytes, Type: ${file.type}`)
+
     // Validate file type and size
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'text/plain'
+    ]
+    
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json({
         success: false,
-        error: 'Invalid file type. Please upload a PDF, DOCX, or TXT file.'
+        error: `Invalid file type: ${file.type}. Please upload PDF, DOC, DOCX, or TXT files.`
       }, { status: 400 })
     }
 
@@ -42,109 +58,43 @@ export async function POST(request: NextRequest) {
     }
 
     // Get job requirements for context
-    let jobRequirements = null
+    let jobData = null
     try {
-      const { data: jobData, error: jobError } = await supabase
+      const { data: job, error: jobError } = await supabase
         .from('jobs')
-        .select('title, description, technical_skills, requirements')
+        .select('title, description, technical_skills, requirements, location, salary_range')
         .eq('id', jobId)
         .single()
 
-      if (jobError) {
-        console.error('Error fetching job data:', jobError)
-        // Continue without job requirements
-      } else {
-        jobRequirements = {
-          title: jobData.title,
-          description: jobData.description,
-          skills: jobData.technical_skills?.split(',').map((s: string) => s.trim()).filter(Boolean) || [],
-          requirements: jobData.requirements
-        }
+      if (!jobError && job) {
+        jobData = job
+        console.log(`📋 Job context loaded: ${job.title}`)
       }
     } catch (error) {
-      console.error('Error fetching job requirements:', error)
+      console.warn('⚠️ Could not fetch job data:', error)
     }
 
-    console.log('📋 Job requirements:', jobRequirements)
-
-    // Parse CV with AI - Enhanced error handling
-    let cvAnalysis
-    try {
-      console.log('🤖 Starting Gemini AI analysis for:', file.name, 'Size:', file.size, 'Type:', file.type)
-      
-      cvAnalysis = await analyzeCVWithGemini(file, jobRequirements)
-      
-      if (cvAnalysis && cvAnalysis.candidate) {
-        console.log('✅ CV analysis completed successfully:', cvAnalysis.candidate.name)
-      } else {
-        console.warn('⚠️ Gemini returned null result, trying text extraction fallback')
-        cvAnalysis = await extractTextAndAnalyze(file, jobRequirements)
-      }
-    } catch (error) {
-      console.error('❌ Primary CV analysis failed:', error)
-      
-      // Try text extraction fallback before using mock data
-      try {
-        console.log('🔄 Attempting text extraction fallback...')
-        cvAnalysis = await extractTextAndAnalyze(file, jobRequirements)
-      } catch (fallbackError) {
-        console.error('❌ Text extraction fallback also failed:', fallbackError)
-        
-        // Only use mock data as absolute last resort with clear indication
-        console.warn('🚨 Using mock data as last resort - this should not happen in production')
-        cvAnalysis = {
-          candidate: {
-            name: `CV_${file.name.split('.')[0]}_MOCK`,
-            email: 'extracted@placeholder.com',
-            phone: '+1 (555) MOCK-CV',
-            location: 'Location not extracted',
-            summary: `This is mock data - CV parsing failed for ${file.name}. Please implement proper text extraction.`,
-            skills: ['CV_PARSING_FAILED'],
-            experience: [
-              {
-                title: 'MOCK DATA - CV parsing failed',
-                company: 'Please check CV format',
-                duration: 'Unknown',
-                description: `Real CV parsing failed for ${file.name}`
-              }
-            ],
-            education: [
-              {
-                degree: 'MOCK - CV parsing failed',
-                school: 'Please check file format',
-                year: 'Unknown'
-              }
-            ],
-            languages: ['PARSING_FAILED'],
-            certifications: ['CV_EXTRACTION_ERROR']
-          },
-          analysis: {
-            strengths: ['MOCK DATA - CV parsing failed'],
-            gaps: ['Please implement proper CV text extraction']
-          }
-        }
-      }
-    }
-
-    if (!cvAnalysis?.candidate) {
+    // Extract CV data using Gemini AI
+    const extractedData = await extractCVDataWithGemini(file, jobData)
+    
+    if (!extractedData) {
       return NextResponse.json({
         success: false,
-        error: 'Failed to extract candidate information from CV'
+        error: 'Failed to extract data from CV. Please ensure the file contains readable text and try again.'
       }, { status: 500 })
     }
 
-    // Generate candidate ID
+    console.log(`✅ CV data extracted successfully for: ${extractedData.candidate.name}`)
+
+    // Generate unique candidate ID
     const candidateId = uuidv4()
     
-    // Store file in Supabase Storage (simplified for demo)
-    const fileName = `${candidateId}_${file.name}`
+    // Upload file to Supabase Storage
     let resumeUrl = null
-    
     try {
-      // Convert file to buffer for storage
+      const fileName = `${candidateId}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
       const fileBuffer = Buffer.from(await file.arrayBuffer())
       
-      // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('resumes')
         .upload(fileName, fileBuffer, {
@@ -152,109 +102,99 @@ export async function POST(request: NextRequest) {
           upsert: true
         })
 
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError)
-      } else {
-        // Get public URL
+      if (!uploadError && uploadData) {
         const { data: urlData } = supabase.storage
           .from('resumes')
           .getPublicUrl(fileName)
         
         resumeUrl = urlData?.publicUrl
-        console.log('✅ File uploaded to:', resumeUrl)
+        console.log(`📎 File uploaded to storage: ${fileName}`)
       }
     } catch (error) {
-      console.error('Error uploading file:', error)
+      console.warn('⚠️ File upload failed:', error)
     }
 
-    // Normalize candidate data
-    const normalizedData = cvAnalysis.candidate
-    
     // Create candidate record
     const candidateRecord = {
       id: candidateId,
-      name: normalizedData?.name || 'Unknown Candidate',
-      email: normalizedData?.email || null,
-      phone: normalizedData?.phone || null,
-      location: normalizedData?.location || null,
-      summary: normalizedData?.summary || null,
-      skills: Array.isArray(normalizedData?.skills) ? normalizedData.skills : [],
-      experience: Array.isArray(normalizedData?.experience) ? normalizedData.experience : [],
-      education: Array.isArray(normalizedData?.education) ? normalizedData.education : [],
-      languages: Array.isArray(normalizedData?.languages) ? normalizedData.languages : ['English'],
-      certifications: Array.isArray(normalizedData?.certifications) ? normalizedData.certifications : [],
-      experience_years: normalizedData?.experience_years || calculateExperienceYears(normalizedData?.experience || []),
-      degree: normalizedData?.degree || normalizedData?.education?.[0]?.degree || null,
-      university: normalizedData?.university || normalizedData?.education?.[0]?.school || null,
-      graduation_year: normalizedData?.graduation_year || normalizedData?.education?.[0]?.year || null,
-      linkedin_url: normalizedData?.linkedin_url || null,
-      portfolio_url: normalizedData?.portfolio_url || null,
-      github_url: normalizedData?.github_url || null,
-      salary_expectation_min: normalizedData?.salary_expectation_min || null,
-      salary_expectation_max: normalizedData?.salary_expectation_max || null,
-      visa_status: normalizedData?.visa_status || null,
-      availability: normalizedData?.availability || 'available',
+      name: extractedData.candidate.name,
+      email: extractedData.candidate.email,
+      phone: extractedData.candidate.phone,
+      location: extractedData.candidate.location,
+      summary: extractedData.candidate.summary,
+      skills: extractedData.candidate.skills,
+      experience: extractedData.candidate.experience,
+      education: extractedData.candidate.education,
+      languages: extractedData.candidate.languages || ['English'],
+      certifications: extractedData.candidate.certifications || [],
+      experience_years: extractedData.candidate.experienceYears || 0,
+      degree: extractedData.candidate.education?.[0]?.degree || null,
+      university: extractedData.candidate.education?.[0]?.school || null,
+      graduation_year: extractedData.candidate.education?.[0]?.year || null,
+      linkedin_url: extractedData.candidate.linkedinUrl || null,
+      portfolio_url: extractedData.candidate.portfolioUrl || null,
+      github_url: extractedData.candidate.githubUrl || null,
+      salary_expectation_min: null,
+      salary_expectation_max: null,
+      visa_status: null,
+      availability: 'available',
       status: 'active',
       source: 'cv_upload',
-      tags: ['cv_parsed'],
-      organisation_id: 'demo-org-123', // TODO: Get from user context
+      tags: ['cv_parsed', 'gemini_extracted'],
+      organisation_id: 'demo-org-123',
       resume_url: resumeUrl,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
 
     // Save candidate to database
-    try {
-      const { data: candidateData, error: candidateError } = await supabase
-        .from('candidates')
-        .insert([candidateRecord])
-        .select()
-        .single()
+    const { data: candidateData, error: candidateError } = await supabase
+      .from('candidates')
+      .insert([candidateRecord])
+      .select()
+      .single()
 
-      if (candidateError) {
-        console.error('Error saving candidate:', candidateError)
-        throw new Error('Failed to save candidate to database')
-      }
-
-      console.log('✅ Candidate saved:', candidateData.id)
-
-      // Also save resume metadata
-      if (resumeUrl) {
-        const resumeRecord = {
-          id: uuidv4(),
-          candidate_id: candidateId,
-          filename: file.name,
-          file_path: resumeUrl,
-          file_size: file.size,
-          mime_type: file.type,
-          uploaded_at: new Date().toISOString()
-        }
-
-        const { error: resumeError } = await supabase
-          .from('resumes')
-          .insert([resumeRecord])
-
-        if (resumeError) {
-          console.error('Error saving resume metadata:', resumeError)
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        candidate: candidateData,
-        analysis: cvAnalysis.analysis
-      })
-
-    } catch (error) {
-      console.error('❌ Database error:', error)
+    if (candidateError) {
+      console.error('❌ Error saving candidate:', candidateError)
       return NextResponse.json({
         success: false,
-        error: 'Failed to save candidate information'
+        error: 'Failed to save candidate to database'
       }, { status: 500 })
     }
 
+    console.log(`💾 Candidate saved to database: ${candidateData.id}`)
+
+    // Save resume metadata
+    if (resumeUrl) {
+      const resumeRecord = {
+        id: uuidv4(),
+        candidate_id: candidateId,
+        filename: file.name,
+        file_path: resumeUrl,
+        file_size: file.size,
+        mime_type: file.type,
+        uploaded_at: new Date().toISOString()
+      }
+
+      const { error: resumeError } = await supabase
+        .from('resumes')
+        .insert([resumeRecord])
+
+      if (resumeError) {
+        console.warn('⚠️ Error saving resume metadata:', resumeError)
+      }
+    }
+
+    // Return success with extracted data
+    return NextResponse.json({
+      success: true,
+      candidate: candidateData,
+      extractedData: extractedData,
+      message: `Successfully processed ${file.name} and extracted candidate data`
+    })
+
   } catch (error) {
-    console.error('❌ CV parsing error:', error)
+    console.error('❌ Enhanced CV parsing error:', error)
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Internal server error'
@@ -262,147 +202,140 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper function to analyze CV with Gemini AI
-async function analyzeCVWithGemini(file: File, jobRequirements: any) {
+// Enhanced CV data extraction using Gemini AI
+async function extractCVDataWithGemini(file: File, jobData: any) {
   try {
-    // Use existing Gemini AI functionality from lib/gemini-ai.ts
-    const { analyzeCVWithGemini: existingAnalyzer } = await import('@/lib/gemini-ai')
-    const result = await existingAnalyzer(file, jobRequirements)
+    console.log('🤖 Starting Gemini AI CV analysis...')
     
-    if (!result) {
-      throw new Error('Gemini AI returned null result')
-    }
-    
-    // Convert Gemini result format to our expected format
-    return {
-      candidate: {
-        name: result.name || 'Unknown Name',
-        email: result.email || null,
-        phone: result.phone || null,
-        location: result.location || null,
-        summary: result.summary || result.experience || null,
-        skills: Array.isArray(result.skills) ? result.skills : [],
-        experience: result.experience ? [{
-          title: result.position || 'Unknown Position',
-          company: 'From CV',
-          duration: 'Unknown',
-          description: result.experience
-        }] : [],
-        education: Array.isArray(result.education) ? result.education.map(edu => ({
-          degree: edu,
-          school: 'From CV',
-          year: 'Unknown'
-        })) : [],
-        languages: Array.isArray(result.languages) ? result.languages : ['English'],
-        certifications: Array.isArray(result.certifications) ? result.certifications : [],
-        experience_years: result.yearsOfExperience || 0
+    // Get the generative model
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        temperature: 0.1, // Lower temperature for more consistent extraction
+        topK: 1,
+        topP: 0.1,
+        maxOutputTokens: 2048,
       },
-      analysis: {
-        strengths: [`Match score: ${result.match || 'N/A'}%`],
-        gaps: ['Detailed analysis not available']
+    })
+
+    // Convert file to base64
+    const arrayBuffer = await file.arrayBuffer()
+    const base64Data = Buffer.from(arrayBuffer).toString("base64")
+
+    // Create job context for better matching
+    const jobContext = jobData ? `
+JOB CONTEXT FOR MATCHING:
+- Job Title: ${jobData.title}
+- Required Skills: ${jobData.technical_skills || 'Not specified'}
+- Job Description: ${jobData.description?.substring(0, 300) || 'Not specified'}
+- Location: ${jobData.location || 'Not specified'}
+` : ''
+
+    const prompt = `You are an expert CV/Resume parser and job matching system. Analyze this document and extract ALL available information.
+
+${jobContext}
+
+Extract information and return ONLY a valid JSON object in this EXACT format:
+{
+  "candidate": {
+    "name": "Full name exactly as written",
+    "email": "Email address if found",
+    "phone": "Phone number if found", 
+    "location": "City, State/Country if found",
+    "summary": "Professional summary or objective",
+    "skills": ["skill1", "skill2", "skill3"],
+    "experience": [
+      {
+        "title": "Job Title",
+        "company": "Company Name", 
+        "duration": "Start Date - End Date",
+        "description": "Job description or achievements"
       }
+    ],
+    "education": [
+      {
+        "degree": "Degree Name",
+        "school": "Institution Name",
+        "year": "Graduation Year"
+      }
+    ],
+    "languages": ["English", "Spanish"],
+    "certifications": ["Certification 1", "Certification 2"],
+    "linkedinUrl": "LinkedIn URL if found",
+    "portfolioUrl": "Portfolio URL if found",
+    "githubUrl": "GitHub URL if found",
+    "experienceYears": 5
+  },
+  "matching": {
+    "overallScore": 85,
+    "skillsMatch": 90,
+    "experienceMatch": 80,
+    "educationMatch": 75,
+    "strengths": ["Strong technical skills", "Relevant experience"],
+    "gaps": ["Could use more experience in X"]
+  }
+}
+
+CRITICAL INSTRUCTIONS:
+1. Extract ALL text content from the document
+2. Do NOT use placeholder or generic data
+3. If information is not found, use null for strings and [] for arrays
+4. Calculate a realistic match score based on job requirements
+5. Return ONLY the JSON - no explanations, no markdown, no additional text
+6. Ensure all text is properly extracted and not truncated`
+
+    // Make API call to Gemini
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType: file.type,
+        },
+      },
+      prompt,
+    ])
+
+    const response = await result.response
+    const text = response.text()
+
+    console.log('📤 Gemini response received, length:', text.length)
+    console.log('🔍 First 200 chars:', text.substring(0, 200))
+
+    // Parse JSON response
+    try {
+      // Clean the response - remove any markdown formatting
+      let cleanedText = text.trim()
+      
+      // Remove markdown code blocks if present
+      cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+      
+      // Find JSON object in response
+      const jsonStart = cleanedText.indexOf('{')
+      const jsonEnd = cleanedText.lastIndexOf('}') + 1
+      
+      if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error('No JSON object found in response')
+      }
+      
+      const jsonString = cleanedText.substring(jsonStart, jsonEnd)
+      const parsedData = JSON.parse(jsonString)
+
+      // Validate required fields
+      if (!parsedData.candidate || !parsedData.candidate.name) {
+        throw new Error('Invalid response: missing candidate name')
+      }
+
+      console.log('✅ CV data successfully extracted and parsed')
+      return parsedData
+
+    } catch (parseError) {
+      console.error('❌ Failed to parse Gemini response:', parseError)
+      console.error('📄 Raw response:', text.substring(0, 500))
+      throw new Error('Failed to parse CV data from AI response')
     }
+
   } catch (error) {
-    console.error('Gemini analysis error:', error)
+    console.error('❌ Gemini AI analysis failed:', error)
     throw error
   }
-}
-
-// Fallback text extraction function
-async function extractTextAndAnalyze(file: File, jobRequirements: any) {
-  try {
-    console.log('📄 Attempting basic text extraction from CV')
-    
-    if (file.type === 'text/plain') {
-      // For TXT files, we can read the content directly
-      const text = await file.text()
-      return analyzeExtractedText(text, file.name, jobRequirements)
-    } else {
-      // For PDF/DOCX, we need a more sophisticated approach
-      // For now, return structured mock data that indicates we need proper extraction
-      throw new Error('Advanced text extraction not implemented for binary files')
-    }
-  } catch (error) {
-    console.error('Text extraction failed:', error)
-    throw error
-  }
-}
-
-// Basic text analysis function
-function analyzeExtractedText(text: string, filename: string, jobRequirements: any) {
-  // Simple regex-based extraction
-  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
-  const phoneRegex = /[\+]?[1-9]?[\-\s\(\)]?[(]?[0-9]{3}[)]?[\-\s\.]?[0-9]{3,4}[\-\s\.]?[0-9]{3,6}/g
-  
-  const emails = text.match(emailRegex) || []
-  const phones = text.match(phoneRegex) || []
-  
-  // Extract name (first line that looks like a name)
-  const lines = text.split('\n').filter(line => line.trim().length > 0)
-  const nameCandidate = lines.find(line => 
-    line.length > 5 && line.length < 50 && 
-    /^[A-Za-z\s]+$/.test(line.trim()) &&
-    !line.toLowerCase().includes('resume') &&
-    !line.toLowerCase().includes('cv')
-  )
-  
-  // Extract skills (look for common programming languages and technologies)
-  const skillKeywords = ['javascript', 'python', 'java', 'react', 'node', 'angular', 'vue', 'typescript', 'css', 'html', 'sql', 'mongodb', 'postgresql', 'aws', 'docker', 'kubernetes', 'git']
-  const foundSkills = skillKeywords.filter(skill => 
-    text.toLowerCase().includes(skill)
-  )
-  
-  return {
-    candidate: {
-      name: nameCandidate?.trim() || `Extracted_${filename.split('.')[0]}`,
-      email: emails[0] || null,
-      phone: phones[0] || null,
-      location: null, // Would need more sophisticated extraction
-      summary: text.substring(0, 200) + '...', // First 200 chars as summary
-      skills: foundSkills.length > 0 ? foundSkills : ['Skills not clearly identified'],
-      experience: [{
-        title: 'Position extracted from CV',
-        company: 'Company from CV',
-        duration: 'Duration not extracted',
-        description: 'Experience details extracted from CV text'
-      }],
-      education: [{
-        degree: 'Education extracted from CV',
-        school: 'Institution from CV', 
-        year: 'Year not extracted'
-      }],
-      languages: ['English'],
-      certifications: [],
-      experience_years: foundSkills.length // Rough estimate based on skills
-    },
-    analysis: {
-      strengths: ['Basic text extraction completed'],
-      gaps: ['Needs more sophisticated parsing']
-    }
-  }
-}
-
-// Helper function to calculate experience years from experience array
-function calculateExperienceYears(experience: any[]): number {
-  if (!experience || experience.length === 0) return 0
-  
-  let totalYears = 0
-  
-  experience.forEach((exp) => {
-    if (exp.duration) {
-      // Try to extract years from duration string
-      const yearMatches = exp.duration.match(/(\d+)\s*(?:years?|yrs?)/i)
-      if (yearMatches) {
-        totalYears += parseInt(yearMatches[1])
-      } else {
-        // Fallback: just look for any number
-        const numberMatch = exp.duration.match(/(\d+)/)
-        if (numberMatch) {
-          totalYears += Math.min(parseInt(numberMatch[1]), 10) // Cap at 10 years per role
-        }
-      }
-    }
-  })
-  
-  return Math.max(totalYears, 1) // Minimum 1 year if we have experience entries
 }
