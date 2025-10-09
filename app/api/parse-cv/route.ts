@@ -4,11 +4,15 @@ import { v4 as uuidv4 } from 'uuid'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY || 
-  process.env.GEMINI_API_KEY || 
-  "AIzaSyAFSoQGqe6TOsLPWo6NsGwmhEhRNRpMbjQ"
-)
+const getGeminiClient = () => {
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+  
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY_MISSING')
+  }
+  
+  return new GoogleGenerativeAI(apiKey)
+}
 
 export async function POST(request: NextRequest) {
   console.log('🚀 Enhanced CV parsing request received')
@@ -75,7 +79,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract CV data using Gemini AI
-    const extractedData = await extractCVDataWithGemini(file, jobData)
+    let extractedData
+    try {
+      extractedData = await extractCVDataWithGemini(file, jobData)
+    } catch (error: any) {
+      if (error.message === 'GEMINI_API_KEY_MISSING') {
+        return NextResponse.json({
+          success: false,
+          error: 'Gemini API key is not configured. Please set up your API key in environment variables.',
+          needsApiKey: true,
+          instructions: {
+            message: 'To use AI-powered CV parsing, please set up your free Gemini API key',
+            steps: [
+              'Visit https://aistudio.google.com/app/apikey',
+              'Create a new API key in Google AI Studio (free)',
+              'Add GEMINI_API_KEY=your_key_here to your .env.local file',
+              'Restart your application'
+            ]
+          }
+        }, { status: 400 })
+      }
+      
+      console.error('❌ Gemini extraction error:', error)
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to extract data from CV. Please check your API configuration.'
+      }, { status: 500 })
+    }
     
     if (!extractedData) {
       return NextResponse.json({
@@ -206,6 +236,9 @@ export async function POST(request: NextRequest) {
 async function extractCVDataWithGemini(file: File, jobData: any) {
   try {
     console.log('🤖 Starting Gemini AI CV analysis...')
+    
+    // Get Gemini client (will throw if API key missing)
+    const genAI = getGeminiClient()
     
     // Get the generative model
     const model = genAI.getGenerativeModel({

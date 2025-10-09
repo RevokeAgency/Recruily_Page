@@ -160,6 +160,12 @@ function InviteCandidatesModal({
           } else {
             console.error(`❌ Failed to process: ${fileState.file.name}`)
             
+            // Check if it's an API key issue
+            if (parseResult.needsApiKey) {
+              // Show API key setup instructions
+              alert(`⚠️ ${parseResult.error}\n\nTo fix this:\n${parseResult.instructions.steps.map((step: string, i: number) => `${i + 1}. ${step}`).join('\n')}\n\nAfter setting up the API key, refresh the page and try again.`)
+            }
+            
             // Update file state with error
             setUploadState(prev => ({
               ...prev,
@@ -168,7 +174,7 @@ function InviteCandidatesModal({
                   ...f, 
                   status: 'error', 
                   progress: 0,
-                  error: parseResult.error
+                  error: parseResult.needsApiKey ? 'API Key Required - See Instructions' : parseResult.error
                 } : f
               ),
               errorCount: prev.errorCount + 1
@@ -184,6 +190,14 @@ function InviteCandidatesModal({
         } catch (error) {
           console.error(`❌ Error processing ${fileState.file.name}:`, error)
           
+          // Check if it's a network error that might indicate API issues
+          const errorMessage = error instanceof Error ? error.message : 'Processing failed'
+          const isApiError = errorMessage.includes('API key') || errorMessage.includes('401') || errorMessage.includes('403')
+          
+          if (isApiError) {
+            alert(`⚠️ API Configuration Issue\n\nPlease ensure your Gemini API key is properly configured:\n1. Visit https://aistudio.google.com/app/apikey\n2. Create a free API key\n3. Add GEMINI_API_KEY=your_key to .env.local\n4. Restart the application`)
+          }
+          
           setUploadState(prev => ({
             ...prev,
             files: prev.files.map((f, index) => 
@@ -191,7 +205,7 @@ function InviteCandidatesModal({
                 ...f, 
                 status: 'error', 
                 progress: 0,
-                error: error instanceof Error ? error.message : 'Processing failed'
+                error: isApiError ? 'API Key Configuration Required' : errorMessage
               } : f
             ),
             errorCount: prev.errorCount + 1,
