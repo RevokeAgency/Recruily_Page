@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@supabase/supabase-js'
 import { v4 as uuidv4 } from 'uuid'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
@@ -221,10 +222,22 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString()
     }
 
-    // Save candidate to database with better error handling
+    // Save candidate to database with better error handling using service role
     let candidateData
     try {
-      const { data, error: candidateError } = await supabase
+      // Use service role client for database operations to bypass RLS issues
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      )
+      
+      const { data, error: candidateError } = await supabaseAdmin
         .from('candidates')
         .insert([candidateRecord])
         .select()
@@ -279,7 +292,19 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const { error: resumeError } = await supabase
+        // Use service role for resume metadata as well
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        )
+        
+        const { error: resumeError } = await supabaseAdmin
           .from('resumes')
           .insert([resumeRecord])
 

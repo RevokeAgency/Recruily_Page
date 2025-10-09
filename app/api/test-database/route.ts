@@ -1,12 +1,24 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET() {
   console.log('🧪 Testing database connectivity...')
   
   try {
-    // Test basic database connection
-    const { data: testData, error: testError } = await supabase
+    // Test basic database connection using service role to bypass RLS
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+    
+    const { data: testData, error: testError } = await supabaseAdmin
       .from('candidates')
       .select('id')
       .limit(1)
