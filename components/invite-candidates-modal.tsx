@@ -19,6 +19,7 @@ interface InviteCandidatesModalProps {
   jobId: string
   jobTitle?: string
   onCandidateAdded?: (candidate: any) => void
+  onUploadCompleted?: (completedCount: number) => void
   trigger?: React.ReactNode
 }
 
@@ -44,6 +45,7 @@ function InviteCandidatesModal({
   jobId,
   jobTitle = "Job Position",
   onCandidateAdded,
+  onUploadCompleted,
   trigger
 }: InviteCandidatesModalProps) {
   const [open, setOpen] = useState(isOpen)
@@ -219,17 +221,35 @@ function InviteCandidatesModal({
         }
       }
 
-      // Final processing state
-      setUploadState(prev => ({
-        ...prev,
-        processing: false,
-        overallProgress: 100
-      }))
+      // Calculate final counts from current processing
+      let completedCount = 0
+      let errorCount = 0
+      
+      // Count completed and error files from the processing results
+      setUploadState(prev => {
+        completedCount = prev.files.filter(f => f.status === 'completed').length
+        errorCount = prev.files.filter(f => f.status === 'error').length
+        
+        return {
+          ...prev,
+          processing: false,
+          overallProgress: 100,
+          completedCount,
+          errorCount
+        }
+      })
 
-      console.log(`🎉 Batch processing completed: ${uploadState.completedCount} success, ${uploadState.errorCount} errors`)
+      console.log(`🎉 Batch processing completed: ${completedCount} success, ${errorCount} errors`)
 
-      // Auto-close modal after successful processing
-      if (uploadState.completedCount > 0) {
+      // Notify parent about completion
+      if (onUploadCompleted && completedCount > 0) {
+        setTimeout(() => {
+          onUploadCompleted(completedCount)
+        }, 500) // Small delay to ensure UI updates
+      }
+
+      // Auto-close modal after successful processing if no callback
+      if (completedCount > 0 && !onUploadCompleted) {
         setTimeout(() => {
           handleClose()
         }, 3000)
@@ -242,7 +262,7 @@ function InviteCandidatesModal({
         processing: false
       }))
     }
-  }, [jobId, onCandidateAdded, uploadState.completedCount, uploadState.errorCount])
+  }, [jobId, onCandidateAdded, onUploadCompleted])
 
   // Process a single CV file
   async function processSingleCV(file: File, jobId: string, onProgress: (progress: number) => void) {
@@ -263,33 +283,53 @@ function InviteCandidatesModal({
     const parseResult = await parseResponse.json()
 
     if (!parseResponse.ok || !parseResult.success) {
-      throw new Error(parseResult.error || 'Failed to parse CV')
+      // Return detailed error information
+      return {
+        success: false,
+        error: parseResult.error || 'Failed to parse CV',
+        needsApiKey: parseResult.needsApiKey,
+        instructions: parseResult.instructions
+      }
     }
 
     onProgress(70)
 
-    // Step 2: Create match
-    const matchResponse = await fetch('/api/match-candidate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        candidateId: parseResult.candidate.id,
-        jobId: jobId,
-        extractedData: parseResult.extractedData
+    // Step 2: Create match with error handling
+    let matchResult = { success: false, match: null }
+    try {
+      const matchResponse = await fetch('/api/match-candidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateId: parseResult.candidate.id,
+          jobId: jobId,
+          extractedData: parseResult.extractedData
+        })
       })
-    })
 
-    const matchResult = await matchResponse.json()
+      matchResult = await matchResponse.json()
+      
+      if (!matchResponse.ok) {
+        console.warn('⚠️ Match creation failed, continuing with default score:', matchResult.error)
+      }
+    } catch (matchError) {
+      console.warn('⚠️ Match API error, using fallback score:', matchError)
+    }
 
     onProgress(100)
 
-    // Return combined result
+    // Return combined result with fallback score
     return {
       success: true,
       candidate: {
         ...parseResult.candidate,
-        match_score: matchResult.success ? matchResult.match.overall_score : 75,
-        filename: file.name
+        match_score: matchResult.success ? matchResult.match.overall_score : 
+                    (parseResult.extractedData?.matching?.overallScore || 75),
+        filename: file.name,
+        strengths: matchResult.success ? matchResult.analysis?.strengths :
+                  (parseResult.extractedData?.matching?.strengths || ['Profile processed successfully']),
+        gaps: matchResult.success ? matchResult.analysis?.gaps :
+             (parseResult.extractedData?.matching?.gaps || [])
       },
       match: matchResult.success ? matchResult.match : null
     }

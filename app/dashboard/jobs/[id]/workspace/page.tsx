@@ -38,6 +38,8 @@ export default function JobWorkspace() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
+  const [activeTab, setActiveTab] = useState("candidates")
+  const [candidatesNeedRefresh, setCandidatesNeedRefresh] = useState(false)
 
   const jobId = params.id as string
   const job = jobId ? getJobById(jobId) : null
@@ -194,7 +196,7 @@ export default function JobWorkspace() {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="candidates" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="candidates">Candidates</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -307,7 +309,11 @@ export default function JobWorkspace() {
         </TabsContent>
 
         <TabsContent value="candidates">
-          <CandidateList jobId={jobId} jobTitle={job.title} />
+          <CandidateList 
+            jobId={jobId} 
+            jobTitle={job.title}
+            key={candidatesNeedRefresh ? `refresh-${Date.now()}` : 'candidates'} 
+          />
         </TabsContent>
 
         <TabsContent value="analytics">
@@ -345,6 +351,29 @@ export default function JobWorkspace() {
             description: `${candidate.name} has been successfully processed and matched.`,
             variant: "default"
           })
+          // Trigger refresh of candidates list
+          setCandidatesNeedRefresh(prev => !prev)
+        }}
+        onUploadCompleted={(completedCount: number) => {
+          if (completedCount > 0) {
+            console.log(`🎉 Upload completed: ${completedCount} candidates processed`)
+            
+            // Automatically switch to candidates tab
+            setActiveTab("candidates")
+            
+            // Close the modal
+            setShowInviteModal(false)
+            
+            // Show success message
+            toast({
+              title: "Upload Complete!",
+              description: `Successfully processed ${completedCount} CV${completedCount > 1 ? 's' : ''}. Switched to Candidates tab to view results.`,
+              variant: "default"
+            })
+            
+            // Refresh candidates list
+            setCandidatesNeedRefresh(prev => !prev)
+          }
         }}
       />
     </div>
