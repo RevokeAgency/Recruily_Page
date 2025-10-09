@@ -28,6 +28,7 @@ import type { Job } from "@/hooks/use-jobs"
 // Import enhanced components
 import JobApplicationsTab from '@/components/job-applications-tab'
 import { InviteCandidatesModal } from '@/components/invite-candidates-modal'
+import { CandidateList } from '@/components/candidate-list'
 
 export default function JobWorkspace() {
   const params = useParams()
@@ -193,11 +194,11 @@ export default function JobWorkspace() {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs defaultValue="candidates" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="candidates">Candidates</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="applications">Applications</TabsTrigger>
-          <TabsTrigger value="candidates">Candidates</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -306,24 +307,7 @@ export default function JobWorkspace() {
         </TabsContent>
 
         <TabsContent value="candidates">
-          <Card>
-            <CardHeader>
-              <CardTitle>Candidate Pool</CardTitle>
-              <CardDescription>
-                Browse and match potential candidates
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">AI Matching Coming Soon</h3>
-                <p className="text-gray-600 mb-4">
-                  Our AI will automatically match qualified candidates to your job posting.
-                </p>
-                <Button variant="outline">Learn More</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <CandidateList jobId={jobId} jobTitle={job.title} />
         </TabsContent>
 
         <TabsContent value="analytics">
