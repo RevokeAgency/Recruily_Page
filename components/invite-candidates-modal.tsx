@@ -221,14 +221,20 @@ function InviteCandidatesModal({
         }
       }
 
-      // Calculate final counts from current processing
-      let completedCount = 0
-      let errorCount = 0
-      
-      // Count completed and error files from the processing results
+      // Final processing state with proper counting
       setUploadState(prev => {
-        completedCount = prev.files.filter(f => f.status === 'completed').length
-        errorCount = prev.files.filter(f => f.status === 'error').length
+        const completedCount = prev.files.filter(f => f.status === 'completed').length
+        const errorCount = prev.files.filter(f => f.status === 'error').length
+        
+        console.log(`🎉 Batch processing completed: ${completedCount} success, ${errorCount} errors`)
+        
+        // Notify parent about completion
+        if (onUploadCompleted && completedCount > 0) {
+          setTimeout(() => {
+            console.log('🔄 Triggering onUploadCompleted callback with count:', completedCount)
+            onUploadCompleted(completedCount)
+          }, 500) // Small delay to ensure UI updates
+        }
         
         return {
           ...prev,
@@ -238,15 +244,6 @@ function InviteCandidatesModal({
           errorCount
         }
       })
-
-      console.log(`🎉 Batch processing completed: ${completedCount} success, ${errorCount} errors`)
-
-      // Notify parent about completion
-      if (onUploadCompleted && completedCount > 0) {
-        setTimeout(() => {
-          onUploadCompleted(completedCount)
-        }, 500) // Small delay to ensure UI updates
-      }
 
       // Auto-close modal after successful processing if no callback
       if (completedCount > 0 && !onUploadCompleted) {
@@ -294,44 +291,44 @@ function InviteCandidatesModal({
 
     onProgress(70)
 
-    // Step 2: Create match with error handling
-    let matchResult = { success: false, match: null }
+    // Step 2: Add candidate to job with integrated matching
+    let addResult = { success: false, candidateMatch: null }
     try {
-      const matchResponse = await fetch('/api/match-candidate', {
+      const addResponse = await fetch(`/api/jobs/${jobId}/add-candidate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          candidateId: parseResult.candidate.id,
-          jobId: jobId,
+          candidateData: parseResult.candidate,
           extractedData: parseResult.extractedData
         })
       })
 
-      matchResult = await matchResponse.json()
+      addResult = await addResponse.json()
       
-      if (!matchResponse.ok) {
-        console.warn('⚠️ Match creation failed, continuing with default score:', matchResult.error)
+      if (!addResponse.ok) {
+        console.warn('⚠️ Add candidate failed, continuing with basic data:', addResult.error)
       }
-    } catch (matchError) {
-      console.warn('⚠️ Match API error, using fallback score:', matchError)
+    } catch (addError) {
+      console.warn('⚠️ Add candidate API error, using fallback:', addError)
     }
 
     onProgress(100)
 
-    // Return combined result with fallback score
+    // Return combined result with enhanced data
     return {
       success: true,
       candidate: {
         ...parseResult.candidate,
-        match_score: matchResult.success ? matchResult.match.overall_score : 
+        match_score: addResult.success ? addResult.candidateMatch.overall_score : 
                     (parseResult.extractedData?.matching?.overallScore || 75),
         filename: file.name,
-        strengths: matchResult.success ? matchResult.analysis?.strengths :
+        strengths: addResult.success ? addResult.candidateMatch.strengths :
                   (parseResult.extractedData?.matching?.strengths || ['Profile processed successfully']),
-        gaps: matchResult.success ? matchResult.analysis?.gaps :
-             (parseResult.extractedData?.matching?.gaps || [])
+        gaps: addResult.success ? addResult.candidateMatch.gaps :
+             (parseResult.extractedData?.matching?.gaps || []),
+        job_match_created: addResult.success
       },
-      match: matchResult.success ? matchResult.match : null
+      candidateMatch: addResult.success ? addResult.candidateMatch : null
     }
   }
 

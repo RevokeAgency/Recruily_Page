@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { CandidateStore } from '@/lib/candidate-store'
 
 export async function GET(
   request: NextRequest,
@@ -8,6 +9,9 @@ export async function GET(
   console.log('🔍 Fetching candidates for job:', params.id)
   
   try {
+    // First, check if we have uploaded candidates in memory store
+    const uploadedCandidates = CandidateStore.getCandidatesForJob(params.id)
+    
     // Check if environment variables are available
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -15,12 +19,13 @@ export async function GET(
     console.log('🔧 Environment check:', {
       hasUrl: !!supabaseUrl,
       hasServiceKey: !!supabaseServiceKey,
-      url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'undefined'
+      url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'undefined',
+      uploadedCandidatesCount: uploadedCandidates.length
     })
     
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.warn('⚠️ Supabase credentials not available, using mock data')
-      return generateMockCandidateData(params.id)
+      console.warn('⚠️ Supabase credentials not available, using stored and mock data')
+      return combineUploadedAndMockData(params.id, uploadedCandidates)
     }
     
     const supabaseAdmin = createClient(
@@ -69,72 +74,65 @@ export async function GET(
     if (matchError) {
       console.error('❌ Error fetching job matches:', matchError)
       
-      // Fallback: fetch all candidates and create mock matches
-      const { data: candidates, error: candidateError } = await supabaseAdmin
-        .from('candidates')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      if (candidateError) {
-        throw candidateError
-      }
-
-      // Create mock matches for demo purposes
-      const mockMatches = candidates.map((candidate, index) => ({
-        id: `mock-${candidate.id}`,
-        job_id: params.id,
-        candidate_id: candidate.id,
-        overall_score: Math.max(60, 95 - index * 3), // Decreasing scores from 95 to 60
-        skills_score: Math.max(55, 90 - index * 2),
-        experience_score: Math.max(50, 85 - index * 2),
-        education_score: Math.max(40, 80 - index * 3),
-        languages_score: Math.max(70, 85 - index * 1),
-        certifications_score: Math.max(30, 75 - index * 4),
-        other_score: Math.max(40, 70 - index * 2),
-        strengths: generateStrengths(candidate),
-        gaps: generateGaps(candidate),
-        recommendations: generateRecommendations(candidate),
-        created_at: candidate.created_at,
-        candidate: candidate
-      }))
-
-      return NextResponse.json({
-        success: true,
-        candidates: mockMatches,
-        total: mockMatches.length,
-        message: 'Using demo candidate matches - job_matches table not found'
-      })
+      // Use uploaded candidates combined with mock data
+      return combineUploadedAndMockData(params.id, uploadedCandidates)
     }
 
-    console.log(`✅ Found ${matches.length} candidates for job ${params.id}`)
+    console.log(`✅ Found ${matches.length} database matches for job ${params.id}`)
 
+    // Combine database matches with uploaded candidates
+    const combinedCandidates = [...uploadedCandidates, ...matches]
+    
     return NextResponse.json({
       success: true,
-      candidates: matches,
-      total: matches.length
+      candidates: combinedCandidates,
+      total: combinedCandidates.length,
+      message: uploadedCandidates.length > 0 ? `Includes ${uploadedCandidates.length} recently uploaded candidates` : undefined
     })
 
   } catch (error: any) {
     console.error('❌ Error fetching candidates:', error)
     
-    // If Supabase fails, fallback to mock data
+    // Get uploaded candidates from memory store
+    const uploadedCandidates = CandidateStore.getCandidatesForJob(params.id)
+    
+    // If Supabase fails, use uploaded + mock data
     if (error.message?.includes('supabaseKey') || error.message?.includes('Invalid API key')) {
-      console.warn('⚠️ Supabase error, falling back to mock data')
-      return generateMockCandidateData(params.id)
+      console.warn('⚠️ Supabase error, falling back to stored and mock data')
+      return combineUploadedAndMockData(params.id, uploadedCandidates)
     }
     
     return NextResponse.json({
       success: false,
       error: error.message || 'Failed to fetch candidates',
-      candidates: [],
-      total: 0
+      candidates: uploadedCandidates,
+      total: uploadedCandidates.length
     }, { status: 500 })
   }
 }
 
+// Combine uploaded candidates with mock data
+function combineUploadedAndMockData(jobId: string, uploadedCandidates: any[]) {
+  console.log(`📋 Combining ${uploadedCandidates.length} uploaded candidates with mock data`)
+  
+  const mockData = generateMockCandidateData(jobId)
+  const mockCandidates = mockData.candidates || []
+  
+  // Combine uploaded candidates (higher priority) with mock candidates
+  const combinedCandidates = [...uploadedCandidates, ...mockCandidates]
+  
+  return NextResponse.json({
+    success: true,
+    candidates: combinedCandidates,
+    total: combinedCandidates.length,
+    message: uploadedCandidates.length > 0 ? 
+      `Showing ${uploadedCandidates.length} uploaded candidates + ${mockCandidates.length} demo candidates` : 
+      'Using demo candidate data - Supabase not available'
+  })
+}
+
 // Generate mock candidate data when Supabase is not available
-function generateMockCandidateData(jobId: string) {
+function generateMockCandidateData(jobId: string): { candidates: any[] } {
   console.log('🎭 Generating mock candidate data for job:', jobId)
   
   const mockCandidates = [
@@ -299,12 +297,9 @@ function generateMockCandidateData(jobId: string) {
     candidate: candidate
   }))
   
-  return NextResponse.json({
-    success: true,
-    candidates: mockMatches,
-    total: mockMatches.length,
-    message: 'Using demo candidate data - Supabase not available'
-  })
+  return {
+    candidates: mockMatches
+  }
 }
 
 // Helper functions for generating demo match data
