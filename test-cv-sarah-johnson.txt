@@ -1,0 +1,88 @@
+SARAH JOHNSON
+Data Scientist & Machine Learning Engineer
+
+Contact Information:
+📧 sarah.johnson@email.com
+📱 (555) 987-6543  
+📍 New York, NY
+🔗 linkedin.com/in/sarahjohnson
+💻 github.com/sarahjohnson
+
+SUMMARY
+Passionate data scientist with 6 years of experience in machine learning, data analysis, and artificial intelligence. Expert in Python, R, and cloud-based analytics platforms. Proven track record of delivering actionable insights and building ML models that drive business growth.
+
+CORE COMPETENCIES
+• Programming: Python, R, SQL, JavaScript, Scala
+• Machine Learning: Scikit-learn, TensorFlow, PyTorch, Keras
+• Data Analysis: Pandas, NumPy, Matplotlib, Seaborn, Plotly  
+• Big Data: Spark, Hadoop, Apache Kafka
+• Cloud Platforms: AWS (SageMaker, S3, EC2), GCP, Azure
+• Databases: PostgreSQL, MongoDB, Cassandra, Snowflake
+• Visualization: Tableau, Power BI, D3.js
+• MLOps: Docker, Kubernetes, MLflow, Airflow
+
+PROFESSIONAL EXPERIENCE
+
+Senior Data Scientist | DataTech Solutions | 2021 - Present
+• Developed recommendation system increasing user engagement by 35%
+• Built predictive models for customer churn reducing attrition by 25%
+• Led cross-functional team of 4 data scientists and analysts
+• Implemented MLOps pipeline reducing model deployment time by 80%
+• Published 3 research papers in peer-reviewed conferences
+
+Data Scientist | Analytics Pro Inc. | 2019 - 2021  
+• Created demand forecasting models improving inventory accuracy by 30%
+• Analyzed customer behavior data providing insights to marketing team
+• Developed automated data pipelines processing 1TB+ daily data
+• Collaborated with engineering team to productionize ML models
+• Conducted A/B testing to optimize product features
+
+Junior Data Analyst | Business Intelligence Corp | 2018 - 2019
+• Performed statistical analysis on large datasets using Python and R
+• Created interactive dashboards using Tableau and Power BI
+• Supported decision-making process with data-driven recommendations
+• Automated reporting processes saving 15 hours per week
+
+EDUCATION
+Master of Science in Data Science
+Columbia University | 2016 - 2018
+• GPA: 3.8/4.0
+• Relevant Coursework: Machine Learning, Statistical Analysis, Deep Learning
+
+Bachelor of Science in Mathematics  
+NYU Tandon School of Engineering | 2012 - 2016
+• Magna Cum Laude, GPA: 3.7/4.0
+• Minor in Computer Science
+
+CERTIFICATIONS & TRAINING
+✓ AWS Certified Machine Learning Specialist (2022)
+✓ Google Cloud Professional Data Engineer (2021) 
+✓ TensorFlow Developer Certificate (2020)
+✓ Certified Analytics Professional (CAP) (2019)
+
+PUBLICATIONS & RESEARCH
+1. "Deep Learning Approaches for Time Series Forecasting" - ICML 2022
+2. "Ensemble Methods for Customer Segmentation" - KDD 2021  
+3. "Real-time Anomaly Detection in Streaming Data" - ICDM 2021
+
+LANGUAGES
+• English (Native)
+• French (Fluent)
+• Spanish (Intermediate)
+
+NOTABLE PROJECTS
+
+Customer Lifetime Value Prediction (2022)
+• Developed ML model predicting CLV with 92% accuracy
+• Technology Stack: Python, XGBoost, AWS SageMaker
+• Impact: $2M increase in marketing ROI
+
+Real-time Fraud Detection System (2021)
+• Built streaming ML pipeline detecting fraudulent transactions
+• Technology Stack: Apache Kafka, Spark Streaming, TensorFlow  
+• Impact: 45% reduction in fraud losses
+
+Recommendation Engine for E-commerce (2020)
+• Implemented collaborative filtering and content-based algorithms
+• Technology Stack: Python, Spark MLlib, Redis
+• Impact: 28% increase in conversion rate
