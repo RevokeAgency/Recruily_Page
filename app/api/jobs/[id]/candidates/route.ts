@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: { id: string } }
 ) {
-  console.log('🔍 Fetching candidates for job:', params.jobId)
+  console.log('🔍 Fetching candidates for job:', params.id)
   
   try {
     const supabaseAdmin = createClient(
@@ -48,7 +48,7 @@ export async function GET(
           tags
         )
       `)
-      .eq('job_id', params.jobId)
+      .eq('job_id', params.id)
       .order('overall_score', { ascending: false })
 
     if (matchError) {
@@ -68,7 +68,7 @@ export async function GET(
       // Create mock matches for demo purposes
       const mockMatches = candidates.map((candidate, index) => ({
         id: `mock-${candidate.id}`,
-        job_id: params.jobId,
+        job_id: params.id,
         candidate_id: candidate.id,
         overall_score: Math.max(60, 95 - index * 3), // Decreasing scores from 95 to 60
         skills_score: Math.max(55, 90 - index * 2),
@@ -92,7 +92,7 @@ export async function GET(
       })
     }
 
-    console.log(`✅ Found ${matches.length} candidates for job ${params.jobId}`)
+    console.log(`✅ Found ${matches.length} candidates for job ${params.id}`)
 
     return NextResponse.json({
       success: true,
