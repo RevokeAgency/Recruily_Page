@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast"
 import type { Job } from "@/hooks/use-jobs"
 // Import enhanced components
 import JobApplicationsTab from '@/components/job-applications-tab'
+import { InviteCandidatesModal } from '@/components/invite-candidates-modal'
 
 export default function JobWorkspace() {
   const params = useParams()
@@ -35,6 +36,7 @@ export default function JobWorkspace() {
   const { getJobById, loading: jobsLoading } = useJobs()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showInviteModal, setShowInviteModal] = useState(false)
 
   const jobId = params.id as string
   const job = jobId ? getJobById(jobId) : null
@@ -277,7 +279,7 @@ export default function JobWorkspace() {
                 <Button 
                   className="w-full justify-start" 
                   size="lg"
-                  onClick={() => router.push(`/dashboard/jobs/${jobId}/invite`)}
+                  onClick={() => setShowInviteModal(true)}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Invite Candidates
@@ -345,6 +347,22 @@ export default function JobWorkspace() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Enhanced Invite Candidates Modal */}
+      <InviteCandidatesModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        jobId={jobId}
+        jobTitle={job.title}
+        onCandidateAdded={(candidate) => {
+          console.log('New candidate added:', candidate)
+          toast({
+            title: "Candidate Added",
+            description: `${candidate.name} has been successfully processed and matched.`,
+            variant: "default"
+          })
+        }}
+      />
     </div>
   )
 }
