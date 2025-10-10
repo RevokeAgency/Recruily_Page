@@ -4,12 +4,20 @@ import { createClient } from '@supabase/supabase-js'
 import { v4 as uuidv4 } from 'uuid'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Initialize Gemini AI
+// Initialize Gemini AI with enhanced debugging
 const getGeminiClient = () => {
-  // Use provided API key or fallback to environment variables
+  // Try multiple API key sources
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || 
                 process.env.GEMINI_API_KEY || 
                 "AIzaSyDXJ1miQZF8wEc8ks4v7MyGI5dD4SWjRfY"
+  
+  console.log('🔑 Gemini API key check:', {
+    hasGoogleGenerativeAiKey: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    hasGeminiKey: !!process.env.GEMINI_API_KEY,
+    usingHardcodedKey: !process.env.GOOGLE_GENERATIVE_AI_API_KEY && !process.env.GEMINI_API_KEY,
+    keyLength: apiKey ? apiKey.length : 0,
+    keyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : 'undefined'
+  })
   
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY_MISSING')
@@ -102,7 +110,20 @@ export async function POST(request: NextRequest) {
         hasMatchingData: !!extractedData?.matching
       })
     } catch (geminiError: any) {
-      console.warn('⚠️ Gemini AI failed, trying alternative methods:', geminiError.message)
+      console.error('❌ Gemini AI extraction failed completely:', {
+        errorMessage: geminiError.message,
+        errorType: geminiError.constructor.name,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size
+      })
+      
+      // For PDF files, this is critical - we should not silently fall back
+      if (file.type === 'application/pdf') {
+        console.error('🚨 CRITICAL: PDF extraction failed - PDFs require Gemini AI')
+        console.error('🚨 This means real PDF content is NOT being analyzed')
+        console.error('🚨 Falling back to basic extraction - data will be generic')
+      }
       
       // Method 2: Try direct text extraction for TXT files
       if (file.type === 'text/plain') {
@@ -112,11 +133,22 @@ export async function POST(request: NextRequest) {
           console.log('✅ Direct text extraction successful!')
         } catch (textError: any) {
           console.warn('⚠️ Direct text extraction failed:', textError.message)
-          throw geminiError // Fall back to original Gemini error
+          // For TXT files, we really should not fall back without trying everything
+          throw new Error(`Both Gemini AI and direct text extraction failed for TXT file: ${geminiError.message}`)
         }
       } else {
-        // For non-text files, re-throw the Gemini error to trigger fallback
-        throw geminiError
+        // For non-text files (PDF, DOC), try enhanced fallback as last resort
+        console.warn('⚠️ PDF/DOC extraction failed, trying enhanced fallback...')
+        console.warn('⚠️ NOTE: This will use filename-based data, not actual PDF content!')
+        
+        try {
+          extractedData = await createFallbackCandidateData(file)
+          usingFallback = true
+          console.log('🔄 Enhanced fallback extraction completed for PDF/DOC')
+          console.warn('⚠️ WARNING: Using generic data - real PDF content was not analyzed!')
+        } catch (fallbackError: any) {
+          throw new Error(`Complete extraction failure. Gemini AI failed: ${geminiError.message}. Fallback also failed: ${fallbackError.message}`)
+        }
       }
     }
     
@@ -319,34 +351,67 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Enhanced CV data extraction using Gemini AI
+// Enhanced CV data extraction using Gemini AI with comprehensive debugging
 async function extractCVDataWithGemini(file: File, jobData: any) {
   try {
     console.log('🤖 Starting Gemini AI CV analysis...')
+    console.log('📄 File details:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      sizeKB: Math.round(file.size / 1024),
+      sizeMB: Math.round(file.size / (1024 * 1024) * 100) / 100
+    })
     
-    // Get Gemini client (will throw if API key missing)
+    // Validate file size (Gemini has limits)
+    const maxSize = 20 * 1024 * 1024 // 20MB limit for Gemini
+    if (file.size > maxSize) {
+      throw new Error(`File too large: ${Math.round(file.size / 1024 / 1024)}MB. Maximum size is 20MB.`)
+    }
+    
+    // Validate file type
+    const supportedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'text/plain'
+    ]
+    
+    if (!supportedTypes.includes(file.type)) {
+      throw new Error(`Unsupported file type: ${file.type}. Supported types: PDF, DOC, DOCX, TXT`)
+    }
+    
+    // Get Gemini client with debugging
+    console.log('🔑 Initializing Gemini client...')
     const genAI = getGeminiClient()
     
-    // Get the generative model
+    // Get the generative model with enhanced config
+    console.log('🤖 Setting up Gemini model configuration...')
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
       generationConfig: {
-        temperature: 0.1, // Lower temperature for more consistent extraction
+        temperature: 0.1, // Lower temperature for consistent extraction
         topK: 1,
         topP: 0.1,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 4096, // Increased for complex CVs
       },
     })
 
-    // Convert file to base64
+    // Convert file to base64 with validation
+    console.log('📋 Converting file to base64...')
     const arrayBuffer = await file.arrayBuffer()
     const base64Data = Buffer.from(arrayBuffer).toString("base64")
     
-    console.log(`📋 File processing details:`, {
-      fileName: file.name,
-      fileType: file.type,
-      fileSizeKB: Math.round(file.size / 1024),
-      base64Length: base64Data.length
+    // Validate base64 conversion
+    if (!base64Data || base64Data.length === 0) {
+      throw new Error('Failed to convert file to base64 - file may be corrupted')
+    }
+    
+    console.log(`✅ File conversion completed:`, {
+      originalSize: file.size,
+      base64Length: base64Data.length,
+      compressionRatio: Math.round((base64Data.length / file.size) * 100) / 100,
+      estimatedMimeType: file.type
     })
 
     // Create job context for better matching
@@ -362,7 +427,7 @@ JOB CONTEXT FOR MATCHING:
 
 ${jobContext}
 
-Extract information and return ONLY a valid JSON object in this EXACT format:
+Extract information and return ONLY a valid, properly formatted JSON object in this EXACT format:
 {
   "candidate": {
     "name": "Full name exactly as written",
@@ -403,24 +468,31 @@ Extract information and return ONLY a valid JSON object in this EXACT format:
   }
 }
 
-CRITICAL INSTRUCTIONS:
-1. Extract ALL text content from the document
-2. Do NOT use placeholder or generic data
-3. If information is not found, use null for strings and [] for arrays
-4. Calculate a realistic match score based on job requirements
-5. Return ONLY the JSON - no explanations, no markdown, no additional text
-6. Ensure all text is properly extracted and not truncated`
+CRITICAL JSON FORMATTING REQUIREMENTS:
+1. Extract ALL text content from the document - use real data, not placeholders
+2. Return ONLY valid JSON - no markdown, no explanations, no code blocks
+3. Ensure proper JSON syntax - all strings in double quotes, no trailing commas
+4. If information is not found, use null for strings and [] for arrays
+5. Keep all array elements properly formatted with commas between items
+6. Ensure the JSON is complete - do not truncate arrays or objects
+7. Calculate realistic match scores based on job requirements
+8. Double-check JSON syntax before responding - must be parseable
 
-    // Make API call to Gemini with enhanced error handling
-    console.log('🤖 Sending request to Gemini API...')
-    console.log('📋 Request details:', {
+RESPONSE FORMAT: Return only the JSON object, nothing else.`
+
+    // Make API call to Gemini with comprehensive error handling
+    console.log('🚀 Making Gemini API request...')
+    console.log('📋 API request parameters:', {
+      modelName: "gemini-2.5-flash",
       fileType: file.type,
-      fileSize: file.size,
-      base64Size: base64Data.length,
-      promptLength: prompt.length
+      fileSizeKB: Math.round(file.size / 1024),
+      base64SizeKB: Math.round(base64Data.length / 1024),
+      promptLength: prompt.length,
+      hasJobContext: !!jobData
     })
     
-    const result = await model.generateContent([
+    // Create the request payload
+    const requestPayload = [
       {
         inlineData: {
           data: base64Data,
@@ -428,17 +500,61 @@ CRITICAL INSTRUCTIONS:
         },
       },
       prompt,
-    ])
+    ]
     
-    console.log('✅ Gemini API request completed successfully')
+    console.log('📤 Sending request to Gemini API...')
+    const startTime = Date.now()
+    
+    let result
+    try {
+      result = await model.generateContent(requestPayload)
+    } catch (apiError: any) {
+      const duration = Date.now() - startTime
+      console.error('❌ Gemini API call failed:', {
+        duration: `${duration}ms`,
+        errorType: apiError.constructor.name,
+        errorMessage: apiError.message,
+        errorCode: apiError.code,
+        errorDetails: apiError.details
+      })
+      
+      // Provide specific error messages
+      if (apiError.message?.includes('quota')) {
+        throw new Error('Gemini API quota exceeded. Please try again later.')
+      } else if (apiError.message?.includes('permission')) {
+        throw new Error('Gemini API permission denied. Please check API key configuration.')
+      } else if (apiError.message?.includes('safety')) {
+        throw new Error('Content was blocked by safety filters. Please try a different file.')
+      } else if (apiError.message?.includes('size') || apiError.message?.includes('large')) {
+        throw new Error(`File too large for Gemini processing. Try a smaller file (current: ${Math.round(file.size/1024/1024)}MB).`)
+      } else {
+        throw new Error(`Gemini API error: ${apiError.message}`)
+      }
+    }
+    
+    const duration = Date.now() - startTime
+    console.log('✅ Gemini API request completed successfully!')
+    console.log('⏱️ Request duration:', `${duration}ms`)
 
-    const response = await result.response
-    const text = response.text()
+    let response
+    let text
+    try {
+      response = await result.response
+      text = response.text()
+    } catch (responseError: any) {
+      console.error('❌ Failed to get response text:', responseError)
+      throw new Error(`Failed to read Gemini response: ${responseError.message}`)
+    }
 
-    console.log('📤 Gemini response received:')
-    console.log('  - Response length:', text.length)
-    console.log('  - First 300 chars:', text.substring(0, 300))
-    console.log('  - Contains JSON markers:', text.includes('{') && text.includes('}'))
+    console.log('📤 Gemini response analysis:')
+    console.log('  - Response received:', !!text)
+    console.log('  - Response length:', text?.length || 0)
+    console.log('  - Contains JSON markers:', text?.includes('{') && text?.includes('}'))
+    console.log('  - First 400 chars:', text?.substring(0, 400) || 'No content')
+    
+    if (!text || text.length < 10) {
+      throw new Error('Gemini returned empty or very short response')
+    }
 
     // Parse JSON response with robust error handling and fallbacks
     return await parseGeminiResponse(text, file)
@@ -474,47 +590,217 @@ CRITICAL INSTRUCTIONS:
   }
 }
 
-// Robust JSON parsing with multiple fallback strategies
+// Enhanced JSON parsing with better error handling and cleanup
 async function parseGeminiResponse(text: string, file: File) {
-  console.log('🔍 Starting robust Gemini response parsing...')
+  console.log('🔍 Starting enhanced Gemini response parsing...')
+  console.log('📋 Response length:', text.length)
+  console.log('📋 Response preview:', text.substring(0, 200) + '...')
   
-  // Strategy 1: Standard JSON extraction
+  // Strategy 1: Enhanced JSON cleaning and parsing
   try {
-    console.log('📋 Strategy 1: Standard JSON parsing...')
-    return await tryStandardJsonParse(text)
+    console.log('📋 Strategy 1: Enhanced JSON parsing...')
+    return await tryEnhancedJsonParse(text)
   } catch (error) {
     console.warn('⚠️ Strategy 1 failed:', error instanceof Error ? error.message : 'Unknown error')
   }
   
-  // Strategy 2: Flexible JSON extraction with regex
+  // Strategy 2: Incremental JSON repair
   try {
-    console.log('📋 Strategy 2: Flexible JSON extraction...')
-    return await tryFlexibleJsonParse(text)
+    console.log('📋 Strategy 2: Incremental JSON repair...')
+    return await tryIncrementalJsonRepair(text)
   } catch (error) {
     console.warn('⚠️ Strategy 2 failed:', error instanceof Error ? error.message : 'Unknown error')
   }
   
-  // Strategy 3: Partial data extraction from malformed JSON
+  // Strategy 3: Standard JSON extraction (legacy)
   try {
-    console.log('📋 Strategy 3: Partial data extraction...')
-    return await tryPartialDataExtraction(text, file)
+    console.log('📋 Strategy 3: Standard JSON parsing...')
+    return await tryStandardJsonParse(text)
   } catch (error) {
     console.warn('⚠️ Strategy 3 failed:', error instanceof Error ? error.message : 'Unknown error')
   }
   
-  // Strategy 4: Text pattern matching
+  // Strategy 4: Flexible JSON extraction with regex
   try {
-    console.log('📋 Strategy 4: Text pattern matching...')
-    return await tryTextPatternExtraction(text, file)
+    console.log('📋 Strategy 4: Flexible JSON extraction...')
+    return await tryFlexibleJsonParse(text)
   } catch (error) {
     console.warn('⚠️ Strategy 4 failed:', error instanceof Error ? error.message : 'Unknown error')
+  }
+  
+  // Strategy 5: Partial data extraction from malformed JSON
+  try {
+    console.log('📋 Strategy 5: Partial data extraction...')
+    return await tryPartialDataExtraction(text, file)
+  } catch (error) {
+    console.warn('⚠️ Strategy 5 failed:', error instanceof Error ? error.message : 'Unknown error')
+  }
+  
+  // Strategy 6: Text pattern matching
+  try {
+    console.log('📋 Strategy 6: Text pattern matching...')
+    return await tryTextPatternExtraction(text, file)
+  } catch (error) {
+    console.warn('⚠️ Strategy 6 failed:', error instanceof Error ? error.message : 'Unknown error')
   }
   
   // All strategies failed
   throw new Error('All parsing strategies failed - response format not supported')
 }
 
-// Strategy 1: Standard JSON parsing
+// Strategy 1: Enhanced JSON parsing with better cleaning
+async function tryEnhancedJsonParse(text: string) {
+  console.log('🔧 Enhanced JSON parsing with comprehensive cleaning...')
+  
+  let cleanedText = text.trim()
+  
+  // Remove markdown code blocks more thoroughly
+  cleanedText = cleanedText.replace(/```json\s*\n?/gi, '')
+  cleanedText = cleanedText.replace(/```\s*\n?/g, '')
+  cleanedText = cleanedText.replace(/^[^{]*\{/, '{')
+  cleanedText = cleanedText.replace(/\}[^}]*$/g, '}')
+  
+  // Find proper JSON bounds
+  const jsonStart = cleanedText.indexOf('{')
+  let jsonEnd = -1
+  
+  if (jsonStart !== -1) {
+    let braceCount = 0
+    let inString = false
+    let escapeNext = false
+    
+    for (let i = jsonStart; i < cleanedText.length; i++) {
+      const char = cleanedText[i]
+      
+      if (escapeNext) {
+        escapeNext = false
+        continue
+      }
+      
+      if (char === '\\') {
+        escapeNext = true
+        continue
+      }
+      
+      if (char === '"' && !escapeNext) {
+        inString = !inString
+        continue
+      }
+      
+      if (!inString) {
+        if (char === '{') {
+          braceCount++
+        } else if (char === '}') {
+          braceCount--
+          if (braceCount === 0) {
+            jsonEnd = i + 1
+            break
+          }
+        }
+      }
+    }
+  }
+  
+  if (jsonStart === -1 || jsonEnd === -1) {
+    throw new Error('No valid JSON bounds found in enhanced parsing')
+  }
+  
+  let jsonString = cleanedText.substring(jsonStart, jsonEnd)
+  
+  // Additional JSON repairs
+  jsonString = jsonString.replace(/,\s*([}\]])/g, '$1') // Remove trailing commas
+  jsonString = jsonString.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":') // Quote unquoted keys
+  jsonString = jsonString.replace(/:\s*'([^']*)'/g, ':"$1"') // Convert single quotes to double
+  
+  console.log('📋 Cleaned JSON preview:', jsonString.substring(0, 300) + '...')
+  
+  try {
+    const parsedData = JSON.parse(jsonString)
+    console.log('✅ Enhanced JSON parsing successful!')
+    return validateAndNormalizeParsedData(parsedData)
+  } catch (error: any) {
+    console.warn('⚠️ Enhanced parsing failed:', error.message)
+    throw new Error(`Enhanced JSON parsing failed: ${error.message}`)
+  }
+}
+
+// Strategy 2: Incremental JSON repair
+async function tryIncrementalJsonRepair(text: string) {
+  console.log('🔧 Attempting incremental JSON repair...')
+  
+  let workingText = text.trim()
+  
+  // Step 1: Remove markdown and excess content
+  workingText = workingText.replace(/```json\s*\n?/gi, '')
+  workingText = workingText.replace(/```\s*\n?/g, '')
+  
+  // Step 2: Find JSON boundaries more carefully
+  const jsonMatch = workingText.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    throw new Error('No JSON structure found')
+  }
+  
+  let jsonString = jsonMatch[0]
+  
+  // Step 3: Incremental repairs
+  const repairs = [
+    // Fix trailing commas in arrays and objects
+    { pattern: /,\s*([}\]])/g, replacement: '$1' },
+    
+    // Fix unquoted object keys
+    { pattern: /([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, replacement: '$1"$2":' },
+    
+    // Convert single quotes to double quotes (but not inside strings)
+    { pattern: /:\s*'([^'\\\r\n]*(?:\\.[^'\\\r\n]*)*)'/g, replacement: ':"$1"' },
+    
+    // Fix missing quotes around string values that look like strings
+    { pattern: /:\s*([A-Za-z][A-Za-z0-9\s]*[A-Za-z])\s*([,}])/g, replacement: ':"$1"$2' },
+    
+    // Fix incomplete arrays - if array doesn't end properly
+    { pattern: /\[\s*([^\]]+)\s*$/, replacement: '[$1]' },
+    
+    // Fix incomplete objects - if object doesn't end properly  
+    { pattern: /\{\s*([^}]+)\s*$/, replacement: '{$1}' }
+  ]
+  
+  for (let i = 0; i < repairs.length; i++) {
+    const beforeLength = jsonString.length
+    jsonString = jsonString.replace(repairs[i].pattern, repairs[i].replacement)
+    if (jsonString.length !== beforeLength) {
+      console.log(`🔧 Applied repair ${i + 1}: pattern matched`)
+    }
+  }
+  
+  // Step 4: Handle truncated JSON by trying to close structures
+  const openBraces = (jsonString.match(/\{/g) || []).length
+  const closeBraces = (jsonString.match(/\}/g) || []).length
+  const openBrackets = (jsonString.match(/\[/g) || []).length
+  const closeBrackets = (jsonString.match(/\]/g) || []).length
+  
+  // Add missing closing braces/brackets
+  if (openBraces > closeBraces) {
+    jsonString += '}'.repeat(openBraces - closeBraces)
+    console.log(`🔧 Added ${openBraces - closeBraces} missing closing braces`)
+  }
+  
+  if (openBrackets > closeBrackets) {
+    jsonString += ']'.repeat(openBrackets - closeBrackets)
+    console.log(`🔧 Added ${openBrackets - closeBrackets} missing closing brackets`)
+  }
+  
+  console.log('📋 Repaired JSON preview:', jsonString.substring(0, 300) + '...')
+  
+  try {
+    const parsedData = JSON.parse(jsonString)
+    console.log('✅ Incremental JSON repair successful!')
+    return validateAndNormalizeParsedData(parsedData)
+  } catch (error: any) {
+    console.warn('⚠️ Incremental repair failed:', error.message)
+    throw new Error(`Incremental JSON repair failed: ${error.message}`)
+  }
+}
+
+// Strategy 3: Standard JSON parsing (legacy)
 async function tryStandardJsonParse(text: string) {
   // Clean the response
   let cleanedText = text.trim()
@@ -539,7 +825,7 @@ async function tryStandardJsonParse(text: string) {
   return validateAndNormalizeParsedData(parsedData)
 }
 
-// Strategy 2: Flexible JSON extraction with better cleaning
+// Strategy 4: Flexible JSON extraction with better cleaning
 async function tryFlexibleJsonParse(text: string) {
   console.log('🔧 Trying flexible JSON extraction...')
   
@@ -560,7 +846,7 @@ async function tryFlexibleJsonParse(text: string) {
   }
 }
 
-// Strategy 3: Extract partial data from malformed JSON
+// Strategy 5: Extract partial data from malformed JSON
 async function tryPartialDataExtraction(text: string, file: File) {
   console.log('🔧 Trying partial data extraction...')
   
@@ -614,7 +900,7 @@ async function tryPartialDataExtraction(text: string, file: File) {
   return validateAndNormalizeParsedData(data)
 }
 
-// Strategy 4: Text pattern extraction fallback
+// Strategy 6: Text pattern extraction fallback
 async function tryTextPatternExtraction(text: string, file: File) {
   console.log('🔧 Trying text pattern extraction...')
   
