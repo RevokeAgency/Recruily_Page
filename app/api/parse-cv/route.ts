@@ -83,12 +83,23 @@ export async function POST(request: NextRequest) {
       console.warn('⚠️ Could not fetch job data:', error)
     }
 
-    // Extract CV data using Gemini AI with fallback
+    // Extract CV data using Gemini AI with enhanced error handling
     let extractedData
+    let usingFallback = false
+    
+    console.log('🤖 Attempting Gemini AI extraction...')
+    
     try {
       extractedData = await extractCVDataWithGemini(file, jobData)
+      console.log('✅ Gemini AI extraction successful!')
+      console.log('📊 Extracted data preview:', {
+        candidateName: extractedData?.candidate?.name,
+        skillsCount: extractedData?.candidate?.skills?.length || 0,
+        experienceCount: extractedData?.candidate?.experience?.length || 0,
+        hasMatchingData: !!extractedData?.matching
+      })
     } catch (error: any) {
-      console.error('🚨 CV extraction error details:', {
+      console.error('🚨 Gemini AI extraction failed:', {
         errorMessage: error.message,
         errorType: error.constructor.name,
         fileName: file.name,
@@ -113,16 +124,17 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
       }
       
-      console.error('❌ Gemini extraction error, trying fallback:', error)
+      // Try fallback extraction only if Gemini completely fails
+      console.warn('⚠️ Falling back to basic file extraction due to:', error.message)
       
-      // Try fallback extraction for demonstration
       try {
         extractedData = await createFallbackCandidateData(file)
-        console.log('🔄 Using fallback candidate data for demonstration')
+        usingFallback = true
+        console.log('🔄 Using fallback candidate data - real AI extraction failed')
       } catch (fallbackError) {
-        console.error('❌ Fallback extraction also failed:', fallbackError)
+        console.error('❌ Both Gemini and fallback extraction failed:', fallbackError)
         
-        // Provide more specific error messages
+        // Provide specific error messages
         let errorMessage = 'Failed to extract data from CV. Please try a different file format.'
         
         if (error.message.includes('quota') || error.message.includes('limit')) {
@@ -318,13 +330,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Return success with extracted data
+    // Return success with extracted data and processing info
     return NextResponse.json({
       success: true,
       candidate: candidateData,
       extractedData: extractedData,
-      message: `Successfully processed ${file.name} and extracted candidate data`,
-      demo_mode: candidateData.demo_mode || false
+      message: usingFallback 
+        ? `Processed ${file.name} using fallback extraction (AI unavailable)` 
+        : `Successfully processed ${file.name} with AI extraction`,
+      demo_mode: candidateData.demo_mode || false,
+      extraction_method: usingFallback ? 'fallback' : 'gemini_ai',
+      fallback_used: usingFallback
     })
 
   } catch (error) {
@@ -428,8 +444,14 @@ CRITICAL INSTRUCTIONS:
 5. Return ONLY the JSON - no explanations, no markdown, no additional text
 6. Ensure all text is properly extracted and not truncated`
 
-    // Make API call to Gemini with error handling
+    // Make API call to Gemini with enhanced error handling
     console.log('🤖 Sending request to Gemini API...')
+    console.log('📋 Request details:', {
+      fileType: file.type,
+      fileSize: file.size,
+      base64Size: base64Data.length,
+      promptLength: prompt.length
+    })
     
     const result = await model.generateContent([
       {
@@ -441,64 +463,105 @@ CRITICAL INSTRUCTIONS:
       prompt,
     ])
     
-    console.log('✅ Gemini API request completed')
+    console.log('✅ Gemini API request completed successfully')
 
     const response = await result.response
     const text = response.text()
 
-    console.log('📤 Gemini response received, length:', text.length)
-    console.log('🔍 First 200 chars:', text.substring(0, 200))
+    console.log('📤 Gemini response received:')
+    console.log('  - Response length:', text.length)
+    console.log('  - First 300 chars:', text.substring(0, 300))
+    console.log('  - Contains JSON markers:', text.includes('{') && text.includes('}'))
 
-    // Parse JSON response
+    // Parse JSON response with enhanced error handling
     try {
+      console.log('🔍 Attempting to parse Gemini response as JSON...')
+      
       // Clean the response - remove any markdown formatting
       let cleanedText = text.trim()
       
       // Remove markdown code blocks if present
       cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+      cleanedText = cleanedText.replace(/```\s*\n?/g, '') // Remove any other code blocks
       
       // Find JSON object in response
       const jsonStart = cleanedText.indexOf('{')
       const jsonEnd = cleanedText.lastIndexOf('}') + 1
       
-      if (jsonStart === -1 || jsonEnd === -1) {
-        throw new Error('No JSON object found in response')
+      console.log('🔍 JSON extraction details:', {
+        jsonStart,
+        jsonEnd,
+        hasValidBounds: jsonStart !== -1 && jsonEnd > jsonStart,
+        extractedLength: jsonEnd - jsonStart
+      })
+      
+      if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) {
+        console.error('❌ No valid JSON bounds found in response')
+        console.error('📄 Full response for debugging:', text)
+        throw new Error('No JSON object found in Gemini response')
       }
       
       const jsonString = cleanedText.substring(jsonStart, jsonEnd)
+      console.log('📋 Extracted JSON string (first 200 chars):', jsonString.substring(0, 200))
+      
       const parsedData = JSON.parse(jsonString)
 
-      // Validate required fields
-      if (!parsedData.candidate || !parsedData.candidate.name) {
-        throw new Error('Invalid response: missing candidate name')
+      // Validate required structure
+      if (!parsedData.candidate) {
+        console.error('❌ Missing candidate object in parsed data')
+        throw new Error('Invalid response: missing candidate object')
+      }
+      
+      if (!parsedData.candidate.name || parsedData.candidate.name.includes('placeholder')) {
+        console.error('❌ Missing or placeholder candidate name')
+        throw new Error('Invalid response: missing or placeholder candidate name')
       }
 
-      console.log('✅ CV data successfully extracted and parsed')
+      console.log('✅ CV data successfully extracted and validated!')
+      console.log('📊 Extracted candidate summary:', {
+        name: parsedData.candidate.name,
+        email: parsedData.candidate.email,
+        skillsCount: parsedData.candidate.skills?.length || 0,
+        experienceCount: parsedData.candidate.experience?.length || 0,
+        hasMatching: !!parsedData.matching
+      })
+      
       return parsedData
 
     } catch (parseError) {
       console.error('❌ Failed to parse Gemini response:', parseError)
-      console.error('📄 Raw response:', text.substring(0, 500))
-      throw new Error('Failed to parse CV data from AI response')
+      console.error('📄 Raw response (first 1000 chars):', text.substring(0, 1000))
+      console.error('📄 Raw response (last 200 chars):', text.substring(Math.max(0, text.length - 200)))
+      throw new Error(`Failed to parse CV data from AI response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
     }
 
   } catch (error: any) {
     console.error('❌ Gemini AI analysis failed:', {
       error: error.message,
+      errorStack: error.stack?.substring(0, 500),
       fileName: file.name,
       fileType: file.type,
-      fileSize: file.size
+      fileSize: file.size,
+      fileSizeKB: Math.round(file.size / 1024)
     })
     
-    // Create a more specific error message
+    // Create more specific error messages
     if (error.message.includes('SAFETY')) {
       throw new Error('Content safety filters triggered. Please try a different file.')
     } else if (error.message.includes('QUOTA_EXCEEDED') || error.message.includes('quota')) {
-      throw new Error('API quota exceeded. Please wait and try again later.')
-    } else if (error.message.includes('INVALID_ARGUMENT') && file.type === 'application/pdf') {
-      throw new Error('PDF processing failed. Please try converting to TXT format or use a different PDF.')
+      throw new Error('Gemini API quota exceeded. Please wait and try again later.')
+    } else if (error.message.includes('INVALID_ARGUMENT')) {
+      if (file.type === 'application/pdf') {
+        throw new Error('PDF processing failed. Please try converting to TXT format or use a different PDF.')
+      } else {
+        throw new Error(`File format processing failed: ${file.type}. Please try a different file format.`)
+      }
+    } else if (error.message.includes('API key')) {
+      throw new Error('GEMINI_API_KEY_MISSING')
+    } else if (error.message.includes('Failed to parse CV data')) {
+      throw new Error(`AI response parsing failed. The CV content may be too complex or in an unsupported format.`)
     } else {
-      throw new Error(`AI processing failed: ${error.message}`)
+      throw new Error(`Gemini AI processing failed: ${error.message}`)
     }
   }
 }
