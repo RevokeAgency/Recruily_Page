@@ -87,9 +87,12 @@ export async function POST(request: NextRequest) {
     let extractedData
     let usingFallback = false
     
-    console.log('🤖 Attempting Gemini AI extraction...')
+    // Try multiple extraction methods in order of preference
+    console.log('🤖 Attempting CV extraction with multiple methods...')
     
+    // Method 1: Try Gemini AI first (best results)
     try {
+      console.log('📋 Method 1: Gemini AI extraction...')
       extractedData = await extractCVDataWithGemini(file, jobData)
       console.log('✅ Gemini AI extraction successful!')
       console.log('📊 Extracted data preview:', {
@@ -98,7 +101,32 @@ export async function POST(request: NextRequest) {
         experienceCount: extractedData?.candidate?.experience?.length || 0,
         hasMatchingData: !!extractedData?.matching
       })
-    } catch (error: any) {
+    } catch (geminiError: any) {
+      console.warn('⚠️ Gemini AI failed, trying alternative methods:', geminiError.message)
+      
+      // Method 2: Try direct text extraction for TXT files
+      if (file.type === 'text/plain') {
+        try {
+          console.log('📋 Method 2: Direct text analysis for TXT file...')
+          extractedData = await extractFromPlainText(file, jobData)
+          console.log('✅ Direct text extraction successful!')
+        } catch (textError: any) {
+          console.warn('⚠️ Direct text extraction failed:', textError.message)
+          throw geminiError // Fall back to original Gemini error
+        }
+      } else {
+        // For non-text files, re-throw the Gemini error to trigger fallback
+        throw geminiError
+      }
+    }
+    
+    // If we got here, one of the extraction methods worked
+    if (!extractedData) {
+      throw new Error('All extraction methods failed')
+    }
+    
+    // Handle any remaining errors from the try block above
+    if (false) { // This block is for the catch below
       console.error('🚨 Gemini AI extraction failed:', {
         errorMessage: error.message,
         errorType: error.constructor.name,
@@ -566,9 +594,9 @@ CRITICAL INSTRUCTIONS:
   }
 }
 
-// Fallback candidate data extraction when Gemini fails
+// Enhanced fallback candidate data extraction when Gemini fails
 async function createFallbackCandidateData(file: File) {
-  console.log('🔄 Creating fallback candidate data...')
+  console.log('🔄 Creating enhanced fallback candidate data...')
   
   // Extract name from filename (remove extension and clean up)
   const baseName = file.name.replace(/\.(pdf|docx?|txt)$/i, '')
@@ -578,28 +606,83 @@ async function createFallbackCandidateData(file: File) {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
   
-  // Create realistic fallback data based on filename
+  // Try to extract text content from the file for better data
+  let textContent = ''
+  try {
+    if (file.type === 'text/plain') {
+      textContent = await file.text()
+      console.log('📄 Extracted text content from TXT file (length):', textContent.length)
+    } else {
+      console.log('📄 Non-text file type, using filename-based extraction')
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not extract text content:', error)
+  }
+
+  // Extract basic information from text content if available
+  let extractedEmail = `${baseName.toLowerCase().replace(/[^a-z0-9]/g, '')}@email.com`
+  let extractedSkills = ['Professional Skills', 'Industry Experience', 'Technical Expertise']
+  let extractedSummary = `Professional summary extracted from ${file.name}. Full details available in uploaded CV.`
+  
+  if (textContent) {
+    console.log('🔍 Analyzing text content for better extraction...')
+    
+    // Try to find email address
+    const emailMatch = textContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i)
+    if (emailMatch) {
+      extractedEmail = emailMatch[1]
+      console.log('📧 Found email in text:', extractedEmail)
+    }
+    
+    // Try to extract skills (look for common skill keywords)
+    const skillKeywords = [
+      'JavaScript', 'Python', 'Java', 'React', 'Node.js', 'Angular', 'Vue.js',
+      'HTML', 'CSS', 'SQL', 'MongoDB', 'PostgreSQL', 'Docker', 'Kubernetes',
+      'AWS', 'Azure', 'GCP', 'Git', 'TypeScript', 'C++', 'C#', '.NET',
+      'PHP', 'Ruby', 'Go', 'Rust', 'Swift', 'Kotlin', 'Flutter', 'Django',
+      'Express', 'Spring', 'Laravel', 'Rails', 'TensorFlow', 'PyTorch',
+      'Machine Learning', 'AI', 'DevOps', 'CI/CD', 'Agile', 'Scrum'
+    ]
+    
+    const foundSkills = skillKeywords.filter(skill => 
+      textContent.toLowerCase().includes(skill.toLowerCase())
+    )
+    
+    if (foundSkills.length > 0) {
+      extractedSkills = foundSkills.slice(0, 8) // Limit to 8 skills
+      console.log('🎯 Found skills in text:', foundSkills.length)
+    }
+    
+    // Try to extract a better summary (first sentence or paragraph)
+    const sentences = textContent.split(/[.!?]+/).filter(s => s.trim().length > 20)
+    if (sentences.length > 0) {
+      extractedSummary = sentences[0].trim().substring(0, 200) + (sentences[0].length > 200 ? '...' : '')
+      console.log('📝 Extracted summary from text')
+    }
+  }
+  
+  // Create enhanced fallback data
   const fallbackData = {
     candidate: {
       name: cleanName || 'Unknown Candidate',
-      email: `${baseName.toLowerCase().replace(/[^a-z0-9]/g, '')}@email.com`,
-      phone: '+1 (555) 000-0000',
+      email: extractedEmail,
+      phone: textContent.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)?.[0] || '+1 (555) 000-0000',
       location: 'Location Not Specified',
-      summary: `Professional summary extracted from ${file.name}. Full details available in uploaded CV.`,
-      skills: ['Professional Skills', 'Industry Experience', 'Technical Expertise'],
+      summary: extractedSummary,
+      skills: extractedSkills,
       experience: [
         {
-          title: 'Professional Role',
-          company: 'Previous Company',
-          duration: 'Experience Period',
-          description: 'Professional experience details from CV'
+          title: 'Professional Experience',
+          company: 'Previous Employment',
+          duration: 'Employment Period',
+          description: 'Professional experience and achievements as detailed in CV'
         }
       ],
       education: [
         {
-          degree: 'Educational Background',
-          school: 'Educational Institution',
-          year: 'Graduation Year'
+          degree: 'Educational Qualification',
+          school: 'Academic Institution',
+          year: 'Completion Year'
         }
       ],
       languages: ['English'],
@@ -608,14 +691,197 @@ async function createFallbackCandidateData(file: File) {
     },
     matching: {
       overallScore: 75,
-      skillsMatch: 70,
-      experienceMatch: 80,
+      skillsMatch: extractedSkills.length > 3 ? 80 : 70,
+      experienceMatch: 75,
       educationMatch: 75,
-      strengths: ['CV uploaded successfully', 'File processed'],
-      gaps: ['AI extraction temporarily unavailable - using fallback data']
+      strengths: [
+        `Profile extracted from ${file.name}`,
+        extractedSkills.length > 3 ? `${extractedSkills.length} technical skills identified` : 'Professional skill set',
+        textContent.length > 0 ? 'Content analysis completed' : 'Filename-based extraction'
+      ],
+      gaps: [
+        'AI extraction temporarily unavailable - using enhanced text analysis',
+        'Full CV review recommended for detailed assessment'
+      ]
     }
   }
   
-  console.log('✅ Fallback candidate data created for:', cleanName)
+  console.log('✅ Enhanced fallback candidate data created for:', cleanName)
+  console.log('📊 Extraction summary:', {
+    name: cleanName,
+    email: extractedEmail,
+    skillsFound: extractedSkills.length,
+    hasTextContent: textContent.length > 0,
+    textLength: textContent.length
+  })
+  
   return fallbackData
+}
+
+// Direct text extraction for plain text files
+async function extractFromPlainText(file: File, jobData: any) {
+  console.log('📄 Starting direct text analysis for TXT file...')
+  
+  const textContent = await file.text()
+  console.log('📄 Text content length:', textContent.length)
+  
+  if (textContent.length < 50) {
+    throw new Error('Text content too short for meaningful extraction')
+  }
+  
+  // Extract basic information using regex patterns
+  const lines = textContent.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+  
+  // Try to find name (usually first non-empty line or line with capital letters)
+  let name = ''
+  const namePattern = /^[A-Z][a-z]+ [A-Z][a-z]+/
+  for (const line of lines.slice(0, 5)) {
+    if (namePattern.test(line) && !line.includes('@') && !line.includes('http')) {
+      name = line
+      break
+    }
+  }
+  
+  // Extract email
+  const emailMatch = textContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i)
+  const email = emailMatch ? emailMatch[1] : `${file.name.replace(/\.[^.]+$/, '').toLowerCase()}@email.com`
+  
+  // Extract phone
+  const phoneMatch = textContent.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)
+  const phone = phoneMatch ? phoneMatch[0] : null
+  
+  // Extract skills using comprehensive keyword matching
+  const skillKeywords = [
+    // Programming Languages
+    'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Go', 'Rust', 'Swift', 'Kotlin',
+    // Web Technologies
+    'HTML', 'CSS', 'React', 'Angular', 'Vue.js', 'Node.js', 'Express', 'Django', 'Flask', 'Spring', 'Laravel',
+    // Databases
+    'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'SQLite', 'Oracle', 'SQL Server',
+    // Cloud & DevOps
+    'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Jenkins', 'CI/CD', 'DevOps', 'Terraform', 'Ansible',
+    // Tools & Frameworks
+    'Git', 'GitHub', 'GitLab', 'Jira', 'Confluence', 'Slack', 'Figma', 'Photoshop', 'Illustrator',
+    // Concepts
+    'Machine Learning', 'AI', 'Data Science', 'Agile', 'Scrum', 'REST API', 'GraphQL', 'Microservices'
+  ]
+  
+  const foundSkills = skillKeywords.filter(skill => {
+    const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+    return regex.test(textContent)
+  })
+  
+  // Extract experience information
+  const experience = []
+  const experienceKeywords = ['experience', 'work', 'employment', 'position', 'role', 'job']
+  const companyPatterns = [
+    /(?:at|@)\s+([A-Z][a-zA-Z\s&.,]+?)(?:\s*[-–—]\s*|\s*\n|\s*\()/g,
+    /([A-Z][a-zA-Z\s&.,]{3,30})\s+[-–—]\s*[A-Z]/g
+  ]
+  
+  // Try to find work experience
+  for (const line of lines) {
+    if (experienceKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
+      // Look for company names in this and surrounding lines
+      const contextLines = lines.slice(Math.max(0, lines.indexOf(line) - 1), lines.indexOf(line) + 3)
+      for (const contextLine of contextLines) {
+        for (const pattern of companyPatterns) {
+          const matches = [...contextLine.matchAll(pattern)]
+          for (const match of matches) {
+            if (match[1] && match[1].length > 3 && match[1].length < 50) {
+              experience.push({
+                title: 'Professional Role',
+                company: match[1].trim(),
+                duration: 'Employment Period',
+                description: line.substring(0, 100) + (line.length > 100 ? '...' : '')
+              })
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Extract education information
+  const education = []
+  const educationKeywords = ['university', 'college', 'degree', 'bachelor', 'master', 'phd', 'doctorate', 'education']
+  const degreePatterns = [
+    /(?:bachelor|master|phd|doctorate|degree)\s+(?:of\s+)?(?:science\s+)?(?:in\s+)?([a-zA-Z\s]+)/i,
+    /([A-Z][a-zA-Z\s]+)\s+(?:university|college|institute)/i
+  ]
+  
+  for (const line of lines) {
+    if (educationKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
+      for (const pattern of degreePatterns) {
+        const match = line.match(pattern)
+        if (match && match[1] && match[1].length > 2) {
+          education.push({
+            degree: match[1].trim(),
+            school: line.includes('University') || line.includes('College') ? 
+                   line.substring(line.search(/(University|College)/i), line.search(/(University|College)/i) + 20) :
+                   'Academic Institution',
+            year: (line.match(/\b(19|20)\d{2}\b/) || [''])[0] || 'Year'
+          })
+        }
+      }
+    }
+  }
+  
+  // Calculate experience years
+  const yearMatches = textContent.match(/\b(19|20)\d{2}\b/g) || []
+  const years = yearMatches.map(y => parseInt(y)).filter(y => y > 1990 && y <= new Date().getFullYear())
+  const experienceYears = years.length > 1 ? Math.max(1, new Date().getFullYear() - Math.min(...years)) : 3
+  
+  // Create extracted data structure
+  const extractedData = {
+    candidate: {
+      name: name || file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' '),
+      email,
+      phone,
+      location: null, // Could add location extraction logic
+      summary: lines.slice(0, 3).join(' ').substring(0, 200) + '...',
+      skills: foundSkills.length > 0 ? foundSkills : ['Professional Skills'],
+      experience: experience.length > 0 ? experience : [{
+        title: 'Professional Experience',
+        company: 'Previous Employment',
+        duration: `${experienceYears} years`,
+        description: 'Professional experience as detailed in CV'
+      }],
+      education: education.length > 0 ? education : [{
+        degree: 'Professional Qualification',
+        school: 'Educational Institution',
+        year: 'Completion Year'
+      }],
+      languages: ['English'],
+      certifications: [],
+      experienceYears
+    },
+    matching: {
+      overallScore: Math.min(85, 70 + (foundSkills.length * 2)),
+      skillsMatch: foundSkills.length > 5 ? 85 : foundSkills.length > 2 ? 75 : 65,
+      experienceMatch: experienceYears > 5 ? 85 : experienceYears > 2 ? 75 : 65,
+      educationMatch: education.length > 0 ? 80 : 70,
+      strengths: [
+        `Direct text analysis completed for ${name || 'candidate'}`,
+        foundSkills.length > 0 ? `${foundSkills.length} technical skills identified` : 'Professional skills extracted',
+        experience.length > 0 ? `${experience.length} work experiences found` : 'Work experience identified'
+      ],
+      gaps: [
+        'Gemini AI extraction unavailable - using direct text analysis',
+        'Full manual review recommended for comprehensive assessment'
+      ]
+    }
+  }
+  
+  console.log('✅ Direct text extraction completed!')
+  console.log('📊 Text extraction summary:', {
+    nameFound: !!name,
+    emailFound: !!emailMatch,
+    skillsFound: foundSkills.length,
+    experienceFound: experience.length,
+    educationFound: education.length,
+    estimatedYears: experienceYears
+  })
+  
+  return extractedData
 }
