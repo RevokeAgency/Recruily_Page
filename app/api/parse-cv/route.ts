@@ -124,68 +124,7 @@ export async function POST(request: NextRequest) {
     if (!extractedData) {
       throw new Error('All extraction methods failed')
     }
-    
-    // Handle any remaining errors from the try block above
-    if (false) { // This block is for the catch below
-      console.error('🚨 Gemini AI extraction failed:', {
-        errorMessage: error.message,
-        errorType: error.constructor.name,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type
-      })
-      
-      if (error.message === 'GEMINI_API_KEY_MISSING') {
-        return NextResponse.json({
-          success: false,
-          error: 'Gemini API key is not configured. Please set up your API key in environment variables.',
-          needsApiKey: true,
-          instructions: {
-            message: 'To use AI-powered CV parsing, please set up your free Gemini API key',
-            steps: [
-              'Visit https://aistudio.google.com/app/apikey',
-              'Create a new API key in Google AI Studio (free)',
-              'Add GEMINI_API_KEY=your_key_here to your .env.local file',
-              'Restart your application'
-            ]
-          }
-        }, { status: 400 })
-      }
-      
-      // Try fallback extraction only if Gemini completely fails
-      console.warn('⚠️ Falling back to basic file extraction due to:', error.message)
-      
-      try {
-        extractedData = await createFallbackCandidateData(file)
-        usingFallback = true
-        console.log('🔄 Using fallback candidate data - real AI extraction failed')
-      } catch (fallbackError) {
-        console.error('❌ Both Gemini and fallback extraction failed:', fallbackError)
-        
-        // Provide specific error messages
-        let errorMessage = 'Failed to extract data from CV. Please try a different file format.'
-        
-        if (error.message.includes('quota') || error.message.includes('limit')) {
-          errorMessage = 'API quota exceeded. Please wait a few minutes and try again.'
-        } else if (error.message.includes('PDF processing failed')) {
-          errorMessage = 'PDF processing failed. Please try converting to TXT format or use a different PDF file.'
-        } else if (error.message.includes('size') || error.message.includes('large')) {
-          errorMessage = 'File too large for processing. Please try a smaller file (max 10MB).'
-        }
-        
-        return NextResponse.json({
-          success: false,
-          error: errorMessage,
-          details: error.message,
-          suggestions: [
-            'Try converting PDF to TXT format',
-            'Ensure file is not corrupted',
-            'Use files smaller than 10MB',
-            'Try uploading a different CV file'
-          ]
-        }, { status: 500 })
-      }
-    }
+
     
     if (!extractedData) {
       return NextResponse.json({
@@ -777,37 +716,6 @@ function extractNameFromFilename(filename: string): string {
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
-}
-
-  } catch (error: any) {
-    console.error('❌ Gemini AI analysis failed:', {
-      error: error.message,
-      errorStack: error.stack?.substring(0, 500),
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      fileSizeKB: Math.round(file.size / 1024)
-    })
-    
-    // Create more specific error messages
-    if (error.message.includes('SAFETY')) {
-      throw new Error('Content safety filters triggered. Please try a different file.')
-    } else if (error.message.includes('QUOTA_EXCEEDED') || error.message.includes('quota')) {
-      throw new Error('Gemini API quota exceeded. Please wait and try again later.')
-    } else if (error.message.includes('INVALID_ARGUMENT')) {
-      if (file.type === 'application/pdf') {
-        throw new Error('PDF processing failed. Please try converting to TXT format or use a different PDF.')
-      } else {
-        throw new Error(`File format processing failed: ${file.type}. Please try a different file format.`)
-      }
-    } else if (error.message.includes('API key')) {
-      throw new Error('GEMINI_API_KEY_MISSING')
-    } else if (error.message.includes('Failed to parse CV data')) {
-      throw new Error(`AI response parsing failed. The CV content may be too complex or in an unsupported format.`)
-    } else {
-      throw new Error(`Gemini AI processing failed: ${error.message}`)
-    }
-  }
 }
 
 // Enhanced fallback candidate data extraction when Gemini fails
