@@ -21,7 +21,14 @@ export async function POST(
   
   try {
     const { candidateData, extractedData } = await request.json()
-    const jobId = params.id
+    
+    // Ensure jobId is a valid UUID, generate one if not
+    let jobId = params.id
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(jobId)) {
+      console.log(`⚠️ Job ID "${jobId}" is not a UUID, generating one for database compatibility`)
+      jobId = uuidv4()
+    }
     
     if (!candidateData || !jobId) {
       return NextResponse.json({
@@ -74,31 +81,34 @@ export async function POST(
     // Step 2: Calculate match scores
     const matchingResult = calculateMatchScores(candidateData, extractedData)
 
-    // Step 3: Create job match record
+    // Step 3: Create job match record with correct schema
     const matchRecord = {
       id: uuidv4(),
       candidate_id: candidateData.id,
       job_id: jobId,
-      overall_score: Math.round(matchingResult.overallScore),
-      skills_score: Math.round(matchingResult.skillsScore),
-      experience_score: Math.round(matchingResult.experienceScore),
-      education_score: Math.round(matchingResult.educationScore),
-      languages_score: Math.round(matchingResult.languagesScore),
-      certifications_score: Math.round(matchingResult.certificationsScore),
-      other_score: Math.round(matchingResult.otherScore),
-      strengths: matchingResult.strengths,
-      gaps: matchingResult.gaps,
-      recommendations: matchingResult.recommendations,
+      match_score: Math.round(matchingResult.overallScore),
+      match_details: JSON.stringify({
+        overall_score: Math.round(matchingResult.overallScore),
+        skills_score: Math.round(matchingResult.skillsScore),
+        experience_score: Math.round(matchingResult.experienceScore),
+        education_score: Math.round(matchingResult.educationScore),
+        languages_score: Math.round(matchingResult.languagesScore),
+        certifications_score: Math.round(matchingResult.certificationsScore),
+        other_score: Math.round(matchingResult.otherScore),
+        strengths: matchingResult.strengths,
+        gaps: matchingResult.gaps,
+        recommendations: matchingResult.recommendations
+      }),
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
 
-    // Step 4: Save job match record
+    // Step 4: Save job match record using correct table name
     let matchData
     try {
       const { data, error: matchError } = await supabaseAdmin
-        .from('job_matches')
+        .from('job_candidate_matches')
         .insert([matchRecord])
         .select()
         .single()

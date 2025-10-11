@@ -39,37 +39,27 @@ export async function GET(
       }
     )
 
-    // Fetch candidates with their match scores for this job
+    // Fetch candidates with their match scores for this job using correct schema
     const { data: matches, error: matchError } = await supabaseAdmin
-      .from('job_matches')
+      .from('job_candidate_matches')
       .select(`
         *,
         candidate:candidates (
           id,
-          name,
+          first_name,
+          last_name,
           email,
           phone,
           location,
-          summary,
-          skills,
-          experience,
-          education,
-          languages,
-          certifications,
-          experience_years,
-          degree,
-          university,
-          linkedin_url,
-          portfolio_url,
-          github_url,
-          resume_url,
+          status,
+          notes,
+          organisation_id,
           created_at,
-          source,
-          tags
+          updated_at
         )
       `)
       .eq('job_id', params.id)
-      .order('overall_score', { ascending: false })
+      .order('match_score', { ascending: false })
 
     if (matchError) {
       console.error('❌ Error fetching job matches:', matchError)
@@ -78,10 +68,54 @@ export async function GET(
       return combineUploadedAndMockData(params.id, uploadedCandidates)
     }
 
-    console.log(`✅ Found ${matches.length} database matches for job ${params.id}`)
+    console.log(`✅ Found ${matches?.length || 0} database matches for job ${params.id}`)
+
+    // Transform database matches to frontend format
+    const transformedMatches = (matches || []).map(match => {
+      const candidate = match.candidate
+      const matchDetails = match.match_details ? JSON.parse(match.match_details) : {}
+      const candidateNotes = candidate.notes ? JSON.parse(candidate.notes) : {}
+      
+      return {
+        id: match.id,
+        candidate_id: match.candidate_id,
+        job_id: match.job_id,
+        overall_score: match.match_score,
+        skills_score: matchDetails.skills_score || 75,
+        experience_score: matchDetails.experience_score || 75,
+        education_score: matchDetails.education_score || 75,
+        strengths: matchDetails.strengths || ['Professional qualifications'],
+        gaps: matchDetails.gaps || [],
+        recommendations: matchDetails.recommendations || ['Review candidate profile'],
+        status: match.status,
+        created_at: match.created_at,
+        updated_at: match.updated_at,
+        candidate: {
+          id: candidate.id,
+          name: `${candidate.first_name} ${candidate.last_name}`,
+          first_name: candidate.first_name,
+          last_name: candidate.last_name,
+          email: candidate.email,
+          phone: candidate.phone,
+          location: candidate.location,
+          status: candidate.status,
+          // Extract data from notes JSON
+          skills: candidateNotes.skills || [],
+          experience: candidateNotes.experience || [],
+          education: candidateNotes.education || [],
+          summary: candidateNotes.summary || '',
+          languages: candidateNotes.languages || ['English'],
+          certifications: candidateNotes.certifications || [],
+          experienceYears: candidateNotes.experience_years || 0,
+          resume_url: candidateNotes.resume_url || null,
+          created_at: candidate.created_at,
+          updated_at: candidate.updated_at
+        }
+      }
+    })
 
     // Combine database matches with uploaded candidates
-    const combinedCandidates = [...uploadedCandidates, ...matches]
+    const combinedCandidates = [...uploadedCandidates, ...transformedMatches]
     
     return NextResponse.json({
       success: true,

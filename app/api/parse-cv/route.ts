@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
     let jobData = null
     try {
       const { data: job, error: jobError } = await supabase
-        .from('jobs')
-        .select('title, description, technical_skills, requirements, location, salary_range')
+        .from('job_postings')
+        .select('title, description, requirements, location, salary_range')
         .eq('id', jobId)
         .single()
 
@@ -200,35 +200,43 @@ export async function POST(request: NextRequest) {
       resumeUrl = `https://demo-storage.recruily.com/resumes/${candidateId}_${file.name}`
     }
 
-    // Create candidate record
+    // Parse candidate name into first_name and last_name
+    const fullName = extractedData.candidate.name || 'Unknown Candidate'
+    const nameParts = fullName.split(' ')
+    const firstName = nameParts[0] || 'Unknown'
+    const lastName = nameParts.slice(1).join(' ') || 'Candidate'
+
+    // Create candidate record with correct database schema
     const candidateRecord = {
       id: candidateId,
-      name: extractedData.candidate.name,
+      first_name: firstName,
+      last_name: lastName,
       email: extractedData.candidate.email,
       phone: extractedData.candidate.phone,
       location: extractedData.candidate.location,
-      summary: extractedData.candidate.summary,
-      skills: extractedData.candidate.skills,
-      experience: extractedData.candidate.experience,
-      education: extractedData.candidate.education,
-      languages: extractedData.candidate.languages || ['English'],
-      certifications: extractedData.candidate.certifications || [],
-      experience_years: extractedData.candidate.experienceYears || 0,
-      degree: extractedData.candidate.education?.[0]?.degree || null,
-      university: extractedData.candidate.education?.[0]?.school || null,
-      graduation_year: extractedData.candidate.education?.[0]?.year || null,
-      linkedin_url: extractedData.candidate.linkedinUrl || null,
-      portfolio_url: extractedData.candidate.portfolioUrl || null,
-      github_url: extractedData.candidate.githubUrl || null,
-      salary_expectation_min: null,
-      salary_expectation_max: null,
-      visa_status: null,
-      availability: 'available',
       status: 'active',
-      source: 'cv_upload',
-      tags: ['cv_parsed', 'gemini_extracted'],
-      organisation_id: 'demo-org-123',
-      resume_url: resumeUrl,
+      notes: JSON.stringify({
+        summary: extractedData.candidate.summary,
+        skills: extractedData.candidate.skills,
+        experience: extractedData.candidate.experience,
+        education: extractedData.candidate.education,
+        languages: extractedData.candidate.languages || ['English'],
+        certifications: extractedData.candidate.certifications || [],
+        experience_years: extractedData.candidate.experienceYears || 0,
+        degree: extractedData.candidate.education?.[0]?.degree || null,
+        university: extractedData.candidate.education?.[0]?.school || null,
+        graduation_year: extractedData.candidate.education?.[0]?.year || null,
+        linkedin_url: extractedData.candidate.linkedinUrl || null,
+        portfolio_url: extractedData.candidate.portfolioUrl || null,
+        github_url: extractedData.candidate.githubUrl || null,
+        source: 'cv_upload',
+        tags: ['cv_parsed', 'gemini_extracted'],
+        resume_url: resumeUrl,
+        extraction_method: 'gemini_ai',
+        matching_data: extractedData.matching
+      }),
+      organisation_id: '11111111-1111-1111-1111-111111111111', // Use existing organisation (TechRecruit)
+      created_by: null, // Set to null since there's no users table
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
@@ -260,10 +268,14 @@ export async function POST(request: NextRequest) {
         // Check if this is a mock client (no real database)
         if (candidateError.message?.includes('Mock') || !candidateError.code) {
           console.log('🎭 Using mock database - creating demo candidate record')
-          // Create a demo candidate record for testing
+          // Create a demo candidate record for testing with compatibility fields
           candidateData = {
             ...candidateRecord,
             id: candidateRecord.id,
+            name: extractedData.candidate.name, // Add name for frontend compatibility
+            skills: extractedData.candidate.skills,
+            experience: extractedData.candidate.experience,
+            education: extractedData.candidate.education,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
@@ -282,6 +294,10 @@ export async function POST(request: NextRequest) {
       candidateData = {
         ...candidateRecord,
         id: candidateRecord.id,
+        name: extractedData.candidate.name, // Add name for frontend compatibility
+        skills: extractedData.candidate.skills,
+        experience: extractedData.candidate.experience,
+        education: extractedData.candidate.education,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         demo_mode: true
@@ -418,7 +434,7 @@ async function extractCVDataWithGemini(file: File, jobData: any) {
     const jobContext = jobData ? `
 JOB CONTEXT FOR MATCHING:
 - Job Title: ${jobData.title}
-- Required Skills: ${jobData.technical_skills || 'Not specified'}
+- Required Skills: ${jobData.requirements || 'Not specified'}
 - Job Description: ${jobData.description?.substring(0, 300) || 'Not specified'}
 - Location: ${jobData.location || 'Not specified'}
 ` : ''
