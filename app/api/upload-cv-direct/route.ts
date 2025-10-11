@@ -7,7 +7,12 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const jobId = formData.get('jobId') as string || 'demo-job-' + Date.now()
+    // Generate or validate job ID as UUID
+    let jobId = formData.get('jobId') as string || uuidv4()
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(jobId)) {
+      jobId = uuidv4() // Generate proper UUID if provided ID is not valid
+    }
     
     if (!file) {
       return NextResponse.json({

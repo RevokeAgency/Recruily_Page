@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
     let jobData = null
     try {
       const { data: job, error: jobError } = await supabase
-        .from('jobs')
-        .select('title, description, technical_skills, requirements, location, salary_range')
+        .from('job_postings')
+        .select('title, description, requirements, location, salary_range')
         .eq('id', jobId)
         .single()
 
@@ -235,8 +235,8 @@ export async function POST(request: NextRequest) {
         extraction_method: 'gemini_ai',
         matching_data: extractedData.matching
       }),
-      organisation_id: 'demo-org-123',
-      created_by: 'system',
+      organisation_id: '11111111-1111-1111-1111-111111111111', // Use existing organisation (TechRecruit)
+      created_by: null, // Set to null since there's no users table
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
@@ -434,7 +434,7 @@ async function extractCVDataWithGemini(file: File, jobData: any) {
     const jobContext = jobData ? `
 JOB CONTEXT FOR MATCHING:
 - Job Title: ${jobData.title}
-- Required Skills: ${jobData.technical_skills || 'Not specified'}
+- Required Skills: ${jobData.requirements || 'Not specified'}
 - Job Description: ${jobData.description?.substring(0, 300) || 'Not specified'}
 - Location: ${jobData.location || 'Not specified'}
 ` : ''
