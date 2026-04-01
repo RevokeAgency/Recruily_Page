@@ -7,17 +7,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 // Initialize Gemini AI with enhanced debugging
 const getGeminiClient = () => {
   // Try multiple API key sources
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || 
-                process.env.GEMINI_API_KEY || 
-                "AIzaSyDXJ1miQZF8wEc8ks4v7MyGI5dD4SWjRfY"
-  
-  console.log('🔑 Gemini API key check:', {
-    hasGoogleGenerativeAiKey: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    hasGeminiKey: !!process.env.GEMINI_API_KEY,
-    usingHardcodedKey: !process.env.GOOGLE_GENERATIVE_AI_API_KEY && !process.env.GEMINI_API_KEY,
-    keyLength: apiKey ? apiKey.length : 0,
-    keyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : 'undefined'
-  })
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
   
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY_MISSING')

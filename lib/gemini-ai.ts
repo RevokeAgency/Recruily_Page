@@ -4,15 +4,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 let genAI: GoogleGenerativeAI | null = null
 
 try {
-  // Use the new API key directly or from environment variables
-  const apiKey =
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || "AIzaSyAFSoQGqe6TOsLPWo6NsGwmhEhRNRpMbjQ"
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
 
   if (apiKey) {
     genAI = new GoogleGenerativeAI(apiKey)
-    console.log("✅ Gemini AI initialized successfully with new API key")
+    console.log("✅ Gemini AI initialized successfully")
   } else {
-    console.warn("⚠️ No Gemini API key found")
+    console.warn("⚠️ No Gemini API key found - set GOOGLE_GENERATIVE_AI_API_KEY in .env.local")
   }
 } catch (error) {
   console.error("❌ Failed to initialize Gemini AI:", error)

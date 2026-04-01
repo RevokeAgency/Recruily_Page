@@ -6,9 +6,7 @@ export async function GET() {
   
   try {
     // Check for API key
-    const apiKey = process.env.GEMINI_API_KEY || 
-                  process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-                  "AIzaSyDXJ1miQZF8wEc8ks4v7MyGI5dD4SWjRfY"
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY
     
     if (!apiKey) {
       return NextResponse.json({

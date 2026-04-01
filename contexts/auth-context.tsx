@@ -56,14 +56,10 @@ const findUserByEmail = (email: string): any | null => {
   return users.find((user) => user.email === email) || null
 }
 
-const validateCredentials = (email: string, password: string): { valid: boolean; user?: any; error?: string } => {
+const validateCredentials = (email: string): { valid: boolean; user?: any; error?: string } => {
   const user = findUserByEmail(email)
 
   if (!user) {
-    return { valid: false, error: "Invalid email or password" }
-  }
-
-  if (user.password !== password) {
     return { valid: false, error: "Invalid email or password" }
   }
 
@@ -87,7 +83,6 @@ const createDefaultOfficeAccount = () => {
       const defaultUser = {
         id: "office-user-confirmed",
         email: "office@example.com",
-        password: "password123",
         name: "Office User",
         emailConfirmed: true,
         createdAt: new Date().toISOString(),
@@ -256,7 +251,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("📋 All stored users:", allUsers)
 
       // Validate credentials against stored users
-      const validation = validateCredentials(email, password)
+      const validation = validateCredentials(email)
       console.log("🔍 Validation result:", validation)
 
       if (!validation.valid) {
@@ -351,11 +346,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: true }
       }
 
-      // Create new user (unconfirmed)
+      // Create new user (unconfirmed) - no password stored client-side
       const newUser = {
         id: `user-${Date.now()}`,
         email: email,
-        password: password, // In production, this should be hashed
         name: name,
         emailConfirmed: false,
         createdAt: new Date().toISOString(),

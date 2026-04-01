@@ -3,9 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Test Gemini API functionality
 const getGeminiClient = () => {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || 
-                process.env.GEMINI_API_KEY || 
-                "AIzaSyDXJ1miQZF8wEc8ks4v7MyGI5dD4SWjRfY"
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
   
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY_MISSING')
