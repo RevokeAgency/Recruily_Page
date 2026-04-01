@@ -200,7 +200,7 @@ export default function JobsPageOptimized() {
         job.location?.toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchesStatus = statusFilter === "all" || job.status === statusFilter
-      const matchesType = typeFilter === "all" || job.employment_type === typeFilter
+      const matchesType = typeFilter === "all" || (job as any).employment_type === typeFilter
 
       return matchesSearch && matchesStatus && matchesType
     })

@@ -41,7 +41,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLanguage } from "@/contexts/language-context"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabaseClient"
-import CvUploadModal from "@/components/cv-upload-modal"
+import { CVUploadModal as CvUploadModal } from "@/components/cv-upload-modal"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { generateDummyMatches, generateDummyJobs } from "@/lib/dummy-data"
 import CandidateProfileDetailed from "@/components/candidate-profile-detailed"
@@ -333,7 +333,7 @@ export default function MatchesPage() {
           </DropdownMenu>
           <Tabs
             value={viewMode}
-            onValueChange={(value) => setViewMode(value as "table" | "grid")}
+            onValueChange={(value: string) => setViewMode(value as "table" | "grid")}
             className="w-[180px]"
           >
             <TabsList className="grid w-full grid-cols-2 bg-white shadow-sm border-0">
@@ -419,7 +419,7 @@ export default function MatchesPage() {
                         <TableCell>
                           <Select
                             value={match.stage}
-                            onValueChange={(value) => {
+                            onValueChange={(value: string) => {
                               handleStageChange(match.id, value)
                               // Stop propagation to prevent drawer from opening
                               event?.stopPropagation()
@@ -427,7 +427,7 @@ export default function MatchesPage() {
                           >
                             <SelectTrigger
                               className="w-[100px] bg-white shadow-sm border-0"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             >
                               <SelectValue>
                                 <Badge className={statusColors[match.stage as keyof typeof statusColors]}>
@@ -435,7 +435,7 @@ export default function MatchesPage() {
                                 </Badge>
                               </SelectValue>
                             </SelectTrigger>
-                            <SelectContent onClick={(e) => e.stopPropagation()}>
+                            <SelectContent onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                               <SelectItem value="New">
                                 <Badge className={statusColors.New}>{language === "EN" ? "New" : "Neu"}</Badge>
                               </SelectItem>
@@ -462,7 +462,7 @@ export default function MatchesPage() {
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuTrigger asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <MoreHorizontal className="h-4 w-4" />
                                 <span className="sr-only">Actions</span>
@@ -470,14 +470,14 @@ export default function MatchesPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={(e) => {
+                                onClick={(e: React.MouseEvent) => {
                                   e.stopPropagation()
                                   openProfile(match)
                                 }}
                               >
                                 {language === "EN" ? "View Profile" : "Profil anzeigen"}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                 {language === "EN" ? "Download CV" : "Lebenslauf herunterladen"}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -587,7 +587,7 @@ export default function MatchesPage() {
       </Dialog>
 
       {/* CV Upload Modal */}
-      <CvUploadModal open={isCvModalOpen} onOpenChange={setIsCvModalOpen} jobId={selectedJob} />
+      <CvUploadModal jobId={selectedJob ?? undefined} />
     </div>
   )
 }

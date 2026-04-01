@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useLanguage } from "@/contexts/language-context"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabaseClient"
-import CvUploadModal from "@/components/cv-upload-modal"
+import { CVUploadModal as CvUploadModal } from "@/components/cv-upload-modal"
 
 interface GuidedWorkflowProps {
   className?: string
@@ -18,7 +18,6 @@ export default function GuidedWorkflow({ className }: GuidedWorkflowProps) {
   const router = useRouter()
   const { language } = useLanguage()
   const { user } = useAuth()
-  const [isCvModalOpen, setIsCvModalOpen] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [stats, setStats] = useState({
     jobsCount: 0,
@@ -63,7 +62,7 @@ export default function GuidedWorkflow({ className }: GuidedWorkflowProps) {
           .limit(1)
 
         if (recentJobs && recentJobs.length > 0) {
-          setSelectedJobId(recentJobs[0].id)
+          setSelectedJobId((recentJobs[0] as any).id)
         }
 
         setStats({
@@ -154,15 +153,19 @@ export default function GuidedWorkflow({ className }: GuidedWorkflowProps) {
                   : "Laden Sie Lebensläufe hoch, um sie mit Ihrer Stellenausschreibung abzugleichen"}
               </p>
               {currentStep === 2 && (
-                <Button
-                  className="mt-2 bg-blue-600 hover:bg-blue-700"
-                  onClick={() => setIsCvModalOpen(true)}
-                  disabled={!selectedJobId}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  {language === "EN" ? "Upload CVs" : "CVs hochladen"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                <CvUploadModal
+                  jobId={selectedJobId ?? undefined}
+                  trigger={
+                    <Button
+                      className="mt-2 bg-blue-600 hover:bg-blue-700"
+                      disabled={!selectedJobId}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {language === "EN" ? "Upload CVs" : "CVs hochladen"}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  }
+                />
               )}
             </div>
           </div>
@@ -233,8 +236,6 @@ export default function GuidedWorkflow({ className }: GuidedWorkflowProps) {
         </div>
       </CardContent>
 
-      {/* CV Upload Modal */}
-      <CvUploadModal open={isCvModalOpen} onOpenChange={setIsCvModalOpen} jobId={selectedJobId} />
     </Card>
   )
 }

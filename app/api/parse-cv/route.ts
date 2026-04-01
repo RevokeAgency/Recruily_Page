@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     // Get job requirements for context
     let jobData = null
     try {
-      const { data: job, error: jobError } = await supabase
+      const { data: job, error: jobError } = await (supabase as any)
         .from('job_postings')
         .select('title, description, requirements, location, salary_range')
         .eq('id', jobId)
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
         
         resumeUrl = urlData?.publicUrl
         console.log(`📎 File uploaded to storage: ${fileName}`)
-      } else if (uploadError?.message?.includes('Mock') || uploadData?.path?.includes('mock-')) {
+      } else if (uploadError?.message?.includes('Mock') || (uploadData as any)?.path?.includes('mock-')) {
         // Mock storage - create demo URL
         resumeUrl = `https://demo-storage.recruily.com/resumes/${fileName}`
         console.log(`🎭 Demo file upload: ${fileName}`)
@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
         }
       )
       
-      const { data, error: candidateError } = await supabaseAdmin
+      const { data, error: candidateError } = await (supabaseAdmin as any)
         .from('candidates')
         .insert([candidateRecord])
         .select()
@@ -321,7 +321,7 @@ export async function POST(request: NextRequest) {
           }
         )
         
-        const { error: resumeError } = await supabaseAdmin
+        const { error: resumeError } = await (supabaseAdmin as any)
           .from('resumes')
           .insert([resumeRecord])
 
@@ -921,7 +921,7 @@ async function tryTextPatternExtraction(text: string, file: File) {
     /programming[:\-\s]*([^\n\r.]{10,100})/i
   ]
   
-  let skills = []
+  let skills: string[] = []
   for (const pattern of skillPatterns) {
     const match = text.match(pattern)
     if (match) {

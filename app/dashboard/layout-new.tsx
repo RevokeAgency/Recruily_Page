@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Bell, User } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
-import DashboardSidebarNew from "@/components/dashboard-sidebar-new"
+import { DashboardSidebarNew } from "@/components/dashboard-sidebar-new"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { DashboardBackgroundElements } from "@/components/design-elements"
 

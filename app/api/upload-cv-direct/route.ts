@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       })
     })
 
-    let addResult = { success: false, error: 'Unknown error' }
+    let addResult: { success: boolean; error?: string; message?: string } = { success: false, error: 'Unknown error' }
     try {
       if (addCandidateResponse.ok) {
         addResult = await addCandidateResponse.json()

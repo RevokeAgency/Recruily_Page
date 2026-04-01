@@ -318,7 +318,7 @@ IMPORTANT: Return ONLY the JSON object, no other text, no markdown formatting, n
       return parseGeminiResponse(text, jobRequirements, file.name)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      const errorString = error.toString ? error.toString() : String(error)
+      const errorString = (error as any).toString ? (error as any).toString() : String(error)
 
       console.error(`❌ Gemini CV analysis failed (attempt ${attempt + 1}):`, errorMessage)
       console.error(`🔍 Full error object:`, errorString)

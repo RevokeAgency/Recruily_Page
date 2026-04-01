@@ -1,5 +1,7 @@
 // Type declarations for UI components to help with module resolution
 
+declare module 'pdf-parse'
+
 declare module '@/components/ui/button' {
   import { ButtonProps, Button, buttonVariants } from '../components/ui/button'
   export { ButtonProps, Button, buttonVariants }

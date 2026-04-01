@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save candidate to database
-    const { data: candidate, error: candidateError } = await supabase
+    const { data: candidate, error: candidateError } = await (supabase as any)
       .from('candidates')
       .insert([candidateRecord])
       .select()
@@ -277,7 +277,7 @@ function parseGenericProfile(text: string, url: string): CandidateData {
     education: extractGenericEducation(text),
     summary: extractGenericSummary(text),
     portfolio_url: url,
-    github_url: url.includes('github.com') ? url : null,
+    github_url: url.includes('github.com') ? url : undefined,
     languages: ['English'],
     availability: 'available'
   }

@@ -47,6 +47,7 @@ interface JobFormData {
   source_type: "manual" | "url_scraping" | "file_upload"
   source_url?: string
   source_filename?: string
+  department?: string
 }
 
 export default function JobCreationWizard() {

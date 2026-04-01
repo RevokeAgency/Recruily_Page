@@ -80,7 +80,7 @@ export async function PATCH(request: NextRequest) {
 
     console.log(`🔄 Updating match ${matchId} status to ${status}`)
 
-    const { data: updatedMatch, error } = await supabase
+    const { data: updatedMatch, error } = await (supabase as any)
       .from('matches')
       .update({ 
         status: status,

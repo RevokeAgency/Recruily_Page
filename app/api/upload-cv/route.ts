@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
-import { analyzeCVWithGemini, generateFallbackCVData } from "@/lib/gemini-ai"
+import { analyzeCVWithGemini, generateFallbackCVData, type JobRequirements } from "@/lib/gemini-ai"
 
 interface CandidateData {
   name?: string
@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
     console.log(`📁 Processing file: ${file.name} (${file.type}, ${file.size} bytes)`)
 
     // Fetch job requirements for context (optional)
-    let jobRequirements = null
+    let jobRequirements: JobRequirements | undefined = undefined
     try {
-      const { data: jobData, error: jobError } = await supabase
+      const { data: jobData, error: jobError } = await (supabase as any)
         .from('job_postings')
         .select('title, description, requirements, technical_skills, experience_level, location, job_type')
         .eq('id', jobId)
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
     // Save candidate to database (with fallback)
     let candidate = candidateRecord // Always start with our candidateRecord as fallback
     try {
-      const { data: savedCandidate, error: candidateError } = await supabase
+      const { data: savedCandidate, error: candidateError } = await (supabase as any)
         .from('candidates')
         .insert([candidateRecord])
         .select()
@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
 
     // Save resume record (optional - continues without this if it fails)
     try {
-      const { data: resume, error: resumeError } = await supabase
+      const { data: resume, error: resumeError } = await (supabase as any)
         .from('resumes')
         .insert([resumeRecord])
         .select()

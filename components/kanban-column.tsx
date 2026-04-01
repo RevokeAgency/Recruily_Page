@@ -162,7 +162,7 @@ export function KanbanColumn({
             key={candidate.id}
             className="cursor-move hover:shadow-md transition-shadow"
             draggable
-            onDragStart={(e) => {
+            onDragStart={(e: React.DragEvent) => {
               e.dataTransfer.setData("text/plain", candidate.id)
             }}
           >

@@ -283,7 +283,7 @@ export function SignupModal({ isOpen, onClose }: SignupModalProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox id="modal-terms" checked={acceptTerms} onCheckedChange={setAcceptTerms} />
+            <Checkbox id="modal-terms" checked={acceptTerms} onCheckedChange={(v) => setAcceptTerms(v === true)} />
             <Label htmlFor="modal-terms" className="text-sm text-gray-600">
               I agree to the Terms of Service and Privacy Policy
             </Label>

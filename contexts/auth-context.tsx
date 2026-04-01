@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user_metadata: {
           name: "Preview User",
         },
-      } as User
+      } as unknown as User
 
       const mockSession = {
         access_token: "mock-token",
@@ -213,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user_metadata: {
             name: "Preview User",
           },
-        } as User
+        } as unknown as User
 
         setUser(mockUser)
         setSession({
@@ -269,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user_metadata: {
           name: registeredUser.name,
         },
-      } as User
+      } as unknown as User
 
       setUser(authenticatedUser)
       setSession({
@@ -323,7 +323,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user_metadata: {
             name: name,
           },
-        } as User
+        } as unknown as User
 
         setUser(mockUser)
         setSession({

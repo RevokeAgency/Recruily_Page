@@ -10,13 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useSubscription, type SUBSCRIPTION_PLANS } from "@/hooks/use-subscription"
+import { useSubscription } from "@/hooks/use-subscription"
 import { useLanguage } from "@/contexts/language-context"
 import { Badge } from "@/components/ui/badge"
 
 export function PlanSelector() {
   const { language } = useLanguage()
-  const { isPlanSelectorOpen, closePlanSelector, upgradePlan, currentPlan } = useSubscription()
+  const { isPlanSelectorOpen, closePlanSelector, upgradePlan, currentPlan } = useSubscription() as any
 
   const plans = [
     {
@@ -112,7 +112,7 @@ export function PlanSelector() {
 
               <Button
                 className={`w-full ${plan.popular ? "bg-teal-600 hover:bg-teal-700" : "bg-gray-900 hover:bg-gray-800"}`}
-                onClick={() => upgradePlan(plan.id as keyof typeof SUBSCRIPTION_PLANS)}
+                onClick={() => upgradePlan(plan.id as any)}
                 disabled={currentPlan === plan.id}
               >
                 {currentPlan === plan.id

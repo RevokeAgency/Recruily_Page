@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       education = candidateProfile.education || []
 
       // Update candidate with extracted information
-      await supabase
+      await (supabase as any)
         .from("candidates")
         .update({
           name: candidateProfile.name || candidate.name,
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
     }
 
     // Create a resume record
-    const { data: resume, error: resumeError } = await supabase
+    const { data: resume, error: resumeError } = await (supabase as any)
       .from("resumes")
       .insert({
         candidate_id: candidateId,

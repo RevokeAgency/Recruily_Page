@@ -240,7 +240,7 @@ export function useJobs(organisationId?: string) {
             // Add any localStorage-only jobs that aren't in Supabase
             storedJobs.forEach((localJob) => {
               if (!transformedJobs.find((supaJob) => supaJob.id === localJob.id)) {
-                mergedJobs.push(localJob)
+                mergedJobs.push(localJob as any)
               }
             })
 
@@ -370,7 +370,7 @@ export function useJobs(organisationId?: string) {
 
         // Try to save to Supabase in the background
         try {
-          const { data: savedJob, error: supabaseError } = await supabase
+          const { data: savedJob, error: supabaseError } = await (supabase as any)
             .from("job_postings")
             .insert(newJobData)
             .select()
@@ -434,7 +434,7 @@ export function useJobs(organisationId?: string) {
 
           updateData.updated_at = new Date().toISOString()
 
-          const { error: supabaseError } = await supabase.from("job_postings").update(updateData).eq("id", jobId)
+          const { error: supabaseError } = await (supabase as any).from("job_postings").update(updateData).eq("id", jobId)
 
           if (supabaseError) {
             console.warn("⚠️ Supabase update failed, job updated locally:", supabaseError.message)
@@ -470,7 +470,7 @@ export function useJobs(organisationId?: string) {
 
         // Try to delete from Supabase in the background
         try {
-          const { error: supabaseError } = await supabase.from("job_postings").delete().eq("id", jobId)
+          const { error: supabaseError } = await (supabase as any).from("job_postings").delete().eq("id", jobId)
 
           if (supabaseError) {
             console.warn("⚠️ Supabase delete failed, job deleted locally:", supabaseError.message)

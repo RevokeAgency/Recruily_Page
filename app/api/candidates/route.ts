@@ -147,12 +147,12 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient()
     if (supabase) {
       try {
-        const { data, error } = await supabase.from("candidates").insert(savedCandidates)
+        const { data, error } = await (supabase as any).from("candidates").insert(savedCandidates)
 
         if (!error && data) {
           console.log(
             "✅ Candidates saved to Supabase:",
-            data.map((candidate) => candidate.id),
+            data.map((candidate: any) => candidate.id),
           )
           return NextResponse.json({
             success: true,
@@ -219,7 +219,7 @@ export async function PUT(request: NextRequest) {
     const supabase = getSupabaseClient()
     if (supabase) {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("candidates")
           .update(updatedCandidate)
           .eq("id", id)

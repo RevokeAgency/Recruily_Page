@@ -141,7 +141,7 @@ export default function FileUpload({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={(e) => {
+                      onClick={(e: React.MouseEvent) => {
                         e.stopPropagation()
                         removeFile(index)
                       }}

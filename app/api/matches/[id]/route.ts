@@ -32,7 +32,7 @@ export async function PATCH(
 
     console.log(`🔄 Updating match ${matchId} status to ${status}`)
 
-    const { data: updatedMatch, error } = await supabase
+    const { data: updatedMatch, error } = await (supabase as any)
       .from('matches')
       .update({ 
         status: status,
@@ -136,7 +136,7 @@ export async function GET(
       )
     }
 
-    console.log(`✅ Match fetched: ${match.id}`)
+    console.log(`✅ Match fetched: ${(match as any).id}`)
 
     return NextResponse.json({
       success: true,

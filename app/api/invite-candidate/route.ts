@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
     let matchError = null
     
     try {
-      const { data: matchData, error: supabaseMatchError } = await supabase
+      const { data: matchData, error: supabaseMatchError } = await (supabase as any)
         .from('matches')
         .insert([matchRecord])
         .select(`
@@ -252,7 +252,7 @@ function calculateFallbackScore(job: any, candidate: any): any {
 
   if (jobSkills.length > 0 && candidateSkills.length > 0) {
     const matchedSkills = jobSkills.filter((skill: string) => 
-      candidateSkills.some(cs => cs.includes(skill.toLowerCase()) || skill.toLowerCase().includes(cs))
+      candidateSkills.some((cs: string) => cs.includes(skill.toLowerCase()) || skill.toLowerCase().includes(cs))
     )
     
     const skillScore = (matchedSkills.length / jobSkills.length) * skillWeight

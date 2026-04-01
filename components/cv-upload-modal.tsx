@@ -6,7 +6,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useLanguage } from "@/contexts/language-context"
-import CVUploadEnhanced from "./cv-upload-enhanced"
+import { CVUploadEnhanced } from "./cv-upload-enhanced"
 import { Upload } from "lucide-react"
 
 interface JobData {

@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     // Save match to database with fallback
     let matchData
     try {
-      const { data, error: matchError } = await supabaseAdmin
+      const { data, error: matchError } = await (supabaseAdmin as any)
         .from('matches')
         .insert([matchRecord])
         .select()

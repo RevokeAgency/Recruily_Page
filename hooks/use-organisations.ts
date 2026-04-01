@@ -40,7 +40,7 @@ export function useOrganisations() {
         }
 
         // Transform the data to a more usable format
-        const orgs = data.map((item) => ({
+        const orgs = (data as any[]).map((item) => ({
           ...item.organisations,
           role: item.role,
         }))

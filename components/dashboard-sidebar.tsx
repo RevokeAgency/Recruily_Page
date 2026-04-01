@@ -25,7 +25,7 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import CvUploadModal from "@/components/cv-upload-modal"
+import { CVUploadModal as CvUploadModal } from "@/components/cv-upload-modal"
 
 export default function DashboardSidebar() {
   const pathname = usePathname()
@@ -51,7 +51,7 @@ export default function DashboardSidebar() {
           .limit(1)
 
         if (data && data.length > 0) {
-          setSelectedJobId(data[0].id)
+          setSelectedJobId((data[0] as any).id)
         }
       } catch (error) {
         console.error("Error fetching recent job:", error)
@@ -169,7 +169,7 @@ export default function DashboardSidebar() {
                   {quota?.used} / {quota?.limit}
                 </span>
               </div>
-              <Progress value={usedPercentage} className="h-2" indicatorClassName={quotaColor} />
+              <Progress value={usedPercentage} className="h-2" {...{ indicatorClassName: quotaColor } as any} />
               <p className="text-xs text-muted-foreground">
                 {language === "EN" ? "Resets on" : "Zurückgesetzt am"}{" "}
                 {quota?.reset_date ? new Date(quota.reset_date).toLocaleDateString() : "-"}
@@ -205,7 +205,7 @@ export default function DashboardSidebar() {
         </SidebarFooter>
 
         {/* CV Upload Modal */}
-        <CvUploadModal open={isCvModalOpen} onOpenChange={setIsCvModalOpen} jobId={selectedJobId} />
+        <CvUploadModal jobId={selectedJobId ?? undefined} />
       </Sidebar>
     </SidebarProvider>
   )

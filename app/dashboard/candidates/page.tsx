@@ -308,7 +308,7 @@ export default function CandidatesPage() {
           </DropdownMenu>
           <Tabs
             value={viewMode}
-            onValueChange={(value) => setViewMode(value as "table" | "grid")}
+            onValueChange={(value: string) => setViewMode(value as "table" | "grid")}
             className="w-[180px]"
           >
             <TabsList className="grid w-full grid-cols-2 bg-white shadow-sm border-0">
@@ -350,7 +350,7 @@ export default function CandidatesPage() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => openProfile(candidate)}
                       >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
+                        <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedCandidates.includes(candidate.id)}
                             onCheckedChange={(checked) => handleSelectCandidate(candidate.id, checked as boolean)}
@@ -411,7 +411,7 @@ export default function CandidatesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm text-muted-foreground">
-                            {formatDate(candidate.created_at || candidate.applied || candidate.added_date)}
+                            {formatDate(candidate.created_at || candidate.applied || candidate.added_date || "")}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -419,7 +419,7 @@ export default function CandidatesPage() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={(e) => {
+                              onClick={(e: any) => {
                                 e.stopPropagation()
                                 openContactModal(candidate)
                               }}
@@ -428,7 +428,7 @@ export default function CandidatesPage() {
                               <MessageSquare className="h-3 w-3" />
                             </Button>
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuTrigger asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
                                   <MoreHorizontal className="h-4 w-4" />
                                   <span className="sr-only">Actions</span>
@@ -436,7 +436,7 @@ export default function CandidatesPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
-                                  onClick={(e) => {
+                                  onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation()
                                     openProfile(candidate)
                                   }}
@@ -445,7 +445,7 @@ export default function CandidatesPage() {
                                   {language === "EN" ? "View Profile" : "Profil anzeigen"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={(e) => {
+                                  onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation()
                                     openContactModal(candidate)
                                   }}
@@ -453,17 +453,17 @@ export default function CandidatesPage() {
                                   <MessageSquare className="mr-2 h-4 w-4" />
                                   {language === "EN" ? "Contact" : "Kontaktieren"}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                   <Download className="mr-2 h-4 w-4" />
                                   {language === "EN" ? "Download CV" : "Lebenslauf herunterladen"}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                   <Edit className="mr-2 h-4 w-4" />
                                   {language === "EN" ? "Edit" : "Bearbeiten"}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={(e) => {
+                                  onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation()
                                     handleDeleteCandidate(candidate.id, candidate.name)
                                   }}
@@ -541,10 +541,10 @@ export default function CandidatesPage() {
                         <Checkbox
                           checked={selectedCandidates.includes(candidate.id)}
                           onCheckedChange={(checked) => handleSelectCandidate(candidate.id, checked as boolean)}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         />
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuTrigger asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">Actions</span>
@@ -552,7 +552,7 @@ export default function CandidatesPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={(e) => {
+                              onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation()
                                 openProfile(candidate)
                               }}
@@ -561,7 +561,7 @@ export default function CandidatesPage() {
                               {language === "EN" ? "View Profile" : "Profil anzeigen"}
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={(e) => {
+                              onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation()
                                 openContactModal(candidate)
                               }}
@@ -569,17 +569,17 @@ export default function CandidatesPage() {
                               <MessageSquare className="mr-2 h-4 w-4" />
                               {language === "EN" ? "Contact" : "Kontaktieren"}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                               <Download className="mr-2 h-4 w-4" />
                               {language === "EN" ? "Download CV" : "Lebenslauf herunterladen"}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                               <Edit className="mr-2 h-4 w-4" />
                               {language === "EN" ? "Edit" : "Bearbeiten"}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={(e) => {
+                              onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation()
                                 handleDeleteCandidate(candidate.id, candidate.name)
                               }}
@@ -623,11 +623,11 @@ export default function CandidatesPage() {
 
                       <div className="flex items-center justify-between pt-2 border-t">
                         <span className="text-xs text-muted-foreground">
-                          {formatDate(candidate.created_at || candidate.applied || candidate.added_date)}
+                          {formatDate(candidate.created_at || candidate.applied || candidate.added_date || "")}
                         </span>
                         <Button
                           size="sm"
-                          onClick={(e) => {
+                          onClick={(e: any) => {
                             e.stopPropagation()
                             openContactModal(candidate)
                           }}
@@ -678,11 +678,7 @@ export default function CandidatesPage() {
                 name: selectedCandidate.name,
                 avatar: selectedCandidate.avatar,
                 email: selectedCandidate.email,
-                phone: selectedCandidate.phone,
                 jobTitle: selectedCandidate.position || selectedCandidate.job_title || "Not specified",
-                location: selectedCandidate.location || "Remote",
-                experience: selectedCandidate.experience_level || "Mid-level",
-                skills: selectedCandidate.skills || [],
                 score: selectedCandidate.match || 85,
                 strengths: selectedCandidate.strengths || ["Technical Skills", "Communication", "Problem Solving"],
                 fitSummary:
@@ -691,10 +687,17 @@ export default function CandidatesPage() {
                 profile: {
                   summary:
                     selectedCandidate.summary || "Experienced professional with a strong background in their field.",
-                  experience: selectedCandidate.workExperience || selectedCandidate.work_experience || [],
-                  education: selectedCandidate.education || [],
-                  languages: selectedCandidate.languages || ["English"],
-                  certifications: selectedCandidate.certifications || [],
+                  pros: selectedCandidate.strengths || ["Technical Skills", "Communication"],
+                  cons: selectedCandidate.weaknesses || [],
+                  hardFacts: {
+                    yearsOfExperience: selectedCandidate.yearsOfExperience || selectedCandidate.experience_years || 0,
+                    education: selectedCandidate.education || "Not specified",
+                    languages: selectedCandidate.languages || ["English"],
+                    location: selectedCandidate.location || "Not specified",
+                    salary: selectedCandidate.salary_expectation || "Not specified",
+                    availability: selectedCandidate.availability || "available",
+                    visaStatus: selectedCandidate.visa_status || "Not specified",
+                  },
                 },
               }}
               onClose={() => setIsProfileOpen(false)}
@@ -715,10 +718,6 @@ export default function CandidatesPage() {
         isOpen={isBulkContactModalOpen}
         onClose={() => setIsBulkContactModalOpen(false)}
         candidates={filteredCandidates.filter((c) => selectedCandidates.includes(c.id))}
-        onComplete={() => {
-          setSelectedCandidates([])
-          setIsBulkContactModalOpen(false)
-        }}
       />
     </div>
   )

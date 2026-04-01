@@ -85,7 +85,7 @@ export default function AdvancedFilterPanel({ isOpen, onClose, onApply }: Advanc
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={(e) => {
+      onClick={(e: React.MouseEvent) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >

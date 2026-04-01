@@ -63,7 +63,7 @@ export async function POST(
     // Step 1: Create or update candidate record
     let candidateRecord
     try {
-      const { data, error: candidateError } = await supabaseAdmin
+      const { data, error: candidateError } = await (supabaseAdmin as any)
         .from('candidates')
         .upsert([candidateData])
         .select()
@@ -107,7 +107,7 @@ export async function POST(
     // Step 4: Save job match record using correct table name
     let matchData
     try {
-      const { data, error: matchError } = await supabaseAdmin
+      const { data, error: matchError } = await (supabaseAdmin as any)
         .from('job_candidate_matches')
         .insert([matchRecord])
         .select()

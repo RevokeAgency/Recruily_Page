@@ -124,7 +124,7 @@ export default function DashboardPage() {
         }
 
         // Generate recent activity
-        const recentActivity = []
+        const recentActivity: any[] = []
 
         // Add recent candidate uploads
         recentCandidates.slice(0, 3).forEach((candidate: any) => {
@@ -213,7 +213,7 @@ export default function DashboardPage() {
     },
   }
 
-  const itemVariants = {
+  const itemVariants: any = {
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,

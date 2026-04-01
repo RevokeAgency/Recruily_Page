@@ -23,7 +23,7 @@ export async function PATCH(
     )
 
     // Update candidate status
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from('candidates')
       .update({ 
         status,
@@ -53,7 +53,7 @@ export async function PATCH(
 
     // Also update job match status if jobId provided
     if (jobId) {
-      const { error: matchError } = await supabaseAdmin
+      const { error: matchError } = await (supabaseAdmin as any)
         .from('job_matches')
         .update({ 
           status,

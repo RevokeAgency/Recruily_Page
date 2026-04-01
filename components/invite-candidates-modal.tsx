@@ -222,12 +222,14 @@ function InviteCandidatesModal({
       }
 
       // Final processing state with proper counting
+      let finalCompletedCount = 0
       setUploadState(prev => {
         const completedCount = prev.files.filter(f => f.status === 'completed').length
         const errorCount = prev.files.filter(f => f.status === 'error').length
-        
+        finalCompletedCount = completedCount
+
         console.log(`🎉 Batch processing completed: ${completedCount} success, ${errorCount} errors`)
-        
+
         // Notify parent about completion
         if (onUploadCompleted && completedCount > 0) {
           setTimeout(() => {
@@ -235,7 +237,7 @@ function InviteCandidatesModal({
             onUploadCompleted(completedCount)
           }, 500) // Small delay to ensure UI updates
         }
-        
+
         return {
           ...prev,
           processing: false,
@@ -246,7 +248,7 @@ function InviteCandidatesModal({
       })
 
       // Auto-close modal after successful processing if no callback
-      if (completedCount > 0 && !onUploadCompleted) {
+      if (finalCompletedCount > 0 && !onUploadCompleted) {
         setTimeout(() => {
           handleClose()
         }, 3000)
@@ -306,7 +308,7 @@ function InviteCandidatesModal({
       addResult = await addResponse.json()
       
       if (!addResponse.ok) {
-        console.warn('⚠️ Add candidate failed, continuing with basic data:', addResult.error)
+        console.warn('⚠️ Add candidate failed, continuing with basic data:', (addResult as any).error)
       }
     } catch (addError) {
       console.warn('⚠️ Add candidate API error, using fallback:', addError)
@@ -319,12 +321,12 @@ function InviteCandidatesModal({
       success: true,
       candidate: {
         ...parseResult.candidate,
-        match_score: addResult.success ? addResult.candidateMatch.overall_score : 
+        match_score: addResult.success ? (addResult.candidateMatch as any)?.overall_score :
                     (parseResult.extractedData?.matching?.overallScore || 75),
         filename: file.name,
-        strengths: addResult.success ? addResult.candidateMatch.strengths :
+        strengths: addResult.success ? (addResult.candidateMatch as any)?.strengths :
                   (parseResult.extractedData?.matching?.strengths || ['Profile processed successfully']),
-        gaps: addResult.success ? addResult.candidateMatch.gaps :
+        gaps: addResult.success ? (addResult.candidateMatch as any)?.gaps :
              (parseResult.extractedData?.matching?.gaps || []),
         job_match_created: addResult.success
       },

@@ -269,7 +269,7 @@ export default function JobsPage() {
                     </CardDescription>
                   </div>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuTrigger asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Open menu</span>
@@ -277,7 +277,7 @@ export default function JobsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation()
                           router.push(`/dashboard/jobs/${job.id}/workspace`)
                         }}
@@ -286,7 +286,7 @@ export default function JobsPage() {
                         Open Workspace
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation()
                           router.push(`/dashboard/jobs/${job.id}/edit`)
                         }}
@@ -296,7 +296,7 @@ export default function JobsPage() {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation()
                           handleDeleteJob(job.id, job.title)
                         }}

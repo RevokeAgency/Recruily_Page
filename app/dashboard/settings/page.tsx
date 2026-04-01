@@ -17,7 +17,7 @@ import { Bell, User, Shield, Globe } from "lucide-react"
 export default function SettingsPage() {
   const { language, setLanguage } = useLanguage()
   const { toast } = useToast()
-  const { currentPlan, totalMatches, usedMatches, remainingMatches, upgradePlan, buyMatchPackage } = useSubscription()
+  const { currentPlan, totalMatches, usedMatches, remainingMatches, upgradePlan, buyMatchPackage } = useSubscription() as any
 
   const [profileForm, setProfileForm] = useState({
     name: "John Doe",

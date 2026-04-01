@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useQuota } from "@/hooks/use-quota"
-import UpgradeBanner from "@/components/upgrade-banner"
+import { UpgradeBanner } from "@/components/upgrade-banner"
 import { useLanguage } from "@/contexts/language-context"
 
 export default function DashboardPage() {
@@ -18,7 +18,7 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto p-4">
-      {quota && quota.isExceeded && <UpgradeBanner quota={quota} />}
+      {quota && (quota as any).isExceeded && <UpgradeBanner />}
       <div className="flex items-center justify-center h-[50vh]">
         <p className="text-muted-foreground">
           {language === "EN" ? "Redirecting to matches..." : "Weiterleitung zu Übereinstimmungen..."}

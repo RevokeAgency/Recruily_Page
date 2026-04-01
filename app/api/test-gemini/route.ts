@@ -59,7 +59,7 @@ export async function GET() {
     console.error('❌ Gemini API test failed:', error)
     
     let errorMessage = error.message || 'Unknown error'
-    let troubleshooting = []
+    let troubleshooting: string[] = []
     
     if (errorMessage.includes('API key not valid')) {
       troubleshooting = [

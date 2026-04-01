@@ -73,7 +73,7 @@ export function MatchCounter() {
               {quota.unlimited || isTestingAccount ? (
                 <div className="h-2 bg-gradient-to-r from-teal-400 to-blue-400 rounded-full animate-pulse" />
               ) : (
-                <Progress value={usedPercentage} className="h-2" indicatorClassName={quotaColor} />
+                <Progress value={usedPercentage} className="h-2" {...{ indicatorClassName: quotaColor } as any} />
               )}
             </div>
 

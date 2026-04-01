@@ -170,15 +170,7 @@ export default function CandidateProfileExpanded({ candidate, onClose }: Candida
               <Progress
                 value={candidate.matchScore}
                 className="h-2"
-                indicatorClassName={
-                  candidate.matchScore >= 80
-                    ? "bg-teal-500"
-                    : candidate.matchScore >= 70
-                      ? "bg-blue-500"
-                      : candidate.matchScore >= 60
-                        ? "bg-amber-500"
-                        : "bg-red-500"
-                }
+                {...{ indicatorClassName: candidate.matchScore >= 80 ? "bg-teal-500" : candidate.matchScore >= 70 ? "bg-blue-500" : candidate.matchScore >= 60 ? "bg-amber-500" : "bg-red-500" } as any}
               />
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -186,7 +178,7 @@ export default function CandidateProfileExpanded({ candidate, onClose }: Candida
                   <h4 className="mb-2 text-sm font-medium">
                     {language === "EN" ? "Skills Match" : "Fähigkeiten Übereinstimmung"}
                   </h4>
-                  <Progress value={85} className="h-2 bg-gray-100" indicatorClassName="bg-teal-500" />
+                  <Progress value={85} className="h-2 bg-gray-100" {...{ indicatorClassName: "bg-teal-500" } as any} />
                   <div className="mt-1 flex justify-between text-xs text-muted-foreground">
                     <span>
                       {language === "EN"
@@ -199,7 +191,7 @@ export default function CandidateProfileExpanded({ candidate, onClose }: Candida
                   <h4 className="mb-2 text-sm font-medium">
                     {language === "EN" ? "Experience Match" : "Erfahrung Übereinstimmung"}
                   </h4>
-                  <Progress value={78} className="h-2 bg-gray-100" indicatorClassName="bg-blue-500" />
+                  <Progress value={78} className="h-2 bg-gray-100" {...{ indicatorClassName: "bg-blue-500" } as any} />
                   <div className="mt-1 flex justify-between text-xs text-muted-foreground">
                     <span>
                       {language === "EN"
@@ -212,7 +204,7 @@ export default function CandidateProfileExpanded({ candidate, onClose }: Candida
                   <h4 className="mb-2 text-sm font-medium">
                     {language === "EN" ? "Culture Fit" : "Kulturelle Passung"}
                   </h4>
-                  <Progress value={92} className="h-2 bg-gray-100" indicatorClassName="bg-teal-500" />
+                  <Progress value={92} className="h-2 bg-gray-100" {...{ indicatorClassName: "bg-teal-500" } as any} />
                   <div className="mt-1 flex justify-between text-xs text-muted-foreground">
                     <span>
                       {language === "EN" ? "92% potential culture fit" : "92% potenzielle kulturelle Passung"}

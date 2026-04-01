@@ -14,7 +14,7 @@ import {
   ArrowLeft,
   Mail,
   Phone,
-  LinkedIn,
+  Linkedin as LinkedIn,
   Globe,
   MapPin,
   Calendar,

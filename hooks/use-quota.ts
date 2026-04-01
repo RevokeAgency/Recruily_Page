@@ -48,7 +48,7 @@ export function useQuota() {
         // For regular users, fetch from API or use default
         const response = await fetch("/api/quota", {
           headers: {
-            Authorization: `Bearer ${user.access_token}`,
+            Authorization: `Bearer ${(user as any).access_token}`,
           },
         })
 
@@ -70,7 +70,7 @@ export function useQuota() {
         setQuota({
           used: 0,
           limit: isTestingAccount ? 999999 : 10,
-          unlimited: isTestingAccount,
+          unlimited: !!isTestingAccount,
           reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         })
       } finally {

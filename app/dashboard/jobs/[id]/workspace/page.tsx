@@ -244,7 +244,7 @@ export default function JobWorkspace() {
                           <span>{req}</span>
                         </div>
                       )) :
-                      (job.requirements || "No specific requirements listed").split('\n').map((req, index) => (
+                      ((job.requirements as string) || "No specific requirements listed").split('\n').map((req, index) => (
                         <div key={index} className="flex items-start gap-2">
                           <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
                           <span>{req}</span>
@@ -305,7 +305,7 @@ export default function JobWorkspace() {
         </TabsContent>
 
         <TabsContent value="applications">
-          <JobApplicationsTab jobId={jobId} />
+          <JobApplicationsTab jobId={jobId} jobTitle={job.title} />
         </TabsContent>
 
         <TabsContent value="candidates">

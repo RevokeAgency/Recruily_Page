@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { X } from "lucide-react"
-import { hasValidSupabaseCredentials } from "@/lib/env"
+import { isSupabaseConfigured } from "@/lib/env"
 
 export function MockDataNotification() {
   const [visible, setVisible] = useState(true)
@@ -11,7 +11,7 @@ export function MockDataNotification() {
 
   useEffect(() => {
     // Check if we're using mock data
-    setIsMockData(!hasValidSupabaseCredentials)
+    setIsMockData(!isSupabaseConfigured())
 
     // Hide notification after 10 seconds
     const timer = setTimeout(() => {

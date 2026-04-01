@@ -159,7 +159,7 @@ export function useCandidates(organisationId?: string) {
 
         // Try to update in Supabase first
         // Use centralized Supabase client
-        const { error: supabaseError } = await supabase
+        const { error: supabaseError } = await (supabase as any)
           .from("candidates")
           .update({
             status: newStatus,
@@ -250,7 +250,7 @@ export function useCandidates(organisationId?: string) {
           created_by: "demo-user-123",
         }
 
-        const { error: supabaseError } = await supabase.from("candidates").insert(candidateData)
+        const { error: supabaseError } = await (supabase as any).from("candidates").insert(candidateData)
 
         if (supabaseError) {
           console.warn("⚠️ Supabase save failed, using localStorage:", supabaseError)
@@ -286,7 +286,7 @@ export function useCandidates(organisationId?: string) {
 
         // Try to update in Supabase
         // Use centralized Supabase client
-        const { error: supabaseError } = await supabase
+        const { error: supabaseError } = await (supabase as any)
           .from("candidates")
           .update({
             status: updates.status,
@@ -320,7 +320,7 @@ export function useCandidates(organisationId?: string) {
 
         // Try to delete from Supabase
         // Use centralized Supabase client
-        const { error: supabaseError } = await supabase.from("candidates").delete().eq("id", id)
+        const { error: supabaseError } = await (supabase as any).from("candidates").delete().eq("id", id)
 
         if (supabaseError) {
           console.warn("⚠️ Supabase delete failed:", supabaseError)

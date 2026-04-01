@@ -543,7 +543,7 @@ export function CVUploadEnhanced({ onComplete, jobId, jobData, maxFiles = 10 }: 
               <div className="space-y-6">
                 <div
                   className={`mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-teal-500 to-blue-500 flex items-center justify-center shadow-xl transition-transform duration-300 cursor-pointer ${isDragActive ? "scale-110" : "hover:scale-105"}`}
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation()
                     fileInputRef.current?.click()
                   }}
@@ -571,7 +571,7 @@ export function CVUploadEnhanced({ onComplete, jobId, jobData, maxFiles = 10 }: 
                 <Button
                   size="lg"
                   disabled={isProcessing}
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation()
                     fileInputRef.current?.click()
                   }}

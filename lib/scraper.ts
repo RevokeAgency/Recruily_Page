@@ -94,7 +94,7 @@ export async function scrapeJobFromUrl(url: string): Promise<ScrapeResult> {
     console.error("❌ Scraping error:", error)
     return {
       success: false,
-      error: `Failed to scrape URL: ${error.message}`
+      error: `Failed to scrape URL: ${(error as any).message}`
     }
   }
 }
@@ -599,7 +599,7 @@ function extractCompanyFromContent(content: string): string {
         }
       }
     } catch (error) {
-      console.warn("⚠️ Company pattern error:", error.message)
+      console.warn("⚠️ Company pattern error:", (error as any).message)
       continue
     }
   }
@@ -690,7 +690,7 @@ function extractLocationFromContent(content: string): string {
         }
       }
     } catch (error) {
-      console.warn("⚠️ Location pattern error:", error.message)
+      console.warn("⚠️ Location pattern error:", (error as any).message)
       continue
     }
   }
@@ -810,7 +810,7 @@ function extractSalary(content: string): string {
         }
       }
     } catch (error) {
-      console.warn("⚠️ Salary pattern error:", error?.message || error)
+      console.warn("⚠️ Salary pattern error:", (error as any)?.message || error)
       continue
     }
   }

@@ -346,7 +346,7 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
                             <div className="flex flex-wrap gap-1">
                               {(Array.isArray(match.candidate.skills) 
                                 ? match.candidate.skills 
-                                : match.candidate.skills.split(',')
+                                : (match.candidate.skills as string).split(',')
                               ).slice(0, 5).map((skill: string, index: number) => (
                                 <Badge key={index} variant="outline" className="text-xs">
                                   {skill.trim()}
@@ -354,12 +354,12 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
                               ))}
                               {(Array.isArray(match.candidate.skills) 
                                 ? match.candidate.skills.length 
-                                : match.candidate.skills.split(',').length
+                                : (match.candidate.skills as string).split(',').length
                               ) > 5 && (
                                 <Badge variant="outline" className="text-xs">
                                   +{(Array.isArray(match.candidate.skills) 
                                     ? match.candidate.skills.length 
-                                    : match.candidate.skills.split(',').length
+                                    : (match.candidate.skills as string).split(',').length
                                   ) - 5} more
                                 </Badge>
                               )}
@@ -615,7 +615,7 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
                     <div className="flex flex-wrap gap-2">
                       {(Array.isArray(selectedCandidate.candidate.skills) 
                         ? selectedCandidate.candidate.skills 
-                        : selectedCandidate.candidate.skills.split(',')
+                        : (selectedCandidate.candidate.skills as string).split(',')
                       ).map((skill: string, index: number) => (
                         <Badge key={index} variant="outline">
                           {skill.trim()}
