@@ -1,6 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
 
+type Candidate = {
+  id: string
+  organisation_id?: string | null
+  job_id?: string | null
+  name?: string
+  email?: string
+  status?: string
+  score?: number
+  [key: string]: unknown
+}
+
 // In-memory storage for candidates (in production, this would be a database)
 const candidatesStorage: any[] = []
 
@@ -38,7 +49,7 @@ export async function GET(request: NextRequest) {
         const { data: dbCandidates, error } = await supabase
           .from("candidates")
           .select("*")
-          .order("uploadedAt", { ascending: false })
+          .order("created_at", { ascending: false }) as { data: Candidate[] | null; error: unknown }
 
         if (!error && dbCandidates && dbCandidates.length > 0) {
           console.log(`✅ Retrieved ${dbCandidates.length} candidates from Supabase`)
