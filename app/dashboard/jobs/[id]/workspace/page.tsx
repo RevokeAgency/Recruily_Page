@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast"
 // Import Job interface from useJobs hook
 import type { Job } from "@/hooks/use-jobs"
 // Import enhanced components
-import JobApplicationsTab from '@/components/job-applications-tab'
+import { JobApplicationsTab } from '@/components/job-applications-tab'
 import { InviteCandidatesModal } from '@/components/invite-candidates-modal'
 import { CandidateList } from '@/components/candidate-list'
 
