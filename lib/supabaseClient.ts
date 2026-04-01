@@ -102,7 +102,7 @@ function createMockClient() {
   }
 }
 
-export const supabase = createSupabaseInstance()
+export const supabase = createSupabaseInstance() as ReturnType<typeof createClient>
 
 // Export a factory function for consistency with existing code
 export const createSupabaseClient = () => supabase

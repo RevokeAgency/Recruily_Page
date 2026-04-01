@@ -736,6 +736,10 @@ function isValidLocation(location: string): boolean {
 /**
  * Extract employment type from content
  */
+export function extractJobType(content: string): string {
+  return extractEmploymentType(content.toLowerCase())
+}
+
 function extractEmploymentType(lowerContent: string): string {
   if (lowerContent.includes('full-time') || lowerContent.includes('full time')) return 'full-time'
   if (lowerContent.includes('part-time') || lowerContent.includes('part time')) return 'part-time'
@@ -749,7 +753,7 @@ function extractEmploymentType(lowerContent: string): string {
 /**
  * Extract experience level from content
  */
-function extractExperienceLevel(lowerContent: string): string {
+export function extractExperienceLevel(lowerContent: string): string {
   if (lowerContent.includes('senior') || lowerContent.includes('sr.') || lowerContent.includes('lead')) return 'senior-level'
   if (lowerContent.includes('junior') || lowerContent.includes('jr.') || lowerContent.includes('entry')) return 'entry-level'
   if (lowerContent.includes('mid') || lowerContent.includes('intermediate')) return 'mid-level'
@@ -1469,7 +1473,7 @@ function createRequirementStructure(text: string): string {
 /**
  * Extract application deadline from content
  */
-function extractApplicationDeadline(content: string): string {
+export function extractApplicationDeadline(content: string): string {
   const deadlinePatterns = [
     /(?:application\s+)?deadline[:\s-]+([^\n\r<>{};]{5,30})/gi,
     /apply\s+by[:\s-]+([^\n\r<>{};]{5,30})/gi,
