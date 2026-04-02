@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
+import { getOrgId } from "@/lib/get-org-id"
 
 type Candidate = {
   id: string
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
         match: Math.floor(Math.random() * 40) + 60, // 60-100%
         avatar: candidateData.name ? candidateData.name.charAt(0).toUpperCase() : "?",
         applied: new Date().toLocaleDateString(),
-        organisation_id: "demo-org-123",
+        organisation_id: (await getOrgId()) || "",
       }
 
       // Add to storage

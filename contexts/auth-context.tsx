@@ -4,6 +4,8 @@ import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { User, Session } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabaseClient"
+import { isSupabaseConfigured } from "@/lib/env"
 import { sendConfirmationEmail } from "@/lib/email-service"
 
 type AuthContextType = {
@@ -23,13 +25,13 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Helper functions for user management
+// ─── localStorage helpers (used only in demo/fallback mode) ───────────────────
+
 const getStoredUsers = (): any[] => {
   try {
     const users = localStorage.getItem("recruitify-users")
     return users ? JSON.parse(users) : []
-  } catch (err) {
-    console.error("Error getting stored users:", err)
+  } catch {
     return []
   }
 }
@@ -37,76 +39,60 @@ const getStoredUsers = (): any[] => {
 const storeUser = (user: any) => {
   try {
     const users = getStoredUsers()
-    const existingUserIndex = users.findIndex((u) => u.email === user.email)
-
-    if (existingUserIndex >= 0) {
-      users[existingUserIndex] = user
+    const existingIndex = users.findIndex((u) => u.email === user.email)
+    if (existingIndex >= 0) {
+      users[existingIndex] = user
     } else {
       users.push(user)
     }
-
     localStorage.setItem("recruitify-users", JSON.stringify(users))
-  } catch (err) {
-    console.error("Error storing user:", err)
+  } catch {
+    // ignore
   }
 }
 
 const findUserByEmail = (email: string): any | null => {
   const users = getStoredUsers()
-  return users.find((user) => user.email === email) || null
+  return users.find((u) => u.email === email) || null
 }
 
 const validateCredentials = (email: string): { valid: boolean; user?: any; error?: string } => {
   const user = findUserByEmail(email)
-
-  if (!user) {
-    return { valid: false, error: "Invalid email or password" }
-  }
-
+  if (!user) return { valid: false, error: "Invalid email or password" }
   if (!user.emailConfirmed) {
     return {
       valid: false,
       error: "Please confirm your email address before logging in. Check your inbox for a confirmation email.",
     }
   }
-
   return { valid: true, user }
 }
 
-// Create the default office@example.com account
 const createDefaultOfficeAccount = () => {
   try {
     const users = getStoredUsers()
-    const officeUser = users.find((u) => u.email === "office@example.com")
-
+    const officeUser = users.find((u: any) => u.email === "office@example.com")
     if (!officeUser) {
-      const defaultUser = {
+      users.push({
         id: "office-user-confirmed",
         email: "office@example.com",
         name: "Office User",
         emailConfirmed: true,
         createdAt: new Date().toISOString(),
         confirmedAt: new Date().toISOString(),
-      }
-
-      users.push(defaultUser)
+      })
       localStorage.setItem("recruitify-users", JSON.stringify(users))
-      console.log("✅ Created default office@example.com account")
-      return defaultUser
     } else if (!officeUser.emailConfirmed) {
-      // Ensure it's confirmed
       officeUser.emailConfirmed = true
       officeUser.confirmedAt = new Date().toISOString()
       localStorage.setItem("recruitify-users", JSON.stringify(users))
-      console.log("✅ Confirmed existing office@example.com account")
     }
-
-    return officeUser
-  } catch (error) {
-    console.error("Error creating default office account:", error)
-    return null
+  } catch {
+    // ignore
   }
 }
+
+// ─── AuthProvider ─────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -115,104 +101,255 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  // Check if we're in preview mode (v0.dev or vercel preview)
   const isPreviewMode =
     typeof window !== "undefined" &&
     (window.location.hostname.includes("v0.dev") || window.location.hostname.includes("vercel-v0-preview"))
 
-  useEffect(() => {
-    // Create default office account on initialization
-    createDefaultOfficeAccount()
+  // Fetch the user's organisation and attach org_id to app_metadata locally
+  const fetchOrgAndAugmentUser = async (supabaseUser: User): Promise<User> => {
+    try {
+      const { data: org } = await (supabase as any)
+        .from("organisations")
+        .select("id")
+        .eq("owner_id", supabaseUser.id)
+        .single()
 
-    // Skip auth checks in preview mode
+      if (org?.id) {
+        return {
+          ...supabaseUser,
+          app_metadata: {
+            ...supabaseUser.app_metadata,
+            org_id: org.id,
+          },
+        }
+      }
+    } catch (err) {
+      console.warn("⚠️ Could not fetch organisation for user:", err)
+    }
+    return supabaseUser
+  }
+
+  // ─── Session initialisation ───────────────────────────────────────────────
+
+  useEffect(() => {
+    // Preview mode: fully mocked session
     if (isPreviewMode) {
-      setLoading(false)
-      // Set a mock user for preview
       const mockUser = {
         id: "preview-user-id",
         email: "preview@example.com",
-        user_metadata: {
-          name: "Preview User",
-        },
+        user_metadata: { name: "Preview User" },
+        app_metadata: { org_id: "preview-org-id" },
       } as unknown as User
 
-      const mockSession = {
+      setUser(mockUser)
+      setSession({
         access_token: "mock-token",
         refresh_token: "mock-refresh-token",
         expires_at: Date.now() + 3600,
         user: mockUser,
-      } as Session
+      } as Session)
+      setLoading(false)
 
-      setUser(mockUser)
-      setSession(mockSession)
-
-      // Set auth cookie for preview mode
       try {
-        document.cookie = `auth-session=preview-init-${mockUser.id}; path=/; max-age=3600; secure; samesite=strict`
-      } catch (cookieErr) {
-        console.error("Error setting preview auth cookie:", cookieErr)
+        document.cookie = `auth-session=preview-${mockUser.id}; path=/; max-age=3600; samesite=strict`
+      } catch {
+        // ignore
       }
-      
       return
     }
 
-    // For non-preview mode, attempt to initialize auth
-    const initAuth = async () => {
+    // Real Supabase mode
+    if (isSupabaseConfigured()) {
+      // Subscribe to auth state changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (_event, newSession) => {
+          if (newSession?.user) {
+            const augmented = await fetchOrgAndAugmentUser(newSession.user)
+            setUser(augmented)
+            setSession(newSession)
+            try {
+              document.cookie = `auth-session=sb-${augmented.id}; path=/; max-age=3600; samesite=strict`
+            } catch {
+              // ignore
+            }
+          } else {
+            setUser(null)
+            setSession(null)
+            try {
+              document.cookie = "auth-session=; path=/; max-age=0; samesite=strict"
+            } catch {
+              // ignore
+            }
+          }
+          setLoading(false)
+        }
+      )
+
+      // Load existing session on mount
+      supabase.auth.getSession().then(async ({ data: { session: existing } }) => {
+        if (existing?.user) {
+          const augmented = await fetchOrgAndAugmentUser(existing.user)
+          setUser(augmented)
+          setSession(existing)
+          try {
+            document.cookie = `auth-session=sb-${augmented.id}; path=/; max-age=3600; samesite=strict`
+          } catch {
+            // ignore
+          }
+        }
+        setLoading(false)
+      })
+
+      return () => subscription.unsubscribe()
+    }
+
+    // Demo/fallback mode: localStorage-based auth
+    createDefaultOfficeAccount()
+    const initDemoAuth = async () => {
       try {
-        // Try to get current user from localStorage
-        const currentUser = localStorage.getItem("recruitify-current-user")
-        if (currentUser) {
-          const parsedUser = JSON.parse(currentUser)
-
-          // Verify the user still exists in our user store and is confirmed
-          const storedUser = findUserByEmail(parsedUser.email)
-          if (storedUser && storedUser.emailConfirmed) {
-            setUser(parsedUser)
-
-            // Create a simple session object
+        const raw = localStorage.getItem("recruitify-current-user")
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          const stored = findUserByEmail(parsed.email)
+          if (stored?.emailConfirmed) {
+            setUser(parsed)
             setSession({
               access_token: "local-token",
               refresh_token: "local-refresh",
               expires_at: Date.now() + 3600,
-              user: parsedUser,
+              user: parsed,
             } as Session)
-
-            // Ensure auth cookie is set for existing session
             try {
-              document.cookie = `auth-session=restored-${parsedUser.id}; path=/; max-age=3600; secure; samesite=strict`
-            } catch (cookieErr) {
-              console.error("Error setting restored auth cookie:", cookieErr)
+              document.cookie = `auth-session=demo-${parsed.id}; path=/; max-age=3600; samesite=strict`
+            } catch {
+              // ignore
             }
           } else {
-            // User no longer exists or not confirmed, clear current user
             localStorage.removeItem("recruitify-current-user")
           }
         }
       } catch (err) {
-        console.error("Error initializing auth:", err)
+        console.error("Error initializing demo auth:", err)
       } finally {
         setLoading(false)
       }
     }
+    initDemoAuth()
+  }, [isPreviewMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    initAuth()
-  }, [isPreviewMode])
+  // ─── signUp ───────────────────────────────────────────────────────────────
+
+  const signUp = async (email: string, password: string, name: string) => {
+    setError(null)
+    setLoading(true)
+
+    try {
+      // Preview mode
+      if (isPreviewMode) {
+        const mockUser = {
+          id: "preview-user-id",
+          email,
+          user_metadata: { name },
+          app_metadata: { org_id: "preview-org-id" },
+        } as unknown as User
+
+        setUser(mockUser)
+        setSession({
+          access_token: "mock-token",
+          refresh_token: "mock-refresh-token",
+          expires_at: Date.now() + 3600,
+          user: mockUser,
+        } as Session)
+        await new Promise((r) => setTimeout(r, 500))
+        return { success: true }
+      }
+
+      // Real Supabase signup
+      if (isSupabaseConfigured()) {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              company_name: name,
+              full_name: name,
+            },
+          },
+        })
+
+        if (signUpError) {
+          return { error: signUpError.message }
+        }
+
+        if (!data.user) {
+          return { error: "Signup failed — no user returned" }
+        }
+
+        console.log("✅ Supabase auth.signUp succeeded:", data.user.id)
+
+        // Create organisation record
+        const { data: org, error: orgError } = await (supabase as any)
+          .from("organisations")
+          .insert({ name, owner_id: data.user.id })
+          .select()
+          .single()
+
+        if (orgError) {
+          // Non-fatal: org creation failed but user account exists
+          console.warn("⚠️ Could not create organisation:", orgError.message)
+        } else {
+          console.log("✅ Organisation created:", org.id)
+        }
+
+        // Supabase will send its own confirmation email (if configured)
+        // Return confirmation required so UI shows the right screen
+        return { success: true, requiresConfirmation: true }
+      }
+
+      // Demo/fallback: localStorage signup
+      const existingUser = findUserByEmail(email)
+      if (existingUser) {
+        return { error: "An account with this email already exists" }
+      }
+
+      const newUser = {
+        id: `user-${Date.now()}`,
+        email,
+        name,
+        emailConfirmed: false,
+        createdAt: new Date().toISOString(),
+      }
+      storeUser(newUser)
+
+      const emailResult = await sendConfirmationEmail(email, name)
+      if (!emailResult.success) {
+        return { error: emailResult.error || "Failed to send confirmation email" }
+      }
+
+      return { success: true, requiresConfirmation: true }
+    } catch (err: any) {
+      console.error("Sign up error:", err)
+      setError(err.message || "Failed to sign up")
+      return { error: err.message || "Failed to sign up" }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ─── signIn ───────────────────────────────────────────────────────────────
 
   const signIn = async (email: string, password: string) => {
     setError(null)
     setLoading(true)
 
     try {
-      console.log("🔐 Attempting to sign in:", { email })
-
+      // Preview mode
       if (isPreviewMode) {
-        // Mock sign in for preview
         const mockUser = {
           id: "preview-user-id",
-          email: email,
-          user_metadata: {
-            name: "Preview User",
-          },
+          email,
+          user_metadata: { name: "Preview User" },
+          app_metadata: { org_id: "preview-org-id" },
         } as unknown as User
 
         setUser(mockUser)
@@ -223,52 +360,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user: mockUser,
         } as Session)
 
-        // Store in localStorage for persistence
         try {
           localStorage.setItem("recruitify-current-user", JSON.stringify(mockUser))
-        } catch (err) {
-          console.error("Error storing user in localStorage:", err)
+          document.cookie = `auth-session=preview-${mockUser.id}; path=/; max-age=3600; samesite=strict`
+        } catch {
+          // ignore
         }
 
-        // Set a cookie for middleware authentication
-        try {
-          document.cookie = `auth-session=preview-${mockUser.id}; path=/; max-age=3600; secure; samesite=strict`
-        } catch (cookieErr) {
-          console.error("Error setting auth cookie:", cookieErr)
-        }
-
-        // Simulate a delay
-        await new Promise((resolve) => setTimeout(resolve, 500))
-
+        await new Promise((r) => setTimeout(r, 500))
         return { success: true }
       }
 
-      // Ensure office account exists before validation
+      // Real Supabase login
+      if (isSupabaseConfigured()) {
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (signInError) {
+          return { error: signInError.message }
+        }
+
+        if (!data.user) {
+          return { error: "Sign in failed" }
+        }
+
+        // onAuthStateChange will fire and set user + session automatically
+        console.log("✅ Supabase signIn succeeded")
+        return { success: true }
+      }
+
+      // Demo/fallback: localStorage login
       createDefaultOfficeAccount()
-
-      // Debug: Log all users
-      const allUsers = getStoredUsers()
-      console.log("📋 All stored users:", allUsers)
-
-      // Validate credentials against stored users
       const validation = validateCredentials(email)
-      console.log("🔍 Validation result:", validation)
-
       if (!validation.valid) {
-        console.log("❌ Validation failed:", validation.error)
         return { error: validation.error }
       }
 
-      // Get the registered user data
       const registeredUser = validation.user
-      console.log("✅ User found:", registeredUser)
-
       const authenticatedUser = {
         id: registeredUser.id,
         email: registeredUser.email,
-        user_metadata: {
-          name: registeredUser.name,
-        },
+        user_metadata: { name: registeredUser.name },
+        app_metadata: { org_id: `demo-org-${registeredUser.id}` },
       } as unknown as User
 
       setUser(authenticatedUser)
@@ -279,21 +414,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user: authenticatedUser,
       } as Session)
 
-      // Store current user in localStorage
       try {
         localStorage.setItem("recruitify-current-user", JSON.stringify(authenticatedUser))
-      } catch (storageErr) {
-        console.error("Error storing current user:", storageErr)
+        document.cookie = `auth-session=demo-${authenticatedUser.id}; path=/; max-age=3600; samesite=strict`
+      } catch {
+        // ignore
       }
 
-      // Set a cookie for middleware authentication
-      try {
-        document.cookie = `auth-session=authenticated-${authenticatedUser.id}; path=/; max-age=3600; secure; samesite=strict`
-      } catch (cookieErr) {
-        console.error("Error setting auth cookie:", cookieErr)
-      }
-
-      console.log("🎉 Sign in successful!")
       return { success: true }
     } catch (err: any) {
       console.error("Sign in error:", err)
@@ -304,103 +431,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string, name: string) => {
-    setError(null)
-    setLoading(true)
-
-    try {
-      // Check if user already exists
-      const existingUser = findUserByEmail(email)
-      if (existingUser) {
-        return { error: "An account with this email already exists" }
-      }
-
-      if (isPreviewMode) {
-        // Mock sign up for preview
-        const mockUser = {
-          id: "preview-user-id",
-          email: email,
-          user_metadata: {
-            name: name,
-          },
-        } as unknown as User
-
-        setUser(mockUser)
-        setSession({
-          access_token: "mock-token",
-          refresh_token: "mock-refresh-token",
-          expires_at: Date.now() + 3600,
-          user: mockUser,
-        } as Session)
-
-        // Store in localStorage for persistence
-        try {
-          localStorage.setItem("recruitify-current-user", JSON.stringify(mockUser))
-        } catch (err) {
-          console.error("Error storing user in localStorage:", err)
-        }
-
-        // Simulate a delay
-        await new Promise((resolve) => setTimeout(resolve, 500))
-
-        return { success: true }
-      }
-
-      // Create new user (unconfirmed) - no password stored client-side
-      const newUser = {
-        id: `user-${Date.now()}`,
-        email: email,
-        name: name,
-        emailConfirmed: false,
-        createdAt: new Date().toISOString(),
-      }
-
-      // Store the user in our user database
-      storeUser(newUser)
-
-      // Send confirmation email
-      const emailResult = await sendConfirmationEmail(email, name)
-
-      if (!emailResult.success) {
-        return { error: emailResult.error || "Failed to send confirmation email" }
-      }
-
-      // Don't log the user in automatically - they need to confirm email first
-      return {
-        success: true,
-        requiresConfirmation: true,
-      }
-    } catch (err: any) {
-      console.error("Sign up error:", err)
-      setError(err.message || "Failed to sign up")
-      return { error: err.message || "Failed to sign up" }
-    } finally {
-      setLoading(false)
-    }
-  }
+  // ─── signOut ──────────────────────────────────────────────────────────────
 
   const signOut = async () => {
     setError(null)
 
     try {
-      setUser(null)
-      setSession(null)
-
-      // Remove current user from localStorage (but keep the user database)
-      try {
-        localStorage.removeItem("recruitify-current-user")
-      } catch (err) {
-        console.error("Error removing current user from localStorage:", err)
+      if (isSupabaseConfigured() && !isPreviewMode) {
+        await supabase.auth.signOut()
+        // onAuthStateChange handles clearing user/session
+      } else {
+        setUser(null)
+        setSession(null)
+        try {
+          localStorage.removeItem("recruitify-current-user")
+          document.cookie = "auth-session=; path=/; max-age=0; samesite=strict"
+        } catch {
+          // ignore
+        }
       }
 
-      // Clear the auth cookie
-      try {
-        document.cookie = "auth-session=; path=/; max-age=0; secure; samesite=strict"
-      } catch (cookieErr) {
-        console.error("Error clearing auth cookie:", cookieErr)
-      }
-
-      // Redirect to home page
       router.push("/")
     } catch (err: any) {
       console.error("Sign out error:", err)
@@ -410,16 +460,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        session,
-        loading,
-        error,
-        signIn,
-        signUp,
-        signOut,
-        isPreviewMode,
-      }}
+      value={{ user, session, loading, error, signIn, signUp, signOut, isPreviewMode }}
     >
       {children}
     </AuthContext.Provider>

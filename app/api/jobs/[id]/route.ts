@@ -21,8 +21,8 @@ const MOCK_JOBS = [
     status: "active",
     created_at: "2024-01-15T10:00:00Z",
     updated_at: "2024-01-15T10:00:00Z",
-    organisation_id: "demo-org-123",
-    created_by: "demo-user-123",
+    organisation_id: "sample-org",
+    created_by: "sample-user",
   },
 ]
 
@@ -55,8 +55,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           status: "active",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          organisation_id: "demo-org-123",
-          created_by: "demo-user-123",
+          organisation_id: "sample-org",
+          created_by: "sample-user",
         }
       } catch (error) {
         console.error("Error creating fallback job:", error)

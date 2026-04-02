@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const supabase = createServerSupabaseClient()
 
-    const { count, error } = await supabase.from("job_postings").select("*", { count: "exact", head: true })
+    const { count, error } = await supabase.from("jobs").select("*", { count: "exact", head: true })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { getOrgId } from "@/lib/get-org-id"
 
 // Helper function to get user-specific organization ID from email
 const getOrgIdFromEmail = (email: string): string => {
@@ -17,7 +18,7 @@ const getUserJobs = (organisationId: string): any[] => {
     const possibleKeys = [
       `recruitify_jobs_${organisationId}`,
       `recruitify_jobs_office_example_com`, // Your specific account
-      `recruitify_jobs_demo-org-123`,
+      `recruitify_jobs_sample`,
       "recruitify_jobs",
     ]
 
@@ -87,8 +88,8 @@ const getMockJobs = () => [
     status: "active",
     created_at: "2024-01-15T10:00:00Z",
     updated_at: "2024-01-15T10:00:00Z",
-    organisation_id: "demo-org-123",
-    created_by: "demo-user-123",
+    organisation_id: "sample-org",
+    created_by: "sample-user",
     applications_count: 24,
     matches_count: 8,
   },
@@ -110,8 +111,8 @@ const getMockJobs = () => [
     status: "active",
     created_at: "2024-01-14T09:00:00Z",
     updated_at: "2024-01-14T09:00:00Z",
-    organisation_id: "demo-org-123",
-    created_by: "demo-user-123",
+    organisation_id: "sample-org",
+    created_by: "sample-user",
     applications_count: 18,
     matches_count: 6,
   },
@@ -133,8 +134,8 @@ const getMockJobs = () => [
     status: "active",
     created_at: "2024-01-13T08:00:00Z",
     updated_at: "2024-01-13T08:00:00Z",
-    organisation_id: "demo-org-123",
-    created_by: "demo-user-123",
+    organisation_id: "sample-org",
+    created_by: "sample-user",
     applications_count: 12,
     matches_count: 4,
   },
@@ -145,7 +146,10 @@ export async function GET(request: NextRequest) {
     console.log("📋 Jobs API - GET request received")
 
     const { searchParams } = new URL(request.url)
-    const organisationId = searchParams.get("organisationId") || "demo-org-123"
+    const organisationId = searchParams.get("organisationId") || await getOrgId()
+    if (!organisationId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     console.log("🔍 Looking for jobs with organisation ID:", organisationId)
 
@@ -191,7 +195,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const organisationId = body.organisationId || body.organisation_id || "demo-org-123"
+    const organisationId = body.organisationId || body.organisation_id || await getOrgId()
+    if (!organisationId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     console.log("🏢 Using organisation ID:", organisationId)
 
     // Use original ID format - this is crucial!
@@ -259,7 +266,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Job ID is required" }, { status: 400 })
     }
 
-    const organisationId = updates.organisation_id || "demo-org-123"
+    const organisationId = updates.organisation_id || await getOrgId()
+    if (!organisationId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     // Get existing jobs
     const existingJobs = getUserJobs(organisationId)
@@ -300,7 +310,10 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
-    const organisationId = searchParams.get("organisationId") || "demo-org-123"
+    const organisationId = searchParams.get("organisationId") || await getOrgId()
+    if (!organisationId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     if (!id) {
       return NextResponse.json({ success: false, error: "Job ID is required" }, { status: 400 })

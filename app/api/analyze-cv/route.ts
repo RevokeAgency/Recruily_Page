@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { analyzeCVWithGemini, generateFallbackCVData, isGeminiAvailable, type JobRequirements } from "@/lib/gemini-ai"
+import { getOrgId } from "@/lib/get-org-id"
 
 interface Candidate {
   id: string
@@ -51,6 +52,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   console.log("🚀 CV Analysis API Called with Gemini Integration")
+
+  const orgId = (await getOrgId()) || ""
 
   let file: File | null = null
   let jobId = ""
@@ -151,7 +154,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Enhance candidate with additional data
-    const enhancedCandidate = await enhanceCandidateProfile(candidateProfile, jobData, jobId, analysisSource)
+    const enhancedCandidate = await enhanceCandidateProfile(candidateProfile, jobData, jobId, analysisSource, orgId)
 
     // Try to save candidate to Supabase, but don't fail if it doesn't work
     const savedCandidate = await saveCandidateToSupabase(enhancedCandidate)
@@ -169,7 +172,7 @@ export async function POST(request: NextRequest) {
 
     // Even if there's an error, try to create a basic candidate
     try {
-      const fallbackCandidate = createBasicFallbackCandidate(file?.name || "unknown.pdf", jobData, jobId)
+      const fallbackCandidate = createBasicFallbackCandidate(file?.name || "unknown.pdf", jobData, jobId, orgId)
 
       return NextResponse.json({
         success: true,
@@ -189,7 +192,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function enhanceCandidateProfile(baseCandidate: any, jobData: any, jobId: string, source: string) {
+async function enhanceCandidateProfile(baseCandidate: any, jobData: any, jobId: string, source: string, orgId = "") {
   // Extract potential name from filename if available
   const candidateId = `candidate_${Date.now()}_${Math.floor(Math.random() * 1000) + 1}`
 
@@ -200,8 +203,8 @@ async function enhanceCandidateProfile(baseCandidate: any, jobData: any, jobId: 
     applied: new Date().toISOString().split("T")[0],
     jobId: jobId || null,
     source: `CV Upload (${source})`,
-    organisation_id: "demo-org-123", // Default org for demo
-    created_by: "demo-user-123",
+    organisation_id: orgId,
+    created_by: orgId,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }
@@ -238,7 +241,7 @@ async function saveCandidateToSupabase(candidate: any) {
   }
 }
 
-function createBasicFallbackCandidate(fileName: string, jobData: any, jobId?: string) {
+function createBasicFallbackCandidate(fileName: string, jobData: any, jobId?: string, orgId = "") {
   const names = ["Alex Johnson", "Sarah Chen", "Michael Rodriguez", "Emily Davis", "David Kim"]
   const positions = [
     "Software Engineer",
@@ -273,8 +276,8 @@ function createBasicFallbackCandidate(fileName: string, jobData: any, jobId?: st
     applied: new Date().toISOString().split("T")[0],
     source: "CV Upload (Basic Fallback)",
     jobId: jobId || null,
-    organisation_id: "demo-org-123",
-    created_by: "demo-user-123",
+    organisation_id: orgId,
+    created_by: orgId,
   }
 }
 

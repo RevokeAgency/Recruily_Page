@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
 import { normalizeCandidateDataWithGemini } from "@/lib/gemini-ai"
+import { getOrgId } from "@/lib/get-org-id"
 
 interface CandidateData {
   name?: string
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
       status: 'active',
       source: 'url_scrape',
       tags: ['scraped', getSourceTag(url)],
-      organisation_id: 'demo-org-123' // TODO: Get from user context
+      organisation_id: (await getOrgId()) || ""
     }
 
     // Save candidate to database

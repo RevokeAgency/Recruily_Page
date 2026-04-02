@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { supabase } from "@/lib/supabaseClient"
+import { useAuth } from "@/contexts/auth-context"
 
 export interface Job {
   id: string
@@ -28,11 +29,6 @@ export interface Job {
 
 // Use centralized Supabase client
 
-// Helper function to get user organization ID
-const getUserOrgId = (): string => {
-  return "demo-org-123" // Use consistent org ID
-}
-
 // Helper function to load jobs from localStorage with multiple fallback keys
 const loadJobsFromStorage = (orgId: string): Job[] => {
   if (typeof window === "undefined") return []
@@ -40,7 +36,7 @@ const loadJobsFromStorage = (orgId: string): Job[] => {
   const possibleKeys = [
     "recruitify_jobs",
     `recruitify_jobs_${orgId}`,
-    "recruitify_jobs_demo-org-123",
+    "recruitify_jobs_sample",
     "recruitify_jobs_office_example_com",
   ]
 
@@ -101,7 +97,7 @@ const saveJobsToStorage = (jobs: Job[], orgId: string): void => {
 
   try {
     // Save to multiple keys for redundancy
-    const keys = ["recruitify_jobs", `recruitify_jobs_${orgId}`, "recruitify_jobs_demo-org-123"]
+    const keys = ["recruitify_jobs", `recruitify_jobs_${orgId}`]
 
     for (const key of keys) {
       localStorage.setItem(key, JSON.stringify(jobs))
@@ -168,9 +164,13 @@ export function useJobs(organisationId?: string) {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
 
   // Memoize the organization ID to prevent unnecessary re-renders
-  const orgId = useMemo(() => organisationId || getUserOrgId(), [organisationId])
+  const orgId = useMemo(
+    () => organisationId || user?.app_metadata?.org_id || "local",
+    [organisationId, user],
+  )
 
   // Load jobs function
   const loadJobs = useCallback(async () => {
@@ -202,7 +202,7 @@ export function useJobs(organisationId?: string) {
       setTimeout(async () => {
         try {
           const { data: supabaseJobs, error: supabaseError } = await supabase
-            .from("job_postings")
+            .from("jobs")
             .select("*")
             .order("created_at", { ascending: false })
 
@@ -371,7 +371,7 @@ export function useJobs(organisationId?: string) {
         // Try to save to Supabase in the background
         try {
           const { data: savedJob, error: supabaseError } = await (supabase as any)
-            .from("job_postings")
+            .from("jobs")
             .insert(newJobData)
             .select()
             .single()
@@ -434,7 +434,7 @@ export function useJobs(organisationId?: string) {
 
           updateData.updated_at = new Date().toISOString()
 
-          const { error: supabaseError } = await (supabase as any).from("job_postings").update(updateData).eq("id", jobId)
+          const { error: supabaseError } = await (supabase as any).from("jobs").update(updateData).eq("id", jobId)
 
           if (supabaseError) {
             console.warn("⚠️ Supabase update failed, job updated locally:", supabaseError.message)
@@ -470,7 +470,7 @@ export function useJobs(organisationId?: string) {
 
         // Try to delete from Supabase in the background
         try {
-          const { error: supabaseError } = await (supabase as any).from("job_postings").delete().eq("id", jobId)
+          const { error: supabaseError } = await (supabase as any).from("jobs").delete().eq("id", jobId)
 
           if (supabaseError) {
             console.warn("⚠️ Supabase delete failed, job deleted locally:", supabaseError.message)

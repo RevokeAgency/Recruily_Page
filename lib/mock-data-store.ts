@@ -50,6 +50,8 @@ interface Match {
   organisation_id: string
 }
 
+const DEMO_ORG_ID = "demo-org"
+
 class MockDataStore {
   private jobs: Job[] = []
   private candidates: Candidate[] = []
@@ -73,7 +75,7 @@ class MockDataStore {
         updated_at: new Date().toISOString(),
         description: "We are looking for a senior frontend developer with React experience.",
         requirements: "5+ years React, TypeScript, modern CSS",
-        organisation_id: "demo-org-123",
+        organisation_id: DEMO_ORG_ID,
         salary_range: "€60,000 - €80,000",
         technical_skills: "React, TypeScript, CSS, JavaScript",
         benefits: "Health insurance, flexible hours, remote work",
@@ -90,7 +92,7 @@ class MockDataStore {
         updated_at: new Date().toISOString(),
         description: "Backend engineer position for a growing startup.",
         requirements: "Node.js, PostgreSQL, AWS experience",
-        organisation_id: "demo-org-123",
+        organisation_id: DEMO_ORG_ID,
         salary_range: "€55,000 - €75,000",
         technical_skills: "Node.js, PostgreSQL, AWS, Docker",
         benefits: "Equity, flexible hours, learning budget",
@@ -114,7 +116,7 @@ class MockDataStore {
         skills: ["React", "TypeScript", "CSS", "JavaScript"],
         jobId: "job_1",
         summary: "Experienced frontend developer with strong React skills",
-        organisation_id: "demo-org-123",
+        organisation_id: DEMO_ORG_ID,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -133,7 +135,7 @@ class MockDataStore {
         skills: ["Node.js", "React", "PostgreSQL", "AWS"],
         jobId: "job_2",
         summary: "Full stack developer with backend focus",
-        organisation_id: "demo-org-123",
+        organisation_id: DEMO_ORG_ID,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },

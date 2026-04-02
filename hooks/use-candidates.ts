@@ -36,7 +36,7 @@ export function useCandidates(organisationId?: string) {
   const [error, setError] = useState<string | null>(null)
 
   // Memoize the orgId to prevent infinite loops
-  const orgId = useMemo(() => organisationId || "demo-org-123", [organisationId])
+  const orgId = useMemo(() => organisationId || null, [organisationId])
 
   const loadCandidates = useCallback(async () => {
     try {
@@ -247,7 +247,7 @@ export function useCandidates(organisationId?: string) {
             experience_level: newCandidate.experience_level,
             avatar: newCandidate.avatar,
           }),
-          created_by: "demo-user-123",
+          created_by: orgId || "",
         }
 
         const { error: supabaseError } = await (supabase as any).from("candidates").insert(candidateData)

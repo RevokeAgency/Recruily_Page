@@ -32,7 +32,7 @@ export async function createJob(formData: FormData) {
 
   // Create the job
   const { data: job, error: jobError } = await supabase
-    .from("job_postings")
+    .from("jobs")
     .insert({
       title,
       description,

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
 import { analyzeCVWithGemini, generateFallbackCVData, type JobRequirements } from "@/lib/gemini-ai"
+import { getOrgId } from "@/lib/get-org-id"
 
 interface CandidateData {
   name?: string
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
     let jobRequirements: JobRequirements | undefined = undefined
     try {
       const { data: jobData, error: jobError } = await (supabase as any)
-        .from('job_postings')
+        .from('jobs')
         .select('title, description, requirements, technical_skills, experience_level, location, job_type')
         .eq('id', jobId)
         .single()
@@ -188,7 +189,7 @@ export async function POST(request: NextRequest) {
       status: 'active',
       source: 'cv_upload',
       tags: ['uploaded', 'gemini_analyzed'],
-      organisation_id: 'demo-org-123' // TODO: Get from user context
+      organisation_id: (await getOrgId()) || ""
     }
 
     // Save candidate to database (with fallback)

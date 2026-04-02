@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
 import { calculateMatchingScore } from "@/lib/gemini-ai"
+import { getOrgId } from "@/lib/get-org-id"
 
 export async function POST(request: NextRequest) {
   try {
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
         summary: "Experienced professional with strong sales background",
         languages: ["English", "Spanish"],
         certifications: ["Salesforce Certified"],
-        organisation_id: "demo-org-123"
+        organisation_id: (await getOrgId()) || ""
       }
       
       console.log(`✅ Using fallback candidate data: ${candidate.name}`)
