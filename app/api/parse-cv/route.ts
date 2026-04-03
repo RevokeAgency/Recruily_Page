@@ -3,7 +3,6 @@ import { supabase } from '@/lib/supabaseClient'
 import { createClient } from '@supabase/supabase-js'
 import { v4 as uuidv4 } from 'uuid'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { getOrgId } from '@/lib/get-org-id'
 
 // Initialize Gemini AI with enhanced debugging
 const getGeminiClient = () => {
@@ -24,7 +23,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const file = formData.get('file') as File
     const jobId = formData.get('jobId') as string
-    
+    const organisationId = formData.get('orgId') as string
+
     if (!file) {
       return NextResponse.json({
         success: false,
@@ -39,12 +39,10 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Resolve the caller's organisation ID
-    const organisationId = await getOrgId()
     if (!organisationId) {
       return NextResponse.json({
         success: false,
-        error: 'Unauthorized: could not resolve organisation'
+        error: 'Unauthorized: organisation ID is required'
       }, { status: 401 })
     }
 

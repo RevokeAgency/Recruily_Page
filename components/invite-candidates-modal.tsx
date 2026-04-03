@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, FileText, User, CheckCircle, AlertCircle, Loader2, X } from "lucide-react"
 import { useDropzone } from "react-dropzone"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/hooks/use-auth"
 
 interface InviteCandidatesModalProps {
   isOpen?: boolean
@@ -48,6 +49,7 @@ function InviteCandidatesModal({
   onUploadCompleted,
   trigger
 }: InviteCandidatesModalProps) {
+  const { user } = useAuth()
   const [open, setOpen] = useState(isOpen)
   const [activeTab, setActiveTab] = useState("upload")
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -267,10 +269,19 @@ function InviteCandidatesModal({
   async function processSingleCV(file: File, jobId: string, onProgress: (progress: number) => void) {
     onProgress(20)
 
+    const orgId = user?.app_metadata?.org_id
+    if (!orgId) {
+      return {
+        success: false,
+        error: 'Organisation not found - please re-login'
+      }
+    }
+
     // Step 1: Parse CV data
     const formData = new FormData()
     formData.append('file', file)
     formData.append('jobId', jobId)
+    formData.append('orgId', orgId)
 
     onProgress(40)
 
