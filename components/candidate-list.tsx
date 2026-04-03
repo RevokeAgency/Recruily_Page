@@ -10,15 +10,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Star, 
-  TrendingUp, 
-  Award, 
-  Calendar, 
-  ExternalLink, 
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Star,
+  TrendingUp,
+  Award,
+  Calendar,
+  ExternalLink,
   Download,
   Filter,
   Search,
@@ -30,7 +30,8 @@ import {
   Briefcase,
   GraduationCap,
   Globe,
-  Link
+  Link,
+  Upload,
 } from "lucide-react"
 import { CandidateQuickActions } from "./candidate-quick-actions"
 import { InviteCandidatesModal } from "./invite-candidates-modal"
@@ -313,6 +314,12 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
                 <InviteCandidatesModal
                   jobId={jobId}
                   jobTitle={jobTitle}
+                  trigger={
+                    <Button className="bg-teal-600 hover:bg-teal-700 text-white">
+                      <Upload className="h-4 w-4 mr-2" />
+                      CV hochladen
+                    </Button>
+                  }
                   onCandidateAdded={(newCandidate) => {
                     setCandidates(prev => [{
                       id: `uploaded_${Date.now()}`,
