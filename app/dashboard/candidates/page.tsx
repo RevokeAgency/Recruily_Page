@@ -6,7 +6,6 @@ import {
   Filter,
   MoreHorizontal,
   ChevronDown,
-  Plus,
   MapPin,
   Mail,
   Download,
@@ -230,10 +229,6 @@ export default function CandidatesPage() {
                   : `${selectedCandidates.length} kontaktieren`}
               </Button>
             )}
-            <Button className="bg-teal-600 hover:bg-teal-700">
-              <Plus className="mr-2 h-4 w-4" />
-              {language === "EN" ? "Add Candidate" : "Kandidat hinzufügen"}
-            </Button>
           </div>
         </div>
 
@@ -496,10 +491,11 @@ export default function CandidatesPage() {
                               <RefreshCw className="mr-2 h-4 w-4" />
                               {language === "EN" ? "Refresh" : "Aktualisieren"}
                             </Button>
-                            <Button className="bg-teal-600 hover:bg-teal-700">
-                              <Plus className="mr-2 h-4 w-4" />
-                              {language === "EN" ? "Add Candidate" : "Kandidat hinzufügen"}
-                            </Button>
+                            <p className="text-sm text-muted-foreground">
+                              {language === "EN"
+                                ? "Add candidates by uploading CVs inside a Job"
+                                : "Fügen Sie Kandidaten hinzu, indem Sie CVs in einem Stellenangebot hochladen"}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
@@ -657,11 +653,12 @@ export default function CandidatesPage() {
                     <RefreshCw className="mr-2 h-4 w-4" />
                     {language === "EN" ? "Refresh" : "Aktualisieren"}
                   </Button>
-                  <Button className="bg-teal-600 hover:bg-teal-700">
-                    <Plus className="mr-2 h-4 w-4" />
-                    {language === "EN" ? "Add Candidate" : "Kandidat hinzufügen"}
-                  </Button>
                 </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {language === "EN"
+                    ? "Add candidates by uploading CVs inside a Job"
+                    : "Fügen Sie Kandidaten hinzu, indem Sie CVs in einem Stellenangebot hochladen"}
+                </p>
               </div>
             )}
           </div>

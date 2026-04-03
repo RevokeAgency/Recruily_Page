@@ -81,34 +81,32 @@ export async function POST(
     // Step 2: Calculate match scores
     const matchingResult = calculateMatchScores(candidateData, extractedData)
 
-    // Step 3: Create job match record with correct schema
+    // Step 3: Create match record aligned to real `matches` table schema
     const matchRecord = {
       id: uuidv4(),
       candidate_id: candidateData.id,
       job_id: jobId,
-      match_score: Math.round(matchingResult.overallScore),
-      match_details: JSON.stringify({
-        overall_score: Math.round(matchingResult.overallScore),
+      score: Math.round(matchingResult.overallScore),
+      strengths: matchingResult.strengths,
+      weaknesses: matchingResult.gaps,
+      skill_matches: {
         skills_score: Math.round(matchingResult.skillsScore),
         experience_score: Math.round(matchingResult.experienceScore),
         education_score: Math.round(matchingResult.educationScore),
         languages_score: Math.round(matchingResult.languagesScore),
         certifications_score: Math.round(matchingResult.certificationsScore),
-        other_score: Math.round(matchingResult.otherScore),
-        strengths: matchingResult.strengths,
-        gaps: matchingResult.gaps,
-        recommendations: matchingResult.recommendations
-      }),
+      },
+      experience_match: Math.round(matchingResult.experienceScore),
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
 
-    // Step 4: Save job match record using correct table name
+    // Step 4: Save match record to the `matches` table
     let matchData
     try {
       const { data, error: matchError } = await (supabaseAdmin as any)
-        .from('job_candidate_matches')
+        .from('matches')
         .insert([matchRecord])
         .select()
         .single()

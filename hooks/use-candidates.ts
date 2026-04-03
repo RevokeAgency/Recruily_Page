@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { supabase } from "@/lib/supabaseClient"
+import { isSupabaseConfigured } from "@/lib/env"
 
 interface Candidate {
   id: string
@@ -108,12 +109,12 @@ export function useCandidates(organisationId?: string) {
         console.warn("⚠️ Supabase connection failed:", supabaseError)
       }
 
-      // When Supabase is reachable, use only its data (no localStorage or mock mixing)
-      if (supabaseQuerySucceeded) {
+      // When Supabase is reachable (or configured), use only its data — never fall through to localStorage
+      if (supabaseQuerySucceeded || isSupabaseConfigured()) {
         setCandidates(supabaseCandidates)
         console.log(`✅ Loaded ${supabaseCandidates.length} candidates from Supabase`)
       } else {
-        // Supabase unreachable — fall back to localStorage
+        // Supabase not configured at all — fall back to localStorage
         const storedCandidates = localStorage.getItem("recruitify_candidates")
         let localCandidates: Candidate[] = []
         if (storedCandidates) {
@@ -347,105 +348,4 @@ export function useCandidates(organisationId?: string) {
     deleteCandidate,
     refetch: loadCandidates,
   }
-}
-
-function generateMockCandidates(): Candidate[] {
-  return [
-    {
-      id: "mock_1",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@email.com",
-      phone: "+1 (555) 123-4567",
-      position: "Senior Frontend Developer",
-      experience: "5 years of experience in React and TypeScript",
-      skills: ["React", "TypeScript", "Next.js", "Tailwind CSS", "GraphQL"],
-      summary: "Experienced frontend developer with a passion for creating user-friendly interfaces",
-      location: "San Francisco, CA",
-      education: ["BS Computer Science - Stanford University"],
-      certifications: ["AWS Certified Developer"],
-      languages: ["English", "Spanish"],
-      match: 92,
-      status: "Applied",
-      applied: "2024-01-15",
-      jobId: "job_1753952346309_960",
-      source: "Mock Data",
-      yearsOfExperience: 5,
-      workExperience: [
-        {
-          company: "Tech Solutions Inc",
-          position: "Senior Frontend Developer",
-          duration: "2022 - Present",
-          description: "Led development of responsive web applications using React and TypeScript",
-        },
-      ],
-      job_title: "Senior Frontend Developer",
-      experience_level: "Senior",
-      created_at: "2024-01-15T10:00:00Z",
-      avatar: "SJ",
-    },
-    {
-      id: "mock_2",
-      name: "Michael Chen",
-      email: "michael.chen@email.com",
-      phone: "+1 (555) 234-5678",
-      position: "Full Stack Developer",
-      experience: "4 years of full-stack development experience",
-      skills: ["JavaScript", "Node.js", "Python", "PostgreSQL", "Docker"],
-      summary: "Full-stack developer with expertise in both frontend and backend technologies",
-      location: "New York, NY",
-      education: ["MS Software Engineering - MIT"],
-      certifications: ["Google Cloud Professional"],
-      languages: ["English", "Mandarin"],
-      match: 88,
-      status: "Contacted",
-      applied: "2024-01-14",
-      jobId: "job_1753952346309_960",
-      source: "Mock Data",
-      yearsOfExperience: 4,
-      workExperience: [
-        {
-          company: "Digital Innovations Ltd",
-          position: "Full Stack Developer",
-          duration: "2021 - Present",
-          description: "Developed and maintained web applications using modern tech stack",
-        },
-      ],
-      job_title: "Full Stack Developer",
-      experience_level: "Mid-level",
-      created_at: "2024-01-14T10:00:00Z",
-      avatar: "MC",
-    },
-    {
-      id: "mock_3",
-      name: "Emily Rodriguez",
-      email: "emily.rodriguez@email.com",
-      phone: "+1 (555) 345-6789",
-      position: "UI/UX Designer",
-      experience: "3 years of design experience",
-      skills: ["Figma", "Adobe XD", "Sketch", "Prototyping", "User Research"],
-      summary: "Creative UI/UX designer focused on user-centered design principles",
-      location: "Austin, TX",
-      education: ["BFA Graphic Design - Art Institute"],
-      certifications: ["Google UX Design Certificate"],
-      languages: ["English", "Spanish"],
-      match: 85,
-      status: "Interviewing",
-      applied: "2024-01-13",
-      jobId: "job_1753952346309_960",
-      source: "Mock Data",
-      yearsOfExperience: 3,
-      workExperience: [
-        {
-          company: "Creative Minds Studio",
-          position: "UI/UX Designer",
-          duration: "2022 - Present",
-          description: "Designed user interfaces and conducted user research for web applications",
-        },
-      ],
-      job_title: "UI/UX Designer",
-      experience_level: "Mid-level",
-      created_at: "2024-01-13T10:00:00Z",
-      avatar: "ER",
-    },
-  ]
 }
