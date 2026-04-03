@@ -321,7 +321,7 @@ function InviteCandidatesModal({
       success: true,
       candidate: {
         ...parseResult.candidate,
-        match_score: addResult.success ? (addResult.candidateMatch as any)?.overall_score :
+        match_score: addResult.success ? (addResult.candidateMatch as any)?.score :
                     (parseResult.extractedData?.matching?.overallScore || 75),
         filename: file.name,
         strengths: addResult.success ? (addResult.candidateMatch as any)?.strengths :

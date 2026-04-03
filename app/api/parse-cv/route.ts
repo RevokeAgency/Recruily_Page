@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { createClient } from '@supabase/supabase-js'
 import { v4 as uuidv4 } from 'uuid'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { getOrgId } from '@/lib/get-org-id'
 
 // Initialize Gemini AI with enhanced debugging
 const getGeminiClient = () => {
@@ -36,6 +37,15 @@ export async function POST(request: NextRequest) {
         success: false,
         error: 'Job ID is required'
       }, { status: 400 })
+    }
+
+    // Resolve the caller's organisation ID
+    const organisationId = await getOrgId()
+    if (!organisationId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Unauthorized: could not resolve organisation'
+      }, { status: 401 })
     }
 
     console.log(`📄 Processing CV file: ${file.name}, Size: ${file.size} bytes, Type: ${file.type}`)
@@ -190,43 +200,22 @@ export async function POST(request: NextRequest) {
       resumeUrl = `https://demo-storage.recruily.com/resumes/${candidateId}_${file.name}`
     }
 
-    // Parse candidate name into first_name and last_name
     const fullName = extractedData.candidate.name || 'Unknown Candidate'
-    const nameParts = fullName.split(' ')
-    const firstName = nameParts[0] || 'Unknown'
-    const lastName = nameParts.slice(1).join(' ') || 'Candidate'
 
-    // Create candidate record with correct database schema
+    // Create candidate record aligned to the real `candidates` table schema
     const candidateRecord = {
       id: candidateId,
-      first_name: firstName,
-      last_name: lastName,
-      email: extractedData.candidate.email,
-      phone: extractedData.candidate.phone,
-      location: extractedData.candidate.location,
-      status: 'active',
-      notes: JSON.stringify({
-        summary: extractedData.candidate.summary,
-        skills: extractedData.candidate.skills,
-        experience: extractedData.candidate.experience,
-        education: extractedData.candidate.education,
-        languages: extractedData.candidate.languages || ['English'],
-        certifications: extractedData.candidate.certifications || [],
-        experience_years: extractedData.candidate.experienceYears || 0,
-        degree: extractedData.candidate.education?.[0]?.degree || null,
-        university: extractedData.candidate.education?.[0]?.school || null,
-        graduation_year: extractedData.candidate.education?.[0]?.year || null,
-        linkedin_url: extractedData.candidate.linkedinUrl || null,
-        portfolio_url: extractedData.candidate.portfolioUrl || null,
-        github_url: extractedData.candidate.githubUrl || null,
-        source: 'cv_upload',
-        tags: ['cv_parsed', 'gemini_extracted'],
-        resume_url: resumeUrl,
-        extraction_method: 'gemini_ai',
-        matching_data: extractedData.matching
-      }),
-      organisation_id: '11111111-1111-1111-1111-111111111111', // Use existing organisation (TechRecruit)
-      created_by: null, // Set to null since there's no users table
+      name: fullName,
+      email: extractedData.candidate.email || null,
+      phone: extractedData.candidate.phone || null,
+      location: extractedData.candidate.location || null,
+      summary: extractedData.candidate.summary || null,
+      skills: Array.isArray(extractedData.candidate.skills) ? extractedData.candidate.skills : [],
+      experience_years: extractedData.candidate.experienceYears || 0,
+      education: Array.isArray(extractedData.candidate.education) ? extractedData.candidate.education : [],
+      languages: Array.isArray(extractedData.candidate.languages) ? extractedData.candidate.languages : ['English'],
+      certifications: Array.isArray(extractedData.candidate.certifications) ? extractedData.candidate.certifications : [],
+      organisation_id: organisationId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
