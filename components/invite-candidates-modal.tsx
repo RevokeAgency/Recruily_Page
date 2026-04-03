@@ -269,19 +269,28 @@ function InviteCandidatesModal({
   async function processSingleCV(file: File, jobId: string, onProgress: (progress: number) => void) {
     onProgress(20)
 
+    console.log("DEBUG user object:", JSON.stringify(user, null, 2))
+    console.log("DEBUG app_metadata:", user?.app_metadata)
+    console.log("DEBUG user_metadata:", user?.user_metadata)
+
     let orgId = user?.app_metadata?.org_id || user?.user_metadata?.org_id || null
+    console.log("DEBUG orgId from JWT:", orgId)
+
     if (!orgId) {
       // Fallback: fetch org_id from the server for existing users whose JWT predates org_id storage
       try {
         const orgResponse = await fetch('/api/get-org-id')
+        console.log("DEBUG get-org-id response status:", orgResponse.status)
         if (orgResponse.ok) {
           const orgData = await orgResponse.json()
+          console.log("DEBUG get-org-id response body:", orgData)
           orgId = orgData.orgId || null
         }
-      } catch {
-        // ignore fetch errors — will fall through to error below
+      } catch (err) {
+        console.log("DEBUG get-org-id fetch error:", err)
       }
     }
+    console.log("DEBUG final orgId:", orgId)
     if (!orgId) {
       return {
         success: false,
