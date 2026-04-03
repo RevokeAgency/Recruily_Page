@@ -45,14 +45,18 @@ export function useCandidates(organisationId?: string) {
 
       console.log("👥 Loading candidates...")
 
-      // Try Supabase first
+      // Try Supabase first (with 5s timeout so loading always resolves)
       let supabaseQuerySucceeded = false
       let supabaseCandidates: Candidate[] = []
       try {
-        const { data: supabaseData, error: supabaseError } = await supabase
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase query timed out")), 5000)
+        )
+        const queryPromise = supabase
           .from("candidates")
           .select("*")
           .order("created_at", { ascending: false })
+        const { data: supabaseData, error: supabaseError } = await Promise.race([queryPromise, timeoutPromise]) as any
 
         if (supabaseError) {
           console.warn("⚠️ Supabase error:", supabaseError.message)

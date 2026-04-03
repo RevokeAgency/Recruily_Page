@@ -33,6 +33,7 @@ import {
   Link
 } from "lucide-react"
 import { CandidateQuickActions } from "./candidate-quick-actions"
+import { InviteCandidatesModal } from "./invite-candidates-modal"
 
 interface CandidateMatch {
   id: string
@@ -222,6 +223,29 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
           <Badge variant="default" className="px-3 py-1">
             {candidates.filter(c => c.overall_score >= 80).length} High Match
           </Badge>
+          <InviteCandidatesModal
+            jobId={jobId}
+            jobTitle={jobTitle}
+            onCandidateAdded={(newCandidate) => {
+              setCandidates(prev => [{
+                id: `uploaded_${Date.now()}`,
+                job_id: jobId,
+                candidate_id: newCandidate.id,
+                overall_score: newCandidate.match_score || 0,
+                skills_score: 0,
+                experience_score: 0,
+                education_score: 0,
+                languages_score: 0,
+                certifications_score: 0,
+                other_score: 0,
+                strengths: [],
+                gaps: [],
+                recommendations: [],
+                created_at: new Date().toISOString(),
+                candidate: newCandidate,
+              } as any, ...prev])
+            }}
+          />
         </div>
       </div>
 
@@ -280,12 +304,36 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
             <CardContent className="p-8 text-center">
               <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No candidates found</h3>
-              <p className="text-gray-600">
-                {searchTerm || filterBy !== "all" 
+              <p className="text-gray-600 mb-4">
+                {searchTerm || filterBy !== "all"
                   ? "Try adjusting your search or filter criteria."
-                  : "Upload some CVs to see candidates here."
-                }
+                  : "Upload CVs to add candidates to this job."}
               </p>
+              {!searchTerm && filterBy === "all" && (
+                <InviteCandidatesModal
+                  jobId={jobId}
+                  jobTitle={jobTitle}
+                  onCandidateAdded={(newCandidate) => {
+                    setCandidates(prev => [{
+                      id: `uploaded_${Date.now()}`,
+                      job_id: jobId,
+                      candidate_id: newCandidate.id,
+                      overall_score: newCandidate.match_score || 0,
+                      skills_score: 0,
+                      experience_score: 0,
+                      education_score: 0,
+                      languages_score: 0,
+                      certifications_score: 0,
+                      other_score: 0,
+                      strengths: [],
+                      gaps: [],
+                      recommendations: [],
+                      created_at: new Date().toISOString(),
+                      candidate: newCandidate,
+                    } as any, ...prev])
+                  }}
+                />
+              )}
             </CardContent>
           </Card>
         ) : (
