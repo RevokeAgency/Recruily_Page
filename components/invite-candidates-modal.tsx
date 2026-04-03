@@ -361,7 +361,7 @@ function InviteCandidatesModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={(val) => val ? setOpen(true) : handleClose()}>
       <DialogTrigger asChild>
         {trigger || (
           <Button size="sm" className="gap-2">

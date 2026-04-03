@@ -209,7 +209,11 @@ export function ModernSidebar() {
               href={item.href}
               icon={item.icon}
               label={item.label}
-              isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
+              isActive={
+                item.href === "/dashboard"
+                  ? pathname === "/dashboard"
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`)
+              }
               isCollapsed={isCollapsed}
               badge={item.badge}
             />
