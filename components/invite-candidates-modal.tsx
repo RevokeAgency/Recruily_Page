@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, FileText, User, CheckCircle, AlertCircle, Loader2, X } from "lucide-react"
 import { useDropzone } from "react-dropzone"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/contexts/auth-context"
 
 interface InviteCandidatesModalProps {
   isOpen?: boolean
@@ -269,7 +269,19 @@ function InviteCandidatesModal({
   async function processSingleCV(file: File, jobId: string, onProgress: (progress: number) => void) {
     onProgress(20)
 
-    const orgId = user?.app_metadata?.org_id
+    let orgId = user?.app_metadata?.org_id || user?.user_metadata?.org_id || null
+    if (!orgId) {
+      // Fallback: fetch org_id from the server for existing users whose JWT predates org_id storage
+      try {
+        const orgResponse = await fetch('/api/get-org-id')
+        if (orgResponse.ok) {
+          const orgData = await orgResponse.json()
+          orgId = orgData.orgId || null
+        }
+      } catch {
+        // ignore fetch errors — will fall through to error below
+      }
+    }
     if (!orgId) {
       return {
         success: false,

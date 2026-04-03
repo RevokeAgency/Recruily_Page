@@ -299,6 +299,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.warn("⚠️ Could not create organisation:", orgError.message)
         } else {
           console.log("✅ Organisation created:", org.id)
+          // Write org_id into user_metadata so it's available from the JWT
+          await supabase.auth.updateUser({ data: { org_id: org.id } })
         }
 
         // Supabase will send its own confirmation email (if configured)
