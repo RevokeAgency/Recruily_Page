@@ -75,7 +75,7 @@ export default function CandidatesPage() {
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([])
 
   // Get organisation ID from user
-  const organisationId = user?.app_metadata?.org_id || "demo-org-123"
+  const organisationId = user?.app_metadata?.org_id || null
 
   // Use the candidates hook
   const { candidates, loading, error, deleteCandidate, refetch } = useCandidates(organisationId)

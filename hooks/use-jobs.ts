@@ -209,6 +209,19 @@ export function useJobs(organisationId?: string) {
           if (!supabaseError && supabaseJobs && supabaseJobs.length > 0) {
             console.log(`Found ${supabaseJobs.length} jobs in Supabase`)
 
+            // Fetch match counts for all jobs in one query
+            const jobIds = supabaseJobs.map((j: any) => j.id)
+            const { data: matchRows } = await (supabase as any)
+              .from("matches")
+              .select("job_id")
+              .in("job_id", jobIds)
+            const matchCountMap: Record<string, number> = {}
+            if (matchRows) {
+              for (const row of matchRows) {
+                matchCountMap[row.job_id] = (matchCountMap[row.job_id] || 0) + 1
+              }
+            }
+
             // Transform Supabase data to match our interface
             const transformedJobs = supabaseJobs.map((job: any) => ({
               id: job.id,
@@ -227,8 +240,8 @@ export function useJobs(organisationId?: string) {
                 ? new Date(job.created_at).toISOString().split("T")[0]
                 : new Date().toISOString().split("T")[0],
               status: job.status || "active",
-              applications_count: job.applications_count || 0,
-              matches_count: job.matches_count || 0,
+              applications_count: matchCountMap[job.id] || 0,
+              matches_count: matchCountMap[job.id] || 0,
               organization_id: job.organisation_id,
               created_at: job.created_at,
               updated_at: job.updated_at,

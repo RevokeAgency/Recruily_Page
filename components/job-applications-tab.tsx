@@ -83,7 +83,7 @@ export function JobApplicationsTab({ jobId, jobTitle }: JobApplicationsTabProps)
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`/api/matches?job_id=${jobId}`)
+      const response = await fetch(`/api/matches?jobId=${jobId}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch candidates')

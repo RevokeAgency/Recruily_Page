@@ -45,23 +45,10 @@ export function useCandidates(organisationId?: string) {
 
       console.log("👥 Loading candidates...")
 
-      // First, try to load from localStorage (where CV uploads are stored)
-      const storedCandidates = localStorage.getItem("recruitify_candidates")
-      let localCandidates: Candidate[] = []
-
-      if (storedCandidates) {
-        try {
-          localCandidates = JSON.parse(storedCandidates)
-          console.log(`📦 Found ${localCandidates.length} candidates in localStorage`)
-        } catch (e) {
-          console.warn("Could not parse localStorage candidates:", e)
-        }
-      }
-
-      // Try to load from Supabase as well
+      // Try Supabase first
+      let supabaseQuerySucceeded = false
       let supabaseCandidates: Candidate[] = []
       try {
-        // Use centralized Supabase client
         const { data: supabaseData, error: supabaseError } = await supabase
           .from("candidates")
           .select("*")
@@ -69,84 +56,77 @@ export function useCandidates(organisationId?: string) {
 
         if (supabaseError) {
           console.warn("⚠️ Supabase error:", supabaseError.message)
-        } else if (supabaseData) {
-          // Transform Supabase data to match our interface
-          supabaseCandidates = supabaseData.map((candidate: any) => {
-            let parsedNotes = {}
-            try {
-              parsedNotes = candidate.notes ? JSON.parse(candidate.notes) : {}
-            } catch (e) {
-              console.warn("Could not parse candidate notes:", e)
-            }
+        } else {
+          supabaseQuerySucceeded = true
+          if (supabaseData && supabaseData.length > 0) {
+            supabaseCandidates = supabaseData.map((candidate: any) => {
+              let parsedNotes = {}
+              try {
+                parsedNotes = candidate.notes ? JSON.parse(candidate.notes) : {}
+              } catch (e) {
+                console.warn("Could not parse candidate notes:", e)
+              }
 
-            return {
-              id: candidate.id,
-              name: `${candidate.first_name} ${candidate.last_name}`.trim(),
-              email: candidate.email,
-              phone: candidate.phone,
-              position: (parsedNotes as any).position || "Unknown Position",
-              experience: (parsedNotes as any).experience || "Not specified",
-              skills: Array.isArray((parsedNotes as any).skills) ? (parsedNotes as any).skills : [],
-              summary: (parsedNotes as any).summary || "No summary available",
-              location: candidate.location,
-              education: Array.isArray((parsedNotes as any).education) ? (parsedNotes as any).education : [],
-              certifications: Array.isArray((parsedNotes as any).certifications)
-                ? (parsedNotes as any).certifications
-                : [],
-              languages: Array.isArray((parsedNotes as any).languages) ? (parsedNotes as any).languages : ["English"],
-              match: (parsedNotes as any).match || 0,
-              status: candidate.status || "Applied",
-              applied: candidate.created_at
-                ? new Date(candidate.created_at).toISOString().split("T")[0]
-                : new Date().toISOString().split("T")[0],
-              jobId: (parsedNotes as any).jobId,
-              source: (parsedNotes as any).source || "Database",
-              yearsOfExperience: (parsedNotes as any).yearsOfExperience || 0,
-              workExperience: (parsedNotes as any).workExperience || [],
-              job_title: (parsedNotes as any).position || "Unknown Position",
-              experience_level: (parsedNotes as any).experience_level || "Mid-level",
-              created_at: candidate.created_at,
-              avatar: (parsedNotes as any).avatar,
-            }
-          })
+              return {
+                id: candidate.id,
+                name: `${candidate.first_name} ${candidate.last_name}`.trim(),
+                email: candidate.email,
+                phone: candidate.phone,
+                position: (parsedNotes as any).position || "Unknown Position",
+                experience: (parsedNotes as any).experience || "Not specified",
+                skills: Array.isArray((parsedNotes as any).skills) ? (parsedNotes as any).skills : [],
+                summary: (parsedNotes as any).summary || "No summary available",
+                location: candidate.location,
+                education: Array.isArray((parsedNotes as any).education) ? (parsedNotes as any).education : [],
+                certifications: Array.isArray((parsedNotes as any).certifications)
+                  ? (parsedNotes as any).certifications
+                  : [],
+                languages: Array.isArray((parsedNotes as any).languages) ? (parsedNotes as any).languages : ["English"],
+                match: (parsedNotes as any).match || 0,
+                status: candidate.status || "Applied",
+                applied: candidate.created_at
+                  ? new Date(candidate.created_at).toISOString().split("T")[0]
+                  : new Date().toISOString().split("T")[0],
+                jobId: (parsedNotes as any).jobId,
+                source: (parsedNotes as any).source || "Database",
+                yearsOfExperience: (parsedNotes as any).yearsOfExperience || 0,
+                workExperience: (parsedNotes as any).workExperience || [],
+                job_title: (parsedNotes as any).position || "Unknown Position",
+                experience_level: (parsedNotes as any).experience_level || "Mid-level",
+                created_at: candidate.created_at,
+                avatar: (parsedNotes as any).avatar,
+              }
+            })
+          }
           console.log(`🗄️ Found ${supabaseCandidates.length} candidates in Supabase`)
         }
       } catch (supabaseError) {
         console.warn("⚠️ Supabase connection failed:", supabaseError)
       }
 
-      // Merge candidates from both sources, avoiding duplicates
-      const allCandidates = [...localCandidates]
-
-      // Add Supabase candidates that aren't already in localStorage
-      supabaseCandidates.forEach((supabaseCandidate) => {
-        const exists = localCandidates.some(
-          (localCandidate) =>
-            localCandidate.id === supabaseCandidate.id || localCandidate.email === supabaseCandidate.email,
-        )
-        if (!exists) {
-          allCandidates.push(supabaseCandidate)
-        }
-      })
-
-      // If no candidates found, create some mock data
-      if (allCandidates.length === 0) {
-        console.log("🎭 No candidates found, creating mock data...")
-        const mockCandidates = generateMockCandidates()
-        localStorage.setItem("recruitify_candidates", JSON.stringify(mockCandidates))
-        setCandidates(mockCandidates)
-        console.log(`✅ Created ${mockCandidates.length} mock candidates`)
+      // When Supabase is reachable, use only its data (no localStorage or mock mixing)
+      if (supabaseQuerySucceeded) {
+        setCandidates(supabaseCandidates)
+        console.log(`✅ Loaded ${supabaseCandidates.length} candidates from Supabase`)
       } else {
-        setCandidates(allCandidates)
-        console.log(`✅ Loaded ${allCandidates.length} total candidates`)
+        // Supabase unreachable — fall back to localStorage
+        const storedCandidates = localStorage.getItem("recruitify_candidates")
+        let localCandidates: Candidate[] = []
+        if (storedCandidates) {
+          try {
+            localCandidates = JSON.parse(storedCandidates)
+            console.log(`📦 Fallback: ${localCandidates.length} candidates from localStorage`)
+          } catch (e) {
+            console.warn("Could not parse localStorage candidates:", e)
+          }
+        }
+        setCandidates(localCandidates)
+        console.log(`✅ Loaded ${localCandidates.length} candidates from localStorage fallback`)
       }
     } catch (error: any) {
       console.error("❌ Error loading candidates:", error)
       setError(error.message || "Failed to load candidates")
-
-      // Even on error, try to provide some basic candidates
-      const fallbackCandidates = generateMockCandidates()
-      setCandidates(fallbackCandidates)
+      setCandidates([])
     } finally {
       setLoading(false)
     }

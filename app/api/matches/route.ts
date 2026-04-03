@@ -1,18 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
-import { getOrgId } from "@/lib/get-org-id"
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const organisationId = searchParams.get("organisationId") || await getOrgId()
-    if (!organisationId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
     const jobId = searchParams.get("jobId")
     const candidateId = searchParams.get("candidateId")
 
-    console.log("📋 Fetching matches for:", { organisationId, jobId, candidateId })
+    console.log("📋 Fetching matches for:", { jobId, candidateId })
 
     // Build query
     let query = supabase
