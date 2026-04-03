@@ -44,7 +44,7 @@ const NavItem = ({ href, icon, label, isActive, isCollapsed, badge }: NavItemPro
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 transition-all duration-200 group relative",
               isActive
-                ? "bg-primary text-primary-foreground"
+                ? "bg-teal-600 text-white"
                 : "hover:bg-muted text-muted-foreground hover:text-foreground",
             )}
           >
@@ -61,7 +61,7 @@ const NavItem = ({ href, icon, label, isActive, isCollapsed, badge }: NavItemPro
               <Badge
                 className={cn(
                   "ml-auto bg-primary/10 text-primary hover:bg-primary/20",
-                  isActive && "bg-background/20 text-background hover:bg-background/30",
+                  isActive && "bg-white/20 text-white hover:bg-white/30",
                 )}
               >
                 {badge}
@@ -70,7 +70,7 @@ const NavItem = ({ href, icon, label, isActive, isCollapsed, badge }: NavItemPro
             {isActive && (
               <span
                 className={cn(
-                  "absolute right-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-l-md bg-primary",
+                  "absolute right-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-l-md bg-teal-600",
                   isCollapsed ? "opacity-100" : "opacity-0",
                 )}
               />
