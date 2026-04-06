@@ -299,6 +299,7 @@ function InviteCandidatesModal({
     }
 
     // Step 1: Parse CV data
+    console.log("FORMDATA orgId being sent:", orgId)
     const formData = new FormData()
     formData.append('file', file)
     formData.append('jobId', jobId)

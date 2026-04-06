@@ -8,8 +8,8 @@ export async function GET() {
     const supabase = createRouteHandlerClient({ cookies })
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    console.log("DEBUG session user id:", session?.user?.id ?? null)
-    console.log("DEBUG session error:", sessionError ?? null)
+    console.log("SESSION USER ID:", session?.user?.id)
+    console.log("SESSION ERROR:", sessionError)
 
     if (!session?.user) {
       console.log("DEBUG no session — returning 401")
@@ -22,8 +22,8 @@ export async function GET() {
       .eq('owner_id', session.user.id)
       .single()
 
-    console.log("DEBUG org query result:", org ?? null)
-    console.log("DEBUG org query error:", orgError ?? null)
+    console.log("ORG RESULT:", org)
+    console.log("ORG ERROR:", orgError)
 
     return NextResponse.json({ orgId: org?.id ?? null })
   } catch (err) {
