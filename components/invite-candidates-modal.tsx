@@ -13,6 +13,7 @@ import { Upload, FileText, User, CheckCircle, AlertCircle, Loader2, X } from "lu
 import { useDropzone } from "react-dropzone"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
+import { supabase } from "@/lib/supabaseClient"
 
 interface InviteCandidatesModalProps {
   isOpen?: boolean
@@ -279,7 +280,12 @@ function InviteCandidatesModal({
     if (!orgId) {
       // Fallback: fetch org_id from the server for existing users whose JWT predates org_id storage
       try {
-        const orgResponse = await fetch('/api/get-org-id')
+        const { data: { session } } = await supabase.auth.getSession()
+        const orgResponse = await fetch('/api/get-org-id', {
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`
+          }
+        })
         console.log("DEBUG get-org-id response status:", orgResponse.status)
         if (orgResponse.ok) {
           const orgData = await orgResponse.json()

@@ -1,25 +1,38 @@
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     console.log("DEBUG get-org-id called")
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    console.log("SESSION USER ID:", session?.user?.id)
-    console.log("SESSION ERROR:", sessionError)
+    const authHeader = request.headers.get('Authorization')
+    const token = authHeader?.replace('Bearer ', '')
 
-    if (!session?.user) {
-      console.log("DEBUG no session — returning 401")
-      return NextResponse.json({ orgId: null }, { status: 401 })
+    console.log("DEBUG token present:", !!token)
+
+    if (!token) {
+      return NextResponse.json({ error: 'No token' }, { status: 401 })
     }
 
-    const { data: org, error: orgError } = await supabase
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+
+    console.log("SESSION USER ID:", user?.id)
+    console.log("SESSION ERROR:", userError)
+
+    if (!user || userError) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const { data: org, error: orgError } = await supabaseAdmin
       .from('organisations')
       .select('id')
-      .eq('owner_id', session.user.id)
+      .eq('owner_id', user.id)
       .single()
 
     console.log("ORG RESULT:", org)
@@ -28,6 +41,6 @@ export async function GET() {
     return NextResponse.json({ orgId: org?.id ?? null })
   } catch (err) {
     console.log("DEBUG get-org-id exception:", err)
-    return NextResponse.json({ orgId: null }, { status: 500 })
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
