@@ -46,6 +46,9 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
 
+    console.log("STEP 1: File received, size:", file.size, "type:", file.type, "name:", file.name)
+    console.log("STEP 2: Org resolved:", organisationId)
+
     console.log(`📄 Processing CV file: ${file.name}, Size: ${file.size} bytes, Type: ${file.type}`)
     console.log(`🔍 File details - Name: ${file.name}, Size: ${Math.round(file.size/1024)}KB`)
 
@@ -95,9 +98,11 @@ export async function POST(request: NextRequest) {
     
     // Try multiple extraction methods in order of preference
     console.log('🤖 Attempting CV extraction with multiple methods...')
-    
+    console.log("STEP 3: Starting PDF/CV parse, file type:", file.type)
+
     // Method 1: Try Gemini AI first (best results)
     try {
+      console.log("STEP 4: Starting AI analysis via Gemini")
       console.log('📋 Method 1: Gemini AI extraction...')
       extractedData = await extractCVDataWithGemini(file, jobData)
       console.log('✅ Gemini AI extraction successful!')
@@ -167,7 +172,9 @@ export async function POST(request: NextRequest) {
 
     // Generate unique candidate ID
     const candidateId = uuidv4()
-    
+
+    console.log("STEP 5: Saving to database, candidateId:", candidateId)
+
     // Upload file to Supabase Storage with mock handling
     let resumeUrl = null
     try {
@@ -496,11 +503,13 @@ RESPONSE FORMAT: Return only the JSON object, nothing else.`
     ]
     
     console.log('📤 Sending request to Gemini API...')
+    console.log("STEP 4a: Gemini generateContent called at", new Date().toISOString())
     const startTime = Date.now()
-    
+
     let result
     try {
       result = await model.generateContent(requestPayload)
+      console.log("STEP 4b: Gemini generateContent returned after", Date.now() - startTime, "ms")
     } catch (apiError: any) {
       const duration = Date.now() - startTime
       console.error('❌ Gemini API call failed:', {
