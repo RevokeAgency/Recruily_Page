@@ -101,6 +101,10 @@ export async function POST(request: NextRequest) {
     console.log("STEP 3: Starting PDF/CV parse, file type:", file.type)
 
     // Method 1: Try Gemini AI first (best results)
+    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY && !process.env.GEMINI_API_KEY) {
+      console.log("WARNING: No Gemini API key - skipping AI, using fallback directly")
+    }
+
     try {
       console.log("STEP 4: Starting AI analysis via Gemini")
       console.log('📋 Method 1: Gemini AI extraction...')
@@ -506,12 +510,23 @@ RESPONSE FORMAT: Return only the JSON object, nothing else.`
     console.log("STEP 4a: Gemini generateContent called at", new Date().toISOString())
     const startTime = Date.now()
 
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('AI_TIMEOUT')), 30000)
+    )
+
     let result
     try {
-      result = await model.generateContent(requestPayload)
+      result = await Promise.race([
+        model.generateContent(requestPayload),
+        timeoutPromise
+      ])
       console.log("STEP 4b: Gemini generateContent returned after", Date.now() - startTime, "ms")
     } catch (apiError: any) {
       const duration = Date.now() - startTime
+      if (apiError.message === 'AI_TIMEOUT') {
+        console.log("STEP 4: Gemini timed out after", duration, "ms - triggering fallback")
+        throw new Error('AI_TIMEOUT')
+      }
       console.error('❌ Gemini API call failed:', {
         duration: `${duration}ms`,
         errorType: apiError.constructor.name,
@@ -519,7 +534,7 @@ RESPONSE FORMAT: Return only the JSON object, nothing else.`
         errorCode: apiError.code,
         errorDetails: apiError.details
       })
-      
+
       // Provide specific error messages
       if (apiError.message?.includes('quota')) {
         throw new Error('Gemini API quota exceeded. Please try again later.')
