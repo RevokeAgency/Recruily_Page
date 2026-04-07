@@ -251,7 +251,6 @@ function createInMemoryCandidate(candidateData: any, jobId: string, extractedDat
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     candidate: candidateData,
-    demo_mode: true
   }
 
   // Store in memory for immediate access

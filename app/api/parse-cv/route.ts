@@ -298,21 +298,16 @@ export async function POST(request: NextRequest) {
         candidateData = data
       }
     } catch (dbError: any) {
-      console.error('❌ Database operation failed:', dbError)
-      
-      // Fallback to demo candidate for testing purposes
-      console.log('🔄 Creating fallback candidate record for demonstration')
-      candidateData = {
-        ...candidateRecord,
-        id: candidateRecord.id,
-        name: extractedData.candidate.name, // Add name for frontend compatibility
-        skills: extractedData.candidate.skills,
-        experience: extractedData.candidate.experience,
-        education: extractedData.candidate.education,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        demo_mode: true
+      console.error('❌ Database operation failed:', dbError.message)
+      if (!candidateData?.id) {
+        // Only use demo_mode if candidate was NOT already saved to DB
+        console.log('🔄 Creating fallback candidate record for demonstration')
+        candidateData = {
+          ...candidateRecord,
+          demo_mode: true
+        }
       }
+      // If candidateData already has an id, it was saved — keep it as is
     }
 
     console.log(`💾 Candidate saved: ${candidateData.id} ${candidateData.demo_mode ? '(demo mode)' : '(database)'}`)
