@@ -230,6 +230,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Save candidate to database with better error handling using service role
+    console.log("=== SAVE ATTEMPT ===")
+    console.log("organisationId:", organisationId)
+    console.log("SUPABASE_URL set:", !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log("SERVICE_ROLE_KEY set:", !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+    console.log("candidateRecord keys:", Object.keys(candidateRecord))
+    console.log("candidateRecord:", JSON.stringify(candidateRecord, null, 2))
+
     let candidateData
     try {
       // Use service role client for database operations to bypass RLS issues
@@ -243,12 +250,18 @@ export async function POST(request: NextRequest) {
           }
         }
       )
-      
+
       const { data, error: candidateError } = await (supabaseAdmin as any)
         .from('candidates')
         .insert([candidateRecord])
         .select()
         .single()
+
+      console.log("=== SAVE RESULT ===")
+      console.log("insertError:", JSON.stringify(candidateError, null, 2))
+      console.log("insertError code:", candidateError?.code)
+      console.log("insertError message:", candidateError?.message)
+      console.log("savedCandidate:", JSON.stringify(data, null, 2))
 
       if (candidateError) {
         console.error('❌ Supabase error details:', candidateError)

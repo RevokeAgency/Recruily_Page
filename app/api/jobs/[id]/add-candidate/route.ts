@@ -61,6 +61,10 @@ export async function POST(
     )
 
     // Step 1: Create or update candidate record
+    console.log("=== ADD-CANDIDATE UPSERT ===")
+    console.log("candidateData keys:", Object.keys(candidateData))
+    console.log("candidateData:", JSON.stringify(candidateData, null, 2))
+
     let candidateRecord
     try {
       const { data, error: candidateError } = await (supabaseAdmin as any)
@@ -68,6 +72,10 @@ export async function POST(
         .upsert([candidateData])
         .select()
         .single()
+
+      console.log("=== ADD-CANDIDATE UPSERT RESULT ===")
+      console.log("upsertError:", JSON.stringify(candidateError, null, 2))
+      console.log("upsertResult:", JSON.stringify(data, null, 2))
 
       if (candidateError && !candidateError.message?.includes('Mock')) {
         throw candidateError
@@ -103,6 +111,9 @@ export async function POST(
     }
 
     // Step 4: Save match record to the `matches` table
+    console.log("=== MATCH INSERT ===")
+    console.log("matchRecord:", JSON.stringify(matchRecord, null, 2))
+
     let matchData
     try {
       const { data, error: matchError } = await (supabaseAdmin as any)
@@ -110,6 +121,10 @@ export async function POST(
         .insert([matchRecord])
         .select()
         .single()
+
+      console.log("=== MATCH INSERT RESULT ===")
+      console.log("matchError:", JSON.stringify(matchError, null, 2))
+      console.log("matchResult:", JSON.stringify(data, null, 2))
 
       if (matchError && !matchError.message?.includes('Mock')) {
         throw matchError
