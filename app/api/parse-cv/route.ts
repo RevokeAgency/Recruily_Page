@@ -46,6 +46,14 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
 
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("FATAL: SUPABASE_SERVICE_ROLE_KEY not set!")
+      return NextResponse.json({
+        success: false,
+        error: 'Server configuration error'
+      }, { status: 500 })
+    }
+
     console.log("STEP 1: File received, size:", file.size, "type:", file.type, "name:", file.name)
     console.log("STEP 2: Org resolved:", organisationId)
 
@@ -215,13 +223,15 @@ export async function POST(request: NextRequest) {
     const candidateRecord = {
       id: candidateId,
       name: fullName,
-      email: extractedData.candidate.email || null,
+      email: extractedData.candidate.email || `candidate_${Date.now()}@recruily-import.com`,
       phone: extractedData.candidate.phone || null,
       location: extractedData.candidate.location || null,
       summary: extractedData.candidate.summary || null,
       skills: Array.isArray(extractedData.candidate.skills) ? extractedData.candidate.skills : [],
       experience_years: extractedData.candidate.experienceYears || 0,
-      education: Array.isArray(extractedData.candidate.education) ? extractedData.candidate.education : [],
+      education: Array.isArray(extractedData.candidate.education)
+        ? extractedData.candidate.education.join(', ')
+        : extractedData.candidate.education || null,
       languages: Array.isArray(extractedData.candidate.languages) ? extractedData.candidate.languages : ['English'],
       certifications: Array.isArray(extractedData.candidate.certifications) ? extractedData.candidate.certifications : [],
       organisation_id: organisationId,
