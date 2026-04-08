@@ -46,73 +46,52 @@ export function useCandidates(organisationId?: string) {
 
       console.log("👥 Loading candidates...")
 
-      // Try Supabase first (with 5s timeout so loading always resolves)
-      let supabaseQuerySucceeded = false
+      // Fetch candidates via API (uses service role to bypass RLS)
       let supabaseCandidates: Candidate[] = []
       try {
+        const { data: { session } } = await supabase.auth.getSession()
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Supabase query timed out")), 5000)
+          setTimeout(() => reject(new Error("Candidates fetch timed out")), 8000)
         )
-        const queryPromise = supabase
-          .from("candidates")
-          .select("*")
-          .order("created_at", { ascending: false })
-        const { data: supabaseData, error: supabaseError } = await Promise.race([queryPromise, timeoutPromise]) as any
+        const fetchPromise = fetch("/api/candidates", {
+          headers: { "Authorization": `Bearer ${session?.access_token}` }
+        }).then(r => r.json())
+        const result = await Promise.race([fetchPromise, timeoutPromise]) as any
 
-        if (supabaseError) {
-          console.warn("⚠️ Supabase error:", supabaseError.message)
+        if (result?.success && Array.isArray(result.candidates)) {
+          supabaseCandidates = result.candidates.map((candidate: any) => ({
+            id: candidate.id,
+            name: candidate.name || "Unknown Candidate",
+            email: candidate.email,
+            phone: candidate.phone,
+            position: "Unknown Position",
+            experience: candidate.experience_years ? `${candidate.experience_years} years` : "Not specified",
+            skills: Array.isArray(candidate.skills) ? candidate.skills : [],
+            summary: candidate.summary || "No summary available",
+            location: candidate.location,
+            education: Array.isArray(candidate.education) ? candidate.education : [],
+            certifications: Array.isArray(candidate.certifications) ? candidate.certifications : [],
+            languages: Array.isArray(candidate.languages) ? candidate.languages : ["English"],
+            match: 0,
+            status: "Applied",
+            applied: candidate.created_at
+              ? new Date(candidate.created_at).toISOString().split("T")[0]
+              : new Date().toISOString().split("T")[0],
+            source: "Database",
+            yearsOfExperience: candidate.experience_years || 0,
+            created_at: candidate.created_at,
+          }))
+          console.log(`🗄️ Found ${supabaseCandidates.length} candidates`)
         } else {
-          supabaseQuerySucceeded = true
-          if (supabaseData && supabaseData.length > 0) {
-            supabaseCandidates = supabaseData.map((candidate: any) => {
-              let parsedNotes = {}
-              try {
-                parsedNotes = candidate.notes ? JSON.parse(candidate.notes) : {}
-              } catch (e) {
-                console.warn("Could not parse candidate notes:", e)
-              }
-
-              return {
-                id: candidate.id,
-                name: `${candidate.first_name} ${candidate.last_name}`.trim(),
-                email: candidate.email,
-                phone: candidate.phone,
-                position: (parsedNotes as any).position || "Unknown Position",
-                experience: (parsedNotes as any).experience || "Not specified",
-                skills: Array.isArray((parsedNotes as any).skills) ? (parsedNotes as any).skills : [],
-                summary: (parsedNotes as any).summary || "No summary available",
-                location: candidate.location,
-                education: Array.isArray((parsedNotes as any).education) ? (parsedNotes as any).education : [],
-                certifications: Array.isArray((parsedNotes as any).certifications)
-                  ? (parsedNotes as any).certifications
-                  : [],
-                languages: Array.isArray((parsedNotes as any).languages) ? (parsedNotes as any).languages : ["English"],
-                match: (parsedNotes as any).match || 0,
-                status: candidate.status || "Applied",
-                applied: candidate.created_at
-                  ? new Date(candidate.created_at).toISOString().split("T")[0]
-                  : new Date().toISOString().split("T")[0],
-                jobId: (parsedNotes as any).jobId,
-                source: (parsedNotes as any).source || "Database",
-                yearsOfExperience: (parsedNotes as any).yearsOfExperience || 0,
-                workExperience: (parsedNotes as any).workExperience || [],
-                job_title: (parsedNotes as any).position || "Unknown Position",
-                experience_level: (parsedNotes as any).experience_level || "Mid-level",
-                created_at: candidate.created_at,
-                avatar: (parsedNotes as any).avatar,
-              }
-            })
-          }
-          console.log(`🗄️ Found ${supabaseCandidates.length} candidates in Supabase`)
+          console.warn("⚠️ Candidates API returned no results:", result?.error)
         }
-      } catch (supabaseError) {
-        console.warn("⚠️ Supabase connection failed:", supabaseError)
+      } catch (fetchError) {
+        console.warn("⚠️ Candidates fetch failed:", fetchError)
       }
 
-      // When Supabase is reachable (or configured), use only its data — never fall through to localStorage
-      if (supabaseQuerySucceeded || isSupabaseConfigured()) {
+      if (isSupabaseConfigured()) {
         setCandidates(supabaseCandidates)
-        console.log(`✅ Loaded ${supabaseCandidates.length} candidates from Supabase`)
+        console.log(`✅ Loaded ${supabaseCandidates.length} candidates`)
       } else {
         // Supabase not configured at all — fall back to localStorage
         const storedCandidates = localStorage.getItem("recruitify_candidates")

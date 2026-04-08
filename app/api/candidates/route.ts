@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
 import { getOrgId } from "@/lib/get-org-id"
+import { createClient } from "@supabase/supabase-js"
 
 type Candidate = {
   id: string
@@ -30,69 +31,55 @@ export async function GET(request: NextRequest) {
   try {
     console.log("👥 Candidates API - GET request received")
 
-    const { searchParams } = new URL(request.url)
-    const organisationId = searchParams.get("organisationId")
-    const jobId = searchParams.get("jobId")
-
-    // Filter candidates by organisation and/or job if provided
-    let filteredCandidates = candidatesStorage
-    if (organisationId) {
-      filteredCandidates = filteredCandidates.filter((candidate) => candidate.organisation_id === organisationId)
-    }
-    if (jobId) {
-      filteredCandidates = filteredCandidates.filter((candidate) => candidate.jobId === jobId)
+    // Resolve org_id from Bearer token
+    const token = request.headers.get("Authorization")?.replace("Bearer ", "")
+    if (!token || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ success: false, error: "Unauthorized", candidates: [], total: 0 }, { status: 401 })
     }
 
-    // Try to get from Supabase first (if available)
-    const supabase = getSupabaseClient()
-    if (supabase) {
-      try {
-        const { data: dbCandidates, error } = await supabase
-          .from("candidates")
-          .select("*")
-          .order("created_at", { ascending: false }) as { data: Candidate[] | null; error: unknown }
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
 
-        if (!error && dbCandidates && dbCandidates.length > 0) {
-          console.log(`✅ Retrieved ${dbCandidates.length} candidates from Supabase`)
-          // Filter by organisation and/or job if provided
-          let finalCandidates = dbCandidates
-          if (organisationId) {
-            finalCandidates = finalCandidates.filter((candidate) => candidate.organisation_id === organisationId)
-          }
-          if (jobId) {
-            finalCandidates = finalCandidates.filter((candidate) => candidate.jobId === jobId)
-          }
-          return NextResponse.json({
-            success: true,
-            candidates: finalCandidates,
-            total: finalCandidates.length,
-            source: "database",
-          })
-        } else {
-          console.warn("⚠️ Supabase query failed or returned no results:", error)
-        }
-      } catch (supabaseError) {
-        console.warn("⚠️ Supabase connection failed:", supabaseError)
-      }
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+    if (!user || userError) {
+      return NextResponse.json({ success: false, error: "Invalid token", candidates: [], total: 0 }, { status: 401 })
     }
 
-    console.log(`📊 Returning ${filteredCandidates.length} candidates`)
+    const { data: org } = await supabaseAdmin
+      .from("organisations")
+      .select("id")
+      .eq("owner_id", user.id)
+      .single()
 
+    if (!org?.id) {
+      return NextResponse.json({ success: true, candidates: [], total: 0, source: "database" })
+    }
+
+    const { data: dbCandidates, error } = await supabaseAdmin
+      .from("candidates")
+      .select("*")
+      .eq("organisation_id", org.id)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("❌ Supabase candidates query error:", error)
+      return NextResponse.json({ success: false, error: error.message, candidates: [], total: 0 }, { status: 500 })
+    }
+
+    console.log(`✅ Retrieved ${dbCandidates?.length ?? 0} candidates from Supabase`)
     return NextResponse.json({
       success: true,
-      candidates: filteredCandidates,
-      total: filteredCandidates.length,
-      source: "mock",
+      candidates: dbCandidates ?? [],
+      total: dbCandidates?.length ?? 0,
+      source: "database",
     })
   } catch (error: any) {
     console.error("❌ Candidates API Error:", error)
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch candidates",
-        candidates: [],
-        total: 0,
-      },
+      { success: false, error: "Failed to fetch candidates", candidates: [], total: 0 },
       { status: 500 },
     )
   }
