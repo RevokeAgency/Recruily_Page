@@ -1,10 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
+import { v4 as uuidv4 } from "uuid"
 import { getOrgId } from "@/lib/get-org-id"
-
-// Helper function to get user-specific organization ID from email
-const getOrgIdFromEmail = (email: string): string => {
-  return email.replace("@", "_").replace(".", "_")
-}
 
 // Helper function to get user-specific jobs from localStorage
 const getUserJobs = (organisationId: string): any[] => {
@@ -182,15 +179,10 @@ export async function POST(request: NextRequest) {
     console.log("📋 Jobs API - POST request received")
 
     const body = await request.json()
-    console.log("📝 Creating job with data:", body)
 
-    // Validate required fields
     if (!body.title || !body.description) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Title and description are required",
-        },
+        { success: false, error: "Title and description are required" },
         { status: 400 },
       )
     }
@@ -199,16 +191,19 @@ export async function POST(request: NextRequest) {
     if (!organisationId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-    console.log("🏢 Using organisation ID:", organisationId)
 
-    // Use original ID format - this is crucial!
-    const timestamp = Date.now()
-    const randomNum = Math.floor(Math.random() * 1000) + 1
-    const jobId = `job_${timestamp}_${randomNum}`
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ success: false, error: "Server configuration error" }, { status: 500 })
+    }
 
-    // Create new job with proper structure
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+
     const newJob = {
-      id: jobId,
+      id: uuidv4(),
       title: body.title,
       company: body.company || "Company",
       location: body.location || "Remote",
@@ -225,33 +220,29 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
       organisation_id: organisationId,
       created_by: body.created_by || organisationId,
-      applications_count: body.applicationsCount || 0,
-      matches_count: body.matchesCount || 0,
     }
 
-    // Get existing user jobs and add the new one
-    const existingJobs = getUserJobs(organisationId)
-    const updatedJobs = [newJob, ...existingJobs]
+    const { data: savedJob, error } = await supabaseAdmin
+      .from("jobs")
+      .insert(newJob)
+      .select()
+      .single()
 
-    // Save to user-specific storage
-    saveUserJobs(organisationId, updatedJobs)
+    if (error) {
+      console.error("❌ Supabase job insert error:", error)
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    }
 
-    console.log("✅ Job created successfully with ID:", newJob.id)
+    console.log("✅ Job created in Supabase with ID:", savedJob.id)
 
     return NextResponse.json({
       success: true,
-      job: newJob,
+      job: savedJob,
       message: "Job created successfully",
     })
   } catch (error: any) {
     console.error("❌ Jobs API POST Error:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to create job",
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({ success: false, error: "Failed to create job" }, { status: 500 })
   }
 }
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { v4 as uuidv4 } from "uuid"
 import { supabase } from "@/lib/supabaseClient"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -324,7 +325,7 @@ export function useJobs(organisationId?: string) {
       try {
         console.log("➕ Creating job:", jobData.title)
 
-        const jobId = `job_${Date.now()}_${Math.floor(Math.random() * 1000)}`
+        const jobId = uuidv4()
 
         const newJobData = {
           id: jobId,

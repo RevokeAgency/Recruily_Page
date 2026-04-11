@@ -22,14 +22,8 @@ export async function POST(
   try {
     const { candidateData, extractedData } = await request.json()
     
-    // Ensure jobId is a valid UUID, generate one if not
-    let jobId = params.id
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(jobId)) {
-      console.log(`⚠️ Job ID "${jobId}" is not a UUID, generating one for database compatibility`)
-      jobId = uuidv4()
-    }
-    
+    const jobId = params.id
+
     if (!candidateData || !jobId) {
       return NextResponse.json({
         success: false,
