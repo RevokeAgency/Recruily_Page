@@ -178,6 +178,37 @@ export async function POST(request: NextRequest) {
   try {
     console.log("📋 Jobs API - POST request received")
 
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ success: false, error: "Server configuration error" }, { status: 500 })
+    }
+
+    // Verify Bearer token and resolve real user
+    const token = request.headers.get("Authorization")?.replace("Bearer ", "")
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+    if (!user || userError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { data: org } = await supabaseAdmin
+      .from("organisations")
+      .select("id")
+      .eq("owner_id", user.id)
+      .single()
+
+    if (!org?.id) {
+      return NextResponse.json({ error: "Organisation not found" }, { status: 400 })
+    }
+
     const body = await request.json()
 
     if (!body.title || !body.description) {
@@ -187,39 +218,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const organisationId = body.organisationId || body.organisation_id || await getOrgId()
-    if (!organisationId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ success: false, error: "Server configuration error" }, { status: 500 })
-    }
-
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
-
     const newJob = {
       id: uuidv4(),
       title: body.title,
-      company: body.company || "Company",
-      location: body.location || "Remote",
-      job_type: body.jobType || body.job_type || "full-time",
-      salary_range: body.salaryRange || body.salary_range || "Competitive",
       description: body.description,
-      requirements: body.requirements || "",
-      benefits: body.benefits || "",
-      skills: body.skills || "",
-      technical_skills: body.technicalSkills || body.skills || "",
-      experience_level: body.experience_level || "Mid-level",
-      status: "active",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      organisation_id: organisationId,
-      created_by: body.created_by || organisationId,
+      requirements: body.requirements || null,
+      benefits: body.benefits || null,
+      location: body.location || null,
+      employment_type: body.employment_type || body.job_type || "full-time",
+      experience_level: body.experience_level || null,
+      company: body.company || null,
+      skills: Array.isArray(body.skills) ? body.skills : [],
+      salary_min: body.salary_min || null,
+      salary_max: body.salary_max || null,
+      status: "open",
+      organisation_id: org.id,
+      created_by: user.id,
     }
 
     const { data: savedJob, error } = await supabaseAdmin

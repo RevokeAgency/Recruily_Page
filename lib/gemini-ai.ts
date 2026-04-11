@@ -329,6 +329,12 @@ IMPORTANT: Return ONLY the JSON object, no other text, no markdown formatting, n
       console.error(`❌ Gemini CV analysis failed (attempt ${attempt + 1}):`, errorMessage)
       console.error(`🔍 Full error object:`, errorString)
 
+      // Timeout: never retry, fall through to local analysis immediately
+      if (errorMessage === "GEMINI_TIMEOUT") {
+        console.warn("⏱️ Gemini timed out — switching to local analysis immediately")
+        return null
+      }
+
       // Check if this is a retryable error using enhanced detection
       if (isRetryableError(error) && attempt < EXPONENTIAL_BACKOFF_CONFIG.maxRetries) {
         console.log(`🔄 Retryable error detected, applying exponential backoff...`)
