@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
+import { v4 as uuidv4 } from "uuid"
 import { analyzeCVWithGemini, generateFallbackCVData, isGeminiAvailable, type JobRequirements } from "@/lib/gemini-ai"
-import { getOrgId } from "@/lib/get-org-id"
 
 interface Candidate {
   id: string
@@ -53,12 +54,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   console.log("🚀 CV Analysis API Called with Gemini Integration")
 
-  const orgId = (await getOrgId()) || ""
-
   let file: File | null = null
   let jobId = ""
-  let userId = ""
-  let userEmail = ""
+  let orgId = ""
   let jobData: any = null
 
   try {
@@ -66,8 +64,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     file = formData.get("file") as File | null
     jobId = (formData.get("jobId") as string) || ""
-    userId = (formData.get("userId") as string) || ""
-    userEmail = (formData.get("userEmail") as string) || ""
+    orgId = (formData.get("orgId") as string) || ""
 
     // Get job data for matching
     const jobDataString = formData.get("jobData") as string
@@ -192,9 +189,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function enhanceCandidateProfile(baseCandidate: any, jobData: any, jobId: string, source: string, orgId = "") {
-  // Extract potential name from filename if available
-  const candidateId = `candidate_${Date.now()}_${Math.floor(Math.random() * 1000) + 1}`
+async function enhanceCandidateProfile(baseCandidate: any, _jobData: any, jobId: string, source: string, orgId = "") {
+  const candidateId = uuidv4()
 
   const enhancedCandidate = {
     ...baseCandidate,
@@ -221,22 +217,53 @@ async function enhanceCandidateProfile(baseCandidate: any, jobData: any, jobId: 
 
 async function saveCandidateToSupabase(candidate: any) {
   try {
-    console.log("💾 Attempting to save candidate to Supabase:", candidate.name)
+    console.log("💾 Saving candidate to Supabase:", candidate.name)
 
-    // For now, skip Supabase and use localStorage to avoid RLS policy issues
-    // This ensures the app works while we resolve the database configuration
-    console.log("⚠️ Skipping Supabase save due to RLS policy issues, using localStorage")
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn("⚠️ Supabase env vars missing, returning candidate without DB save")
+      return candidate
+    }
 
-    // Save to localStorage as fallback
-    const existingCandidates = JSON.parse(localStorage.getItem("candidates") || "[]")
-    const updatedCandidates = [...existingCandidates, candidate]
-    localStorage.setItem("candidates", JSON.stringify(updatedCandidates))
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
 
-    console.log("✅ Candidate saved to localStorage successfully")
-    return candidate
-  } catch (error) {
-    console.error("❌ Error saving candidate:", error)
-    // Return the candidate anyway for the frontend
+    const candidateRecord = {
+      id: candidate.id,
+      name: candidate.name || "Unknown Candidate",
+      email: candidate.email || `candidate_${Date.now()}@recruily-import.com`,
+      phone: candidate.phone || null,
+      location: candidate.location || null,
+      summary: candidate.summary || null,
+      skills: Array.isArray(candidate.skills) ? candidate.skills : [],
+      experience_years: candidate.yearsOfExperience || 0,
+      education: Array.isArray(candidate.education)
+        ? candidate.education.join(", ")
+        : candidate.education || null,
+      languages: Array.isArray(candidate.languages) ? candidate.languages : ["English"],
+      certifications: Array.isArray(candidate.certifications) ? candidate.certifications : [],
+      organisation_id: candidate.organisation_id || null,
+      created_at: candidate.created_at || new Date().toISOString(),
+      updated_at: candidate.updated_at || new Date().toISOString(),
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("candidates")
+      .insert(candidateRecord)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("❌ Supabase insert error:", error.message)
+      return candidate
+    }
+
+    console.log("✅ Candidate saved to Supabase:", data.id)
+    return { ...candidate, ...data }
+  } catch (error: any) {
+    console.error("❌ Error saving candidate:", error.message)
     return candidate
   }
 }

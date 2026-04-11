@@ -263,15 +263,21 @@ ${jobContext}
 
 IMPORTANT: Return ONLY the JSON object, no other text, no markdown formatting, no explanations.`
 
-      // Make the API call with enhanced error handling
-      const result = await model.generateContent([
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: file.type,
+      // Make the API call with 30s timeout
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("GEMINI_TIMEOUT")), 30000)
+      )
+      const result = await Promise.race([
+        model.generateContent([
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: file.type,
+            },
           },
-        },
-        prompt,
+          prompt,
+        ]),
+        timeoutPromise,
       ])
 
       const response = await result.response

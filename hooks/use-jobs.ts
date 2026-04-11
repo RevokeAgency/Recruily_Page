@@ -375,32 +375,32 @@ export function useJobs(organisationId?: string) {
           source_filename: jobData.source_filename,
         }
 
-        // Update local state immediately
+        // Save via API route (uses service role — guaranteed to succeed)
+        const { data: { session } } = await supabase.auth.getSession()
+        const response = await fetch("/api/jobs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify(newJobData),
+        })
+        const result = await response.json()
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to create job")
+        }
+
+        // Use the UUID assigned by the API
+        const finalJob: Job = { ...newJob, id: result.job.id }
+
         setJobs((prevJobs) => {
-          const updatedJobs = [newJob, ...prevJobs]
+          const updatedJobs = [finalJob, ...prevJobs]
           saveJobsToStorage(updatedJobs, orgId)
           return updatedJobs
         })
 
-        // Try to save to Supabase in the background
-        try {
-          const { data: savedJob, error: supabaseError } = await (supabase as any)
-            .from("jobs")
-            .insert(newJobData)
-            .select()
-            .single()
-
-          if (supabaseError) {
-            console.warn("⚠️ Supabase save failed, job saved locally:", supabaseError.message)
-          } else {
-            console.log("✅ Job also saved to Supabase:", savedJob.id)
-          }
-        } catch (supabaseError) {
-          console.warn("⚠️ Supabase save failed, job saved locally:", supabaseError)
-        }
-
-        console.log("✅ Job created:", newJob.id)
-        return newJob
+        console.log("✅ Job created and saved to Supabase:", result.job.id)
+        return finalJob
       } catch (error: any) {
         console.error("❌ Error creating job:", error)
         throw new Error(error.message || "Failed to create job")

@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useLanguage } from "@/contexts/language-context"
+import { useAuth } from "@/contexts/auth-context"
 
 interface JobData {
   id: string
@@ -85,6 +86,7 @@ interface CVUploadEnhancedProps {
 export function CVUploadEnhanced({ onComplete, jobId, jobData, maxFiles = 10 }: CVUploadEnhancedProps) {
   const [uploadedFiles, setUploadedFiles] = useState<FileUploadState[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
+  const { user } = useAuth()
   const [isDragActive, setIsDragActive] = useState(false)
   const [apiStatus, setApiStatus] = useState<{
     available: boolean
@@ -332,6 +334,7 @@ export function CVUploadEnhanced({ onComplete, jobId, jobData, maxFiles = 10 }: 
       const formData = new FormData()
       formData.append("file", fileState.file)
       formData.append("jobId", jobId || "")
+      formData.append("orgId", user?.app_metadata?.org_id || user?.user_metadata?.org_id || "")
 
       // Add job data for matching if available
       if (jobData) {
