@@ -140,37 +140,51 @@ const getMockJobs = () => [
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("📋 Jobs API - GET request received")
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ success: false, error: "Server configuration error" }, { status: 500 })
+    }
 
-    const { searchParams } = new URL(request.url)
-    const organisationId = searchParams.get("organisationId") || await getOrgId()
-    if (!organisationId) {
+    const token = request.headers.get("Authorization")?.replace("Bearer ", "")
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    console.log("🔍 Looking for jobs with organisation ID:", organisationId)
-
-    // For now, let's return mock data to ensure something shows up
-    const mockJobs = getMockJobs()
-
-    console.log(`📊 Returning ${mockJobs.length} jobs for organisation: ${organisationId}`)
-
-    return NextResponse.json({
-      success: true,
-      jobs: mockJobs,
-      total: mockJobs.length,
-    })
-  } catch (error: any) {
-    console.error("❌ Jobs API Error:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch jobs",
-        jobs: getMockJobs(),
-        total: 0,
-      },
-      { status: 500 },
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
     )
+
+    const { data: { user } } = await supabaseAdmin.auth.getUser(token)
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { data: org } = await supabaseAdmin
+      .from("organisations")
+      .select("id")
+      .eq("owner_id", user.id)
+      .single()
+
+    if (!org?.id) {
+      return NextResponse.json({ success: true, jobs: [], total: 0 })
+    }
+
+    const { data: jobs, error } = await supabaseAdmin
+      .from("jobs")
+      .select("*")
+      .eq("organisation_id", org.id)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("❌ Jobs fetch error:", error)
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, jobs: jobs ?? [], total: jobs?.length ?? 0 })
+  } catch (error: any) {
+    console.error("❌ Jobs API GET Error:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch jobs", jobs: [], total: 0 }, { status: 500 })
   }
 }
 
@@ -226,7 +240,7 @@ export async function POST(request: NextRequest) {
       benefits: body.benefits || null,
       location: body.location || null,
       employment_type: body.employment_type || body.job_type || "full-time",
-      company_name: body.company_name || null,
+      company: body.company_name || body.company || null,
       skills: Array.isArray(body.skills) ? body.skills : [],
       salary_min: body.salary_min || null,
       salary_max: body.salary_max || null,

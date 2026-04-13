@@ -199,71 +199,54 @@ export function useJobs(organisationId?: string) {
         console.log(`✅ Loaded ${storedJobs.length} jobs from localStorage`)
       }
 
-      // Try to sync with Supabase in the background (don't block UI)
+      // Try to sync with API in the background (don't block UI)
       setTimeout(async () => {
         try {
-          const { data: supabaseJobs, error: supabaseError } = await supabase
-            .from("jobs")
-            .select("*")
-            .order("created_at", { ascending: false })
+          const { data: { session } } = await supabase.auth.getSession()
+          const token = session?.access_token
+          if (!token) return
 
-          if (!supabaseError && supabaseJobs && supabaseJobs.length > 0) {
-            console.log(`Found ${supabaseJobs.length} jobs in Supabase`)
+          const response = await fetch("/api/jobs", {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (!response.ok) return
 
-            // Fetch match counts for all jobs in one query
-            const jobIds = supabaseJobs.map((j: any) => j.id)
-            const { data: matchRows } = await (supabase as any)
-              .from("matches")
-              .select("job_id")
-              .in("job_id", jobIds)
-            const matchCountMap: Record<string, number> = {}
-            if (matchRows) {
-              for (const row of matchRows) {
-                matchCountMap[row.job_id] = (matchCountMap[row.job_id] || 0) + 1
-              }
-            }
+          const result = await response.json()
+          const apiJobs: any[] = result.jobs ?? []
+          if (apiJobs.length === 0) return
 
-            // Transform Supabase data to match our interface
-            const transformedJobs = supabaseJobs.map((job: any) => ({
-              id: job.id,
-              title: job.title,
-              company: job.company || "Company",
-              location: job.location || "Remote",
-              type: job.job_type || "Full-time",
-              description: job.description || "",
-              requirements: Array.isArray(job.requirements)
-                ? job.requirements
-                : job.requirements?.split("\n").filter(Boolean) || [],
-              technical_skills: job.technical_skills || job.skills || "",
-              experience_level: job.experience_level || "Mid-level",
-              salary_range: job.salary_range,
-              posted_date: job.created_at
-                ? new Date(job.created_at).toISOString().split("T")[0]
-                : new Date().toISOString().split("T")[0],
-              status: job.status || "active",
-              applications_count: matchCountMap[job.id] || 0,
-              matches_count: matchCountMap[job.id] || 0,
-              organization_id: job.organisation_id,
-              created_at: job.created_at,
-              updated_at: job.updated_at,
-            }))
+          const transformedJobs = apiJobs.map((job: any) => ({
+            id: job.id,
+            title: job.title,
+            company: job.company || "Company",
+            location: job.location || "Remote",
+            type: job.employment_type || "Full-time",
+            description: job.description || "",
+            requirements: Array.isArray(job.requirements)
+              ? job.requirements
+              : job.requirements?.split("\n").filter(Boolean) || [],
+            technical_skills: Array.isArray(job.skills) ? job.skills.join(", ") : job.skills || "",
+            experience_level: job.experience_level || "Mid-level",
+            salary_range:
+              job.salary_min && job.salary_max
+                ? `$${job.salary_min.toLocaleString()} - $${job.salary_max.toLocaleString()}`
+                : undefined,
+            posted_date: job.created_at
+              ? new Date(job.created_at).toISOString().split("T")[0]
+              : new Date().toISOString().split("T")[0],
+            status: job.status === "open" ? "active" : job.status || "active",
+            applications_count: 0,
+            matches_count: 0,
+            organization_id: job.organisation_id,
+            created_at: job.created_at,
+            updated_at: job.updated_at,
+          }))
 
-            // Merge with existing jobs, prioritizing Supabase data
-            const mergedJobs = [...transformedJobs]
-
-            // Add any localStorage-only jobs that aren't in Supabase
-            storedJobs.forEach((localJob) => {
-              if (!transformedJobs.find((supaJob) => supaJob.id === localJob.id)) {
-                mergedJobs.push(localJob as any)
-              }
-            })
-
-            setJobs(mergedJobs)
-            saveJobsToStorage(mergedJobs, orgId)
-            console.log(`✅ Synced with Supabase: ${mergedJobs.length} total jobs`)
-          }
-        } catch (supabaseError) {
-          console.warn("⚠️ Supabase sync failed, using localStorage data:", supabaseError)
+          setJobs(transformedJobs)
+          saveJobsToStorage(transformedJobs, orgId)
+          console.log(`✅ Synced ${transformedJobs.length} jobs from API`)
+        } catch (err) {
+          console.warn("⚠️ API sync failed, using localStorage data:", err)
         }
       }, 100) // Small delay to not block initial render
     } catch (error: any) {
@@ -448,15 +431,22 @@ export function useJobs(organisationId?: string) {
 
           updateData.updated_at = new Date().toISOString()
 
-          const { error: supabaseError } = await (supabase as any).from("jobs").update(updateData).eq("id", jobId)
-
-          if (supabaseError) {
-            console.warn("⚠️ Supabase update failed, job updated locally:", supabaseError.message)
+          const { data: { session } } = await supabase.auth.getSession()
+          const updateResponse = await fetch(`/api/jobs/${jobId}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${session?.access_token ?? ""}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updateData),
+          })
+          if (!updateResponse.ok) {
+            console.warn("⚠️ API update failed, job updated locally")
           } else {
-            console.log("✅ Job also updated in Supabase")
+            console.log("✅ Job also updated via API")
           }
         } catch (supabaseError) {
-          console.warn("⚠️ Supabase update failed, job updated locally:", supabaseError)
+          console.warn("⚠️ API update failed, job updated locally:", supabaseError)
         }
 
         console.log("✅ Job updated:", updatedJob.title)
@@ -484,15 +474,18 @@ export function useJobs(organisationId?: string) {
 
         // Try to delete from Supabase in the background
         try {
-          const { error: supabaseError } = await (supabase as any).from("jobs").delete().eq("id", jobId)
-
-          if (supabaseError) {
-            console.warn("⚠️ Supabase delete failed, job deleted locally:", supabaseError.message)
+          const { data: { session } } = await supabase.auth.getSession()
+          const deleteResponse = await fetch(`/api/jobs/${jobId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+          })
+          if (!deleteResponse.ok) {
+            console.warn("⚠️ API delete failed, job deleted locally")
           } else {
-            console.log("✅ Job also deleted from Supabase")
+            console.log("✅ Job also deleted via API")
           }
         } catch (supabaseError) {
-          console.warn("⚠️ Supabase delete failed, job deleted locally:", supabaseError)
+          console.warn("⚠️ API delete failed, job deleted locally:", supabaseError)
         }
 
         console.log("✅ Job deleted locally:", jobId)

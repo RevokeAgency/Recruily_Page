@@ -20,32 +20,22 @@ export function useOrganisations() {
       }
 
       try {
-        // Get all organisations the user is a member of
-        const { data, error } = await supabase
-          .from("members")
-          .select(`
-            organisation_id,
-            role,
-            organisations (
-              id,
-              name,
-              plan,
-              created_at
-            )
-          `)
-          .eq("user_id", user.id)
-
-        if (error) {
-          throw error
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (!token) {
+          setOrganisations([])
+          setLoading(false)
+          return
         }
 
-        // Transform the data to a more usable format
-        const orgs = (data as any[]).map((item) => ({
-          ...item.organisations,
-          role: item.role,
-        }))
+        const response = await fetch("/api/organisations", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
 
-        setOrganisations(orgs)
+        if (!response.ok) throw new Error("Failed to fetch organisations")
+
+        const result = await response.json()
+        setOrganisations(result.organisations ?? [])
       } catch (err) {
         setError(err as Error)
       } finally {
@@ -54,7 +44,7 @@ export function useOrganisations() {
     }
 
     fetchOrganisations()
-  }, [user, supabase])
+  }, [user])
 
   const createOrganisation = async (name: string, plan = "starter") => {
     if (!user) {
