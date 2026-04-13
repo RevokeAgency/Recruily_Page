@@ -4,6 +4,3 @@
 
 [build.environment]
   NODE_VERSION = "20.18.0"
-
-[functions]
-  timeout = 26
