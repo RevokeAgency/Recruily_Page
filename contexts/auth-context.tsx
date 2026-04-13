@@ -106,14 +106,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (window.location.hostname.includes("v0.dev") || window.location.hostname.includes("vercel-v0-preview"))
 
   // Fetch the user's organisation and attach org_id to app_metadata locally
-  const fetchOrgAndAugmentUser = async (supabaseUser: User): Promise<User> => {
+  const fetchOrgAndAugmentUser = async (supabaseUser: User, token?: string): Promise<User> => {
     try {
-      const { data: org } = await (supabase as any)
-        .from("organisations")
-        .select("id")
-        .eq("owner_id", supabaseUser.id)
-        .single()
+      const accessToken = token || (await supabase.auth.getSession()).data.session?.access_token
+      if (!accessToken) return supabaseUser
 
+      const res = await fetch("/api/organisations", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      if (!res.ok) return supabaseUser
+
+      const data = await res.json()
+      const org = data.organisations?.[0]
       if (org?.id) {
         return {
           ...supabaseUser,
@@ -287,20 +291,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         console.log("✅ Supabase auth.signUp succeeded:", data.user.id)
 
-        // Create organisation record
-        const { data: org, error: orgError } = await (supabase as any)
-          .from("organisations")
-          .insert({ name, owner_id: data.user.id })
-          .select()
-          .single()
-
-        if (orgError) {
-          // Non-fatal: org creation failed but user account exists
-          console.warn("⚠️ Could not create organisation:", orgError.message)
-        } else {
-          console.log("✅ Organisation created:", org.id)
-          // Write org_id into user_metadata so it's available from the JWT
-          await supabase.auth.updateUser({ data: { org_id: org.id } })
+        // Create organisation record via service-role API route
+        try {
+          const orgRes = await fetch("/api/organisations", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${data.session?.access_token ?? ""}`,
+            },
+            body: JSON.stringify({ name, plan: "starter" }),
+          })
+          const orgData = await orgRes.json()
+          if (!orgRes.ok) {
+            console.warn("⚠️ Could not create organisation:", orgData.error)
+          } else {
+            console.log("✅ Organisation created:", orgData.organisation?.id)
+            await supabase.auth.updateUser({ data: { org_id: orgData.organisation?.id } })
+          }
+        } catch (orgErr: any) {
+          console.warn("⚠️ Could not create organisation:", orgErr.message)
         }
 
         // Supabase will send its own confirmation email (if configured)
