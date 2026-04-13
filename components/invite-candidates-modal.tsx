@@ -313,14 +313,26 @@ function InviteCandidatesModal({
 
     onProgress(40)
 
-    const parseResponse = await fetch('/api/parse-cv', {
-      method: 'POST',
-      body: formData
-    })
+    // Tick progress 40→65 every 2s while AI parses — gives user visible feedback
+    let tickValue = 40
+    const progressTick = setInterval(() => {
+      tickValue = Math.min(tickValue + 5, 65)
+      onProgress(tickValue)
+    }, 2000)
 
-    const parseResult = await parseResponse.json()
+    let parseResponse: Response
+    let parseResult: any
+    try {
+      parseResponse = await fetch('/api/parse-cv', {
+        method: 'POST',
+        body: formData
+      })
+      parseResult = await parseResponse.json()
+    } finally {
+      clearInterval(progressTick)
+    }
 
-    if (!parseResponse.ok || !parseResult.success) {
+    if (!parseResponse!.ok || !parseResult.success) {
       // Return detailed error information
       return {
         success: false,

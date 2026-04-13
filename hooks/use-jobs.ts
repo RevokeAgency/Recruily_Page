@@ -383,6 +383,10 @@ export function useJobs(organisationId?: string) {
         })
 
         console.log("✅ Job created and saved to Supabase:", result.job.id)
+
+        // Refresh from API in background so F5 always shows current Supabase state
+        setTimeout(() => loadJobs(), 500)
+
         return finalJob
       } catch (error: any) {
         console.error("❌ Error creating job:", error)

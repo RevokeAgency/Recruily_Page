@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { normalizeJobDataWithGemini } from '@/lib/gemini-ai'
 
 // Common job posting selectors for different sites
 const JOB_SITE_SELECTORS = {
@@ -64,11 +63,9 @@ export async function POST(request: NextRequest) {
     
     console.log(`🎯 Detected site type: ${siteType}`)
 
-    // Fetch the webpage with enhanced headers
-    const startTime = Date.now()
-    const TOTAL_BUDGET_MS = 22000 // 22s total budget (within 26s Netlify limit)
+    // Fetch the webpage with enhanced headers — 4s hard timeout, no retries
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 6000) // 6s fetch timeout
+    const timeoutId = setTimeout(() => controller.abort(), 4000)
 
     try {
       const response = await fetch(url, {
@@ -112,34 +109,24 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Only call Gemini if we have enough time budget remaining
-      const elapsed = Date.now() - startTime
-      const budgetRemaining = TOTAL_BUDGET_MS - elapsed
-      let normalizedData = null
-
-      if (budgetRemaining > 4000) {
-        console.log(`🤖 Normalizing scraped data with Gemini AI... (${budgetRemaining}ms remaining)`)
-        try {
-          normalizedData = await normalizeJobDataWithGemini(
-            extractedContent.structuredData,
-            extractedContent.content
-          )
-          console.log(`✅ Gemini normalization completed`)
-        } catch (geminiError: any) {
-          console.warn(`⚠️ Gemini normalization failed, returning raw data: ${geminiError.message}`)
-        }
-      } else {
-        console.warn(`⚠️ Skipping Gemini normalization — only ${budgetRemaining}ms remaining`)
-      }
-
+      // Return raw scraped data immediately — no Gemini normalization
+      const sd = extractedContent.structuredData
       return NextResponse.json({
         success: true,
         content: extractedContent.content,
-        structuredData: normalizedData || extractedContent.structuredData,
+        structuredData: {
+          title: sd.title || "",
+          company: sd.company || "",
+          description: sd.description || extractedContent.content.slice(0, 2000),
+          location: sd.location || "",
+          skills: [],
+          employment_type: "full-time",
+          source: "url_scraping",
+        },
         url: url,
         siteType: siteType,
         length: extractedContent.content.length,
-        normalized: !!normalizedData
+        normalized: false,
       })
     } catch (fetchError: any) {
       clearTimeout(timeoutId)
