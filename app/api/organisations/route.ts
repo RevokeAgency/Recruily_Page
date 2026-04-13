@@ -1,63 +1,47 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-export async function GET(request: NextRequest) {
-  console.log("=== GET /api/organisations called ===")
-  const authHeader = request.headers.get("Authorization")
-  console.log("Auth header present:", !!authHeader)
-  console.log("Token length:", authHeader?.length)
-  console.log("SUPABASE_URL set:", !!process.env.NEXT_PUBLIC_SUPABASE_URL)
-  console.log("SERVICE_ROLE_KEY set:", !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
+export async function GET(request: NextRequest) {
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("ORGANISATIONS ERROR: missing env vars")
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    const authHeader = request.headers.get("Authorization")
+    const token = authHeader?.replace("Bearer ", "")
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const token = authHeader?.replace("Bearer ", "")
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    if (!user || authError) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    }
 
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
-    console.log("getUser result — user:", user?.id ?? "null", "error:", userError?.message ?? "none")
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-    const { data: orgs, error } = await supabaseAdmin
+    const { data: org, error: orgError } = await supabaseAdmin
       .from("organisations")
-      .select("id, name, plan, created_at, domain, website")
+      .select("id, name")
       .eq("owner_id", user.id)
+      .single()
 
-    console.log("orgs query — count:", orgs?.length ?? 0, "error:", error?.message ?? "none")
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (orgError || !org) {
+      return NextResponse.json({ error: "Organisation not found" }, { status: 404 })
+    }
 
-    const organisations = (orgs ?? []).map((org) => ({ ...org, role: "owner" }))
-    return NextResponse.json({ organisations })
+    return NextResponse.json({ organisations: [{ ...org, role: "owner" }] })
   } catch (error: any) {
-    console.error("ORGANISATIONS ERROR:", error.message, error.code, error.stack)
+    console.error("GET /api/organisations error:", error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
-    }
-
     const token = request.headers.get("Authorization")?.replace("Bearer ", "")
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
 
     const { data: { user } } = await supabaseAdmin.auth.getUser(token)
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
