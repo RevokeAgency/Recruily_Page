@@ -207,9 +207,9 @@ export async function analyzeCVWithGemini(
         file.name,
       )
 
-      // Updated to use gemini-1.5-flash model as requested
+      // Updated to use gemini-2.0-flash model as requested
       const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         generationConfig: {
           temperature: 0.7,
           topK: 40,
@@ -1048,7 +1048,7 @@ export async function normalizeJobDataWithGemini(
       console.log(`🤖 Starting Gemini job data normalization (attempt ${attempt + 1})`)
 
       const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         generationConfig: {
           temperature: 0.3, // Lower temperature for more consistent data extraction
           topK: 40,
@@ -1259,7 +1259,7 @@ export async function normalizeCandidateDataWithGemini(
     try {
       console.log(`🤖 Normalizing candidate data with Gemini AI (attempt ${attempt + 1})`)
 
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
       const prompt = `You are an expert candidate profile analyzer. I need you to analyze and normalize candidate data extracted from a CV or profile.
 
@@ -1366,7 +1366,7 @@ export async function calculateMatchingScore(
     try {
       console.log(`🤖 Calculating matching score with Gemini AI (attempt ${attempt + 1})`)
 
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
       const prompt = `You are an expert recruiting AI. Analyze the match between this job and candidate to calculate a comprehensive matching score.
 

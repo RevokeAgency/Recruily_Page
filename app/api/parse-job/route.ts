@@ -156,7 +156,7 @@ Return JSON with this exact structure:
 IMPORTANT: Return ONLY the JSON object, no additional text.`
 
     const result = await generateText({
-      model: google("gemini-1.5-flash"),
+      model: google("gemini-2.0-flash"),
       prompt: prompt,
     })
 
