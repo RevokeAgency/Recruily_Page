@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/supabaseServer"
+import { createServerSupabaseClient } from "@/lib/supabase"
 
 export async function GET() {
   try {
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const { count, error } = await supabase.from("jobs").select("*", { count: "exact", head: true })
 

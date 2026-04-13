@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabaseClient"
+import { supabase } from "@/lib/supabase"
 import { calculateMatchingScore } from "@/lib/gemini-ai"
 import { getOrgId } from "@/lib/get-org-id"
 

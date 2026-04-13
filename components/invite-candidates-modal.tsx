@@ -13,7 +13,7 @@ import { Upload, FileText, User, CheckCircle, AlertCircle, Loader2, X } from "lu
 import { useDropzone } from "react-dropzone"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
-import { supabase } from "@/lib/supabaseClient"
+import { supabase } from "@/lib/supabase"
 
 interface InviteCandidatesModalProps {
   isOpen?: boolean

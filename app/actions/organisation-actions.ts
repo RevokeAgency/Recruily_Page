@@ -1,13 +1,13 @@
 "use server"
 
-import { createServerSupabaseClient } from "@/lib/supabaseServer"
+import { createServerSupabaseClient } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
 
 export async function createOrganisation(formData: FormData) {
   const name = formData.get("name") as string
   const plan = (formData.get("plan") as string) || "starter"
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // Get the current user
   const {
@@ -49,7 +49,7 @@ export async function inviteMember(formData: FormData) {
   const role = (formData.get("role") as string) || "member"
   const organisationId = formData.get("organisationId") as string
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // Get the current user
   const {

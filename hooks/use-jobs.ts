@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { supabase } from "@/lib/supabaseClient"
+import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 
 export interface Job {
@@ -202,12 +202,9 @@ export function useJobs(organisationId?: string) {
       // Try to sync with API in the background (don't block UI)
       setTimeout(async () => {
         try {
-          const { data: { session } } = await supabase.auth.getSession()
-          const token = session?.access_token
-          if (!token) return
-
           const response = await fetch("/api/jobs", {
-            headers: { Authorization: `Bearer ${token}` },
+            method: "GET",
+            credentials: "include", // Session cookies sent automatically
           })
           if (!response.ok) return
 
@@ -358,11 +355,8 @@ export function useJobs(organisationId?: string) {
           source_filename: jobData.source_filename,
         }
 
-        // Save via API route (uses service role — guaranteed to succeed)
-        const { data: { session } } = await supabase.auth.getSession()
-        const token = session?.access_token
+        // Save via API route (session cookies handle auth)
         console.log("createJob fetch starting, orgId:", orgId)
-        console.log("Token available:", !!token)
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 8000)
         let response: Response
@@ -370,9 +364,9 @@ export function useJobs(organisationId?: string) {
           response = await fetch("/api/jobs", {
             method: "POST",
             signal: controller.signal,
+            credentials: "include", // Session cookies sent automatically
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${token ?? ""}`,
             },
             body: JSON.stringify(newJobData),
           })
@@ -452,11 +446,10 @@ export function useJobs(organisationId?: string) {
 
           updateData.updated_at = new Date().toISOString()
 
-          const { data: { session } } = await supabase.auth.getSession()
           const updateResponse = await fetch(`/api/jobs/${jobId}`, {
             method: "PUT",
+            credentials: "include", // Session cookies sent automatically
             headers: {
-              Authorization: `Bearer ${session?.access_token ?? ""}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify(updateData),
@@ -495,10 +488,9 @@ export function useJobs(organisationId?: string) {
 
         // Try to delete from Supabase in the background
         try {
-          const { data: { session } } = await supabase.auth.getSession()
           const deleteResponse = await fetch(`/api/jobs/${jobId}`, {
             method: "DELETE",
-            headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+            credentials: "include", // Session cookies sent automatically
           })
           if (!deleteResponse.ok) {
             console.warn("⚠️ API delete failed, job deleted locally")

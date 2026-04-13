@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { supabase } from "@/lib/supabaseClient"
+import { supabase } from "@/lib/supabase"
 import { isSupabaseConfigured } from "@/lib/env"
 
 interface Candidate {
@@ -49,12 +49,12 @@ export function useCandidates(organisationId?: string) {
       // Fetch candidates via API (uses service role to bypass RLS)
       let supabaseCandidates: Candidate[] = []
       try {
-        const { data: { session } } = await supabase.auth.getSession()
         const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Candidates fetch timed out")), 8000)
         )
         const fetchPromise = fetch("/api/candidates", {
-          headers: { "Authorization": `Bearer ${session?.access_token}` }
+          method: "GET",
+          credentials: "include", // Session cookies sent automatically
         }).then(r => r.json())
         const result = await Promise.race([fetchPromise, timeoutPromise]) as any
 

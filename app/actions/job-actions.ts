@@ -1,6 +1,6 @@
 "use server"
 
-import { createServerSupabaseClient } from "@/lib/supabaseServer"
+import { createServerSupabaseClient } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
 
 export async function createJob(formData: FormData) {
@@ -16,7 +16,7 @@ export async function createJob(formData: FormData) {
     return { error: "Title and description are required" }
   }
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // Get the current user
   const {
@@ -61,7 +61,7 @@ export async function createJob(formData: FormData) {
 export async function matchCandidates(formData: FormData) {
   const jobId = formData.get("jobId") as string
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // Get the current user
   const {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabaseClient"
+import { supabase } from "@/lib/supabase"
 import { useAuth } from "./use-auth"
 
 export function useOrganisations() {
@@ -20,16 +20,9 @@ export function useOrganisations() {
       }
 
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const token = session?.access_token
-        if (!token) {
-          setOrganisations([])
-          setLoading(false)
-          return
-        }
-
         const response = await fetch("/api/organisations", {
-          headers: { Authorization: `Bearer ${token}` },
+          method: "GET",
+          credentials: "include",
         })
 
         if (!response.ok) throw new Error("Failed to fetch organisations")

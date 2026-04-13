@@ -1,6 +1,6 @@
 "use server"
 
-import { createServerSupabaseClient } from "@/lib/supabaseServer"
+import { createServerSupabaseClient } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
 
 export async function createCandidate(formData: FormData) {
@@ -12,7 +12,7 @@ export async function createCandidate(formData: FormData) {
   const notes = formData.get("notes") as string
   const organisationId = formData.get("organisationId") as string
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // Get the current user
   const {
@@ -68,7 +68,7 @@ export async function uploadResume(formData: FormData) {
     return { error: "File and candidate ID are required" }
   }
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // Get the current user
   const {
