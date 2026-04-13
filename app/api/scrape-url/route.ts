@@ -111,14 +111,16 @@ export async function POST(request: NextRequest) {
 
       // Return raw scraped data immediately — no Gemini normalization
       const sd = extractedContent.structuredData
+      const rawDesc = sd.description || extractedContent.content.slice(0, 3000)
       return NextResponse.json({
         success: true,
         content: extractedContent.content,
         structuredData: {
           title: sd.title || "",
           company: sd.company || "",
-          description: sd.description || extractedContent.content.slice(0, 2000),
+          description: formatDescription(rawDesc),
           location: sd.location || "",
+          salary: extractSalary(rawDesc),
           skills: [],
           employment_type: "full-time",
           source: "url_scraping",
@@ -324,6 +326,55 @@ function cleanExtractedText(text: string, structuredData: any): string {
   ].filter(Boolean).join(' ')
   
   return combinedText.substring(0, 8000) // Limit to reasonable size
+}
+
+// Format raw scraped description into clean readable text
+function formatDescription(raw: string): string {
+  let text = raw
+    // Decode common HTML entities
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&ndash;/g, "–")
+    .replace(/&mdash;/g, "—")
+    // Remove any residual HTML tags
+    .replace(/<[^>]+>/g, " ")
+    // Normalize bullet characters into newline bullets
+    .replace(/[•·▪▸◦‣]\s*/g, "\n• ")
+    .replace(/^\s*[-–]\s+/gm, "\n• ")
+    // Split on 2+ spaces or tab-like gaps (common in scraped text)
+    .replace(/\s{3,}/g, "\n")
+    // Collapse multiple blank lines to one
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+
+  // If no newlines, try to split on sentence-ending patterns to create paragraphs
+  if (!text.includes("\n")) {
+    text = text
+      .replace(/\.\s{2,}/g, ".\n\n")
+      .replace(/([.!?])\s+([A-Z])/g, "$1\n$2")
+  }
+
+  return text.slice(0, 4000)
+}
+
+// Extract salary info using common patterns (€, £, $, k ranges)
+function extractSalary(text: string): string {
+  const patterns = [
+    /(?:€|EUR)\s*[\d.,]+(?:\s*[-–]\s*[\d.,]+)?(?:\s*[kK])?/,
+    /(?:£|GBP)\s*[\d.,]+(?:\s*[-–]\s*[\d.,]+)?(?:\s*[kK])?/,
+    /(?:\$|USD)\s*[\d.,]+(?:\s*[-–]\s*[\d.,]+)?(?:\s*[kK])?/,
+    /[\d.,]+\s*[-–]\s*[\d.,]+\s*(?:€|£|\$|EUR|USD|GBP)/,
+    /\b\d{2,3}[.,]\d{3}\b(?:\s*[-–]\s*\d{2,3}[.,]\d{3}\b)?/,
+  ]
+  for (const pattern of patterns) {
+    const m = text.match(pattern)
+    if (m) return m[0].trim()
+  }
+  return ""
 }
 
 // App Router configuration exports

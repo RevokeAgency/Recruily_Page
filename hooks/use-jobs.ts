@@ -360,17 +360,28 @@ export function useJobs(organisationId?: string) {
 
         // Save via API route (uses service role — guaranteed to succeed)
         const { data: { session } } = await supabase.auth.getSession()
-        const response = await fetch("/api/jobs", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session?.access_token ?? ""}`,
-          },
-          body: JSON.stringify(newJobData),
-        })
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 8000)
+        let response: Response
+        try {
+          response = await fetch("/api/jobs", {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session?.access_token ?? ""}`,
+            },
+            body: JSON.stringify(newJobData),
+          })
+        } catch (fetchErr: any) {
+          clearTimeout(timeoutId)
+          if (fetchErr.name === "AbortError") throw new Error("Job creation timed out — please try again")
+          throw fetchErr
+        }
+        clearTimeout(timeoutId)
         const result = await response.json()
         if (!response.ok) {
-          throw new Error(result.error || "Failed to create job")
+          throw new Error(result.error || `Failed to create job (HTTP ${response.status})`)
         }
 
         // Use the UUID assigned by the API
