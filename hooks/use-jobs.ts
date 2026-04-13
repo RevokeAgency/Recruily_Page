@@ -360,6 +360,9 @@ export function useJobs(organisationId?: string) {
 
         // Save via API route (uses service role — guaranteed to succeed)
         const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+        console.log("createJob fetch starting, orgId:", orgId)
+        console.log("Token available:", !!token)
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 8000)
         let response: Response
@@ -369,7 +372,7 @@ export function useJobs(organisationId?: string) {
             signal: controller.signal,
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${session?.access_token ?? ""}`,
+              "Authorization": `Bearer ${token ?? ""}`,
             },
             body: JSON.stringify(newJobData),
           })
@@ -379,7 +382,10 @@ export function useJobs(organisationId?: string) {
           throw fetchErr
         }
         clearTimeout(timeoutId)
-        const result = await response.json()
+        console.log("createJob response status:", response.status)
+        const responseText = await response.text()
+        console.log("createJob response body:", responseText)
+        const result = responseText ? JSON.parse(responseText) : {}
         if (!response.ok) {
           throw new Error(result.error || `Failed to create job (HTTP ${response.status})`)
         }

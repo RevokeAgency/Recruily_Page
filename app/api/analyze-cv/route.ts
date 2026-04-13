@@ -53,7 +53,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   console.log("=== ANALYZE-CV CALLED ===")
-  console.log("GOOGLE_GENERATIVE_AI_API_KEY set:", !!process.env.GOOGLE_GENERATIVE_AI_API_KEY)
+  console.log("ANALYZE-CV: GOOGLE_GENERATIVE_AI_API_KEY:", process.env.GOOGLE_GENERATIVE_AI_API_KEY ? "SET (length:" + process.env.GOOGLE_GENERATIVE_AI_API_KEY.length + ")" : "NOT SET")
   console.log("GEMINI_API_KEY set:", !!process.env.GEMINI_API_KEY)
   console.log("isGeminiAvailable():", isGeminiAvailable())
   console.log("🚀 CV Analysis API Called with Gemini Integration")
