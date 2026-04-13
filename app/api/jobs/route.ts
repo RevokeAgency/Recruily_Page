@@ -268,8 +268,8 @@ export async function POST(request: NextRequest) {
       message: "Job created successfully",
     })
   } catch (error: any) {
-    console.error("❌ Jobs API POST Error:", error)
-    return NextResponse.json({ success: false, error: "Failed to create job" }, { status: 500 })
+    console.error("Job insert error details:", error.message, error.code)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
