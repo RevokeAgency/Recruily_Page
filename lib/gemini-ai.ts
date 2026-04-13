@@ -134,6 +134,9 @@ function isRetryableError(error: any): boolean {
   const errorMessage = error instanceof Error ? error.message : String(error)
   const errorString = error.toString ? error.toString() : String(error)
 
+  // Timeout is never retryable — fall through to fallback immediately
+  if (errorMessage.includes("GEMINI_TIMEOUT")) return false
+
   // Check for GoogleGenerativeAI specific error patterns
   const isGoogleAIError =
     errorString.includes("[GoogleGenerativeAI Error]") ||
