@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { createAdminClient } from "@/lib/supabase"
 import { v4 as uuidv4 } from "uuid"
 import { getOrgId } from "@/lib/get-org-id"
 
@@ -140,20 +140,12 @@ const getMockJobs = () => [
 
 export async function GET(request: NextRequest) {
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ success: false, error: "Server configuration error" }, { status: 500 })
-    }
-
     const token = request.headers.get("Authorization")?.replace("Bearer ", "")
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const supabaseAdmin = createAdminClient()
 
     const { data: { user } } = await supabaseAdmin.auth.getUser(token)
     if (!user) {
@@ -194,21 +186,13 @@ export async function POST(request: NextRequest) {
   try {
     console.log("📋 Jobs API - POST request received")
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ success: false, error: "Server configuration error" }, { status: 500 })
-    }
-
     // Verify Bearer token and resolve real user
     const token = request.headers.get("Authorization")?.replace("Bearer ", "")
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const supabaseAdmin = createAdminClient()
 
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
     if (!user || userError) {

@@ -365,7 +365,7 @@ export function useJobs(organisationId?: string) {
         console.log("createJob: session obtained, token available:", !!token)
         console.log("createJob fetch starting, orgId:", orgId)
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 8000)
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
         let response: Response
         try {
           response = await fetch("/api/jobs", {

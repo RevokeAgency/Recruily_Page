@@ -17,6 +17,8 @@ const getGeminiClient = () => {
 
 export async function POST(request: NextRequest) {
   console.log('🚀 Enhanced CV parsing request received')
+  console.log("GEMINI KEY:", !!process.env.GOOGLE_GENERATIVE_AI_API_KEY)
+  console.log("GEMINI KEY LENGTH:", process.env.GOOGLE_GENERATIVE_AI_API_KEY?.length)
   
   try {
     const formData = await request.formData()
@@ -391,7 +393,7 @@ async function extractCVDataWithGemini(file: File, jobData: any) {
     // Get the generative model with enhanced config
     console.log('🤖 Setting up Gemini model configuration...')
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-pro",
       generationConfig: {
         temperature: 0.1, // Lower temperature for consistent extraction
         topK: 1,
@@ -486,7 +488,7 @@ RESPONSE FORMAT: Return only the JSON object, nothing else.`
     // Make API call to Gemini with comprehensive error handling
     console.log('🚀 Making Gemini API request...')
     console.log('📋 API request parameters:', {
-      modelName: "gemini-2.5-flash",
+      modelName: "gemini-1.5-pro",
       fileType: file.type,
       fileSizeKB: Math.round(file.size / 1024),
       base64SizeKB: Math.round(base64Data.length / 1024),
