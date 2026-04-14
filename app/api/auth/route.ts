@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabaseClient"
+import { createServerSupabaseClient } from "@/lib/supabase"
 
 export async function POST(request: Request) {
   try {
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       // Use the centralized Supabase client
 
       if (action === "signin") {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await createServerSupabaseClient().auth.signInWithPassword({
           email,
           password,
         })
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ user: data.user, session: data.session })
       } else if (action === "signup") {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await createServerSupabaseClient().auth.signUp({
           email,
           password,
           options: {
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ user: data.user, session: data.session })
       } else if (action === "signout") {
-        const { error } = await supabase.auth.signOut()
+        const { error } = await createServerSupabaseClient().auth.signOut()
 
         if (error) {
           return NextResponse.json({ error: error.message }, { status: 400 })
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true })
       } else if (action === "session") {
-        const { data, error } = await supabase.auth.getSession()
+        const { data, error } = await createServerSupabaseClient().auth.getSession()
 
         if (error) {
           return NextResponse.json({ error: error.message }, { status: 400 })

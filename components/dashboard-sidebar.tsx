@@ -41,7 +41,7 @@ export default function DashboardSidebar() {
       if (!user?.app_metadata?.org_id) return
 
       try {
-        const { supabase } = await import("@/lib/supabaseClient")
+        const { supabase } = await import("@/lib/supabase")
 
         const { data } = await supabase
           .from("jobs")

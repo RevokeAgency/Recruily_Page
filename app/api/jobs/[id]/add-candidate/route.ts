@@ -22,8 +22,14 @@ export async function POST(
   try {
     const { candidateData, extractedData } = await request.json()
     
-    const jobId = params.id
-
+    // Ensure jobId is a valid UUID, generate one if not
+    let jobId = params.id
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(jobId)) {
+      console.log(`⚠️ Job ID "${jobId}" is not a UUID, generating one for database compatibility`)
+      jobId = uuidv4()
+    }
+    
     if (!candidateData || !jobId) {
       return NextResponse.json({
         success: false,
@@ -55,10 +61,6 @@ export async function POST(
     )
 
     // Step 1: Create or update candidate record
-    console.log("=== ADD-CANDIDATE UPSERT ===")
-    console.log("candidateData keys:", Object.keys(candidateData))
-    console.log("candidateData:", JSON.stringify(candidateData, null, 2))
-
     let candidateRecord
     try {
       const { data, error: candidateError } = await (supabaseAdmin as any)
@@ -66,10 +68,6 @@ export async function POST(
         .upsert([candidateData])
         .select()
         .single()
-
-      console.log("=== ADD-CANDIDATE UPSERT RESULT ===")
-      console.log("upsertError:", JSON.stringify(candidateError, null, 2))
-      console.log("upsertResult:", JSON.stringify(data, null, 2))
 
       if (candidateError && !candidateError.message?.includes('Mock')) {
         throw candidateError
@@ -83,42 +81,37 @@ export async function POST(
     // Step 2: Calculate match scores
     const matchingResult = calculateMatchScores(candidateData, extractedData)
 
-    // Step 3: Create match record aligned to real `matches` table schema
+    // Step 3: Create job match record with correct schema
     const matchRecord = {
       id: uuidv4(),
       candidate_id: candidateData.id,
       job_id: jobId,
-      score: Math.round(matchingResult.overallScore),
-      strengths: matchingResult.strengths,
-      weaknesses: matchingResult.gaps,
-      skill_matches: {
+      match_score: Math.round(matchingResult.overallScore),
+      match_details: JSON.stringify({
+        overall_score: Math.round(matchingResult.overallScore),
         skills_score: Math.round(matchingResult.skillsScore),
         experience_score: Math.round(matchingResult.experienceScore),
         education_score: Math.round(matchingResult.educationScore),
         languages_score: Math.round(matchingResult.languagesScore),
         certifications_score: Math.round(matchingResult.certificationsScore),
-      },
-      experience_match: Math.round(matchingResult.experienceScore),
+        other_score: Math.round(matchingResult.otherScore),
+        strengths: matchingResult.strengths,
+        gaps: matchingResult.gaps,
+        recommendations: matchingResult.recommendations
+      }),
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
 
-    // Step 4: Save match record to the `matches` table
-    console.log("=== MATCH INSERT ===")
-    console.log("matchRecord:", JSON.stringify(matchRecord, null, 2))
-
+    // Step 4: Save job match record using correct table name
     let matchData
     try {
       const { data, error: matchError } = await (supabaseAdmin as any)
-        .from('matches')
+        .from('job_candidate_matches')
         .insert([matchRecord])
         .select()
         .single()
-
-      console.log("=== MATCH INSERT RESULT ===")
-      console.log("matchError:", JSON.stringify(matchError, null, 2))
-      console.log("matchResult:", JSON.stringify(data, null, 2))
 
       if (matchError && !matchError.message?.includes('Mock')) {
         throw matchError
@@ -245,6 +238,7 @@ function createInMemoryCandidate(candidateData: any, jobId: string, extractedDat
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     candidate: candidateData,
+    demo_mode: true
   }
 
   // Store in memory for immediate access

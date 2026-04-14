@@ -4,7 +4,7 @@ import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { User, Session } from "@supabase/supabase-js"
-import { supabase } from "@/lib/supabaseClient"
+import { supabase } from "@/lib/supabase"
 import { isSupabaseConfigured } from "@/lib/env"
 import { sendConfirmationEmail } from "@/lib/email-service"
 

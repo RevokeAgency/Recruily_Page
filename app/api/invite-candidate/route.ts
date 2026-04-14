@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabaseClient"
+import { createAdminClient } from "@/lib/supabase"
 import { calculateMatchingScore } from "@/lib/gemini-ai"
 import { getOrgId } from "@/lib/get-org-id"
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     let jobError = null
     
     try {
-      const { data: jobData, error: supabaseJobError } = await supabase
+      const { data: jobData, error: supabaseJobError } = await createAdminClient()
         .from('job_postings')
         .select('*')
         .eq('id', jobId)
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     let candidateError = null
     
     try {
-      const { data: candidateData, error: supabaseCandidateError } = await supabase
+      const { data: candidateData, error: supabaseCandidateError } = await createAdminClient()
         .from('candidates')
         .select('*')
         .eq('id', candidateId)
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if match already exists
-    const { data: existingMatch } = await supabase
+    const { data: existingMatch } = await createAdminClient()
       .from('matches')
       .select('id')
       .eq('job_id', jobId)
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     let matchError = null
     
     try {
-      const { data: matchData, error: supabaseMatchError } = await (supabase as any)
+      const { data: matchData, error: supabaseMatchError } = await (createAdminClient() as any)
         .from('matches')
         .insert([matchRecord])
         .select(`

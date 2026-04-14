@@ -1,137 +1,92 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabaseClient"
+import { createAdminClient } from "@/lib/supabase"
+
 export async function GET(request: NextRequest) {
   try {
+    const token = request.headers.get("Authorization")?.replace("Bearer ", "")
+    if (!token) {
+      return NextResponse.json({ success: true, matches: [], count: 0 })
+    }
+
+    const admin = createAdminClient()
+    const { data: { user } } = await admin.auth.getUser(token)
+    if (!user) {
+      return NextResponse.json({ success: true, matches: [], count: 0 })
+    }
+
+    const { data: org } = await admin
+      .from("organisations")
+      .select("id")
+      .eq("owner_id", user.id)
+      .single()
+
+    if (!org?.id) {
+      return NextResponse.json({ success: true, matches: [], count: 0 })
+    }
+
     const { searchParams } = new URL(request.url)
     const jobId = searchParams.get("jobId")
     const candidateId = searchParams.get("candidateId")
 
-    console.log("📋 Fetching matches for:", { jobId, candidateId })
+    let query = admin
+      .from("matches")
+      .select(`*, candidate:candidates(*), job:jobs(*)`)
+      .eq("organisation_id", org.id)
+      .order("created_at", { ascending: false })
 
-    // Build query
-    let query = supabase
-      .from('matches')
-      .select(`
-        *,
-        candidate:candidates(*),
-        job:jobs(*)
-      `)
-      .order('created_at', { ascending: false })
-
-    // Add filters
-    if (jobId) {
-      query = query.eq('job_id', jobId)
-    }
-    
-    if (candidateId) {
-      query = query.eq('candidate_id', candidateId)
-    }
+    if (jobId) query = query.eq("job_id", jobId)
+    if (candidateId) query = query.eq("candidate_id", candidateId)
 
     const { data: matches, error } = await query
 
     if (error) {
-      console.error("❌ Supabase query error:", error)
-      return NextResponse.json({
-        success: true, // Return success with empty array for graceful fallback
-        matches: [],
-        count: 0,
-        source: "database_error"
-      })
+      console.error("❌ Matches fetch error:", error)
+      return NextResponse.json({ success: true, matches: [], count: 0 })
     }
-
-    console.log(`✅ Found ${matches?.length || 0} matches`)
 
     return NextResponse.json({
       success: true,
-      matches: matches || [],
-      count: matches?.length || 0,
-      source: "database"
+      matches: matches ?? [],
+      count: matches?.length ?? 0,
     })
-  } catch (error) {
-    console.error("❌ Error fetching matches:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch matches",
-        matches: [],
-        count: 0,
-      },
-      { status: 500 },
-    )
+  } catch (error: any) {
+    console.error("❌ Matches API GET Error:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch matches", matches: [], count: 0 }, { status: 500 })
   }
 }
 
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { matchId, status } = body
+    const token = request.headers.get("Authorization")?.replace("Bearer ", "")
+    if (!token) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
 
+    const admin = createAdminClient()
+    const { data: { user } } = await admin.auth.getUser(token)
+    if (!user) return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 })
+
+    const { matchId, status } = await request.json()
     if (!matchId || !status) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Match ID and status are required",
-        },
-        { status: 400 },
-      )
+      return NextResponse.json({ success: false, error: "Match ID and status are required" }, { status: 400 })
     }
 
-    console.log(`🔄 Updating match ${matchId} status to ${status}`)
-
-    const { data: updatedMatch, error } = await (supabase as any)
-      .from('matches')
-      .update({ 
-        status: status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', matchId)
-      .select(`
-        *,
-        candidate:candidates(*),
-        job:jobs(*)
-      `)
+    const { data: updatedMatch, error } = await admin
+      .from("matches")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", matchId)
+      .select(`*, candidate:candidates(*), job:jobs(*)`)
       .single()
 
     if (error) {
-      console.error("❌ Failed to update match:", error)
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to update match status",
-        },
-        { status: 500 },
-      )
+      console.error("❌ Match update error:", error)
+      return NextResponse.json({ success: false, error: "Failed to update match status" }, { status: 500 })
     }
 
-    if (!updatedMatch) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Match not found",
-        },
-        { status: 404 },
-      )
-    }
-
-    console.log(`✅ Match status updated: ${updatedMatch.id}`)
-
-    return NextResponse.json({
-      success: true,
-      match: updatedMatch,
-      message: "Match status updated successfully",
-    })
-  } catch (error) {
-    console.error("❌ Error updating match:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to update match",
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({ success: true, match: updatedMatch })
+  } catch (error: any) {
+    console.error("❌ Matches API PATCH Error:", error)
+    return NextResponse.json({ success: false, error: "Failed to update match" }, { status: 500 })
   }
 }
 
-// App Router configuration exports
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"

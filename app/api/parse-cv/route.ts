@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
@@ -86,7 +85,7 @@ export async function POST(request: NextRequest) {
     // Get job requirements for context
     let jobData = null
     try {
-      const { data: job, error: jobError } = await (supabase as any)
+      const { data: job, error: jobError } = await (createAdminClient() as any)
         .from('job_postings')
         .select('title, description, requirements, location, salary_range')
         .eq('id', jobId)
@@ -193,7 +192,7 @@ export async function POST(request: NextRequest) {
       const fileName = `${candidateId}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
       const fileBuffer = Buffer.from(await file.arrayBuffer())
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await createAdminClient().storage
         .from('resumes')
         .upload(fileName, fileBuffer, {
           contentType: file.type,
@@ -201,7 +200,7 @@ export async function POST(request: NextRequest) {
         })
 
       if (!uploadError && uploadData) {
-        const { data: urlData } = supabase.storage
+        const { data: urlData } = createAdminClient().storage
           .from('resumes')
           .getPublicUrl(fileName)
         
@@ -250,16 +249,7 @@ export async function POST(request: NextRequest) {
     let candidateData
     try {
       // Use service role client for database operations to bypass RLS issues
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false
-          }
-        }
-      )
+      const supabaseAdmin = createAdminClient()
 
       const { data, error: candidateError } = await (supabaseAdmin as any)
         .from('candidates')
@@ -326,17 +316,8 @@ export async function POST(request: NextRequest) {
 
       try {
         // Use service role for resume metadata as well
-        const supabaseAdmin = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!,
-          {
-            auth: {
-              autoRefreshToken: false,
-              persistSession: false
-            }
-          }
-        )
-        
+        const supabaseAdmin = createAdminClient()
+
         const { error: resumeError } = await (supabaseAdmin as any)
           .from('resumes')
           .insert([resumeRecord])
