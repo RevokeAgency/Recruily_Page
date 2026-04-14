@@ -128,7 +128,7 @@ export interface Database {
           updated_at?: string
         }
       }
-      job_candidate_matches: {
+      matches: {
         Row: {
           id: string
           job_id: string

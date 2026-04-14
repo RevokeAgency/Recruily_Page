@@ -106,7 +106,7 @@ serve(async (req) => {
 
       // Insert the match
       const { data: match, error: matchError } = await supabaseClient
-        .from("job_candidate_matches")
+        .from("matches")
         .insert({
           job_id: jobId,
           candidate_id: candidate.id,

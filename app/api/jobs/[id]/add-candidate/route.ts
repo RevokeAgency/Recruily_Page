@@ -108,7 +108,7 @@ export async function POST(
     let matchData
     try {
       const { data, error: matchError } = await (supabaseAdmin as any)
-        .from('job_candidate_matches')
+        .from('matches')
         .insert([matchRecord])
         .select()
         .single()
@@ -237,8 +237,7 @@ function createInMemoryCandidate(candidateData: any, jobId: string, extractedDat
     status: 'pending',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    candidate: candidateData,
-    demo_mode: true
+    candidate: candidateData
   }
 
   // Store in memory for immediate access

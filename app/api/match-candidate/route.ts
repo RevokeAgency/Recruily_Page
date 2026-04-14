@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@supabase/supabase-js'
 import { v4 as uuidv4 } from 'uuid'
 
 // Weighted scoring system as specified
@@ -37,12 +38,25 @@ export async function POST(request: NextRequest) {
     console.log(`🔗 Matching candidate ${candidateId} to job ${jobId}`)
 
     // Check if Supabase is available
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
       console.warn('⚠️ Supabase not available, creating mock match')
       return createMockMatch(candidateId, jobId, extractedData)
     }
 
-    const supabaseAdmin = createAdminClient()
+    // Use service role client for database operations
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
 
     // Fetch candidate data
     let candidate, job
@@ -563,8 +577,7 @@ function createMockMatch(candidateId: string, jobId: string, extractedData: any)
     gaps: matchingResult.gaps,
     status: 'pending',
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    demo_mode: true
+    updated_at: new Date().toISOString()
   }
 
   return NextResponse.json({

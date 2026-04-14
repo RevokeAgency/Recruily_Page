@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
     const candidateRecord = {
       id: candidateId,
       name: fullName,
-      email: extractedData.candidate.email || `candidate_${Date.now()}@recruily-import.com`,
+      email: extractedData.candidate.email || `candidate_${Date.now()}_${Math.random().toString(36).substr(2,6)}@recruily-import.com`,
       phone: extractedData.candidate.phone || null,
       location: extractedData.candidate.location || null,
       summary: extractedData.candidate.summary || null,
@@ -255,7 +255,10 @@ export async function POST(request: NextRequest) {
 
       const { data, error: candidateError } = await (supabaseAdmin as any)
         .from('candidates')
-        .insert([candidateRecord])
+        .upsert(candidateRecord, {
+          onConflict: 'email',
+          ignoreDuplicates: false
+        })
         .select()
         .single()
 
@@ -292,17 +295,16 @@ export async function POST(request: NextRequest) {
     } catch (dbError: any) {
       console.error('❌ Database operation failed:', dbError.message)
       if (!candidateData?.id) {
-        // Only use demo_mode if candidate was NOT already saved to DB
+        // Only use fallback if candidate was NOT already saved to DB
         console.log('🔄 Creating fallback candidate record for demonstration')
         candidateData = {
-          ...candidateRecord,
-          demo_mode: true
+          ...candidateRecord
         }
       }
       // If candidateData already has an id, it was saved — keep it as is
     }
 
-    console.log(`💾 Candidate saved: ${candidateData.id} ${candidateData.demo_mode ? '(demo mode)' : '(database)'}`)
+    console.log(`💾 Candidate saved: ${candidateData.id}`)
 
     // Save resume metadata with fallback handling
     if (resumeUrl) {
@@ -342,7 +344,6 @@ export async function POST(request: NextRequest) {
       message: usingFallback 
         ? `Processed ${file.name} using fallback extraction (AI unavailable)` 
         : `Successfully processed ${file.name} with AI extraction`,
-      demo_mode: candidateData.demo_mode || false,
       extraction_method: usingFallback ? 'fallback' : 'gemini_ai',
       fallback_used: usingFallback
     })

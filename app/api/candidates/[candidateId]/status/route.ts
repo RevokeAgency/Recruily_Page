@@ -46,8 +46,7 @@ export async function PATCH(
           notes,
           updated_at: new Date().toISOString()
         },
-        message: `Candidate status updated to: ${status}`,
-        demo_mode: true
+        message: `Candidate status updated to: ${status}`
       })
     }
 

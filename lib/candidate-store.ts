@@ -17,7 +17,7 @@ interface CandidateMatch {
   recommendations: string[]
   created_at: string
   candidate: any
-  demo_mode?: boolean
+
 }
 
 // Global in-memory storage
