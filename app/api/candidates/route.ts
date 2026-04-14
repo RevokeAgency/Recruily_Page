@@ -3,7 +3,7 @@
 // FIXED: Service role for org-scoped queries
 
 import { NextRequest, NextResponse } from "next/server"
-import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase"
+import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase.server"
 
 export async function GET(request: NextRequest) {
   try {

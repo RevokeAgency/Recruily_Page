@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/hooks/use-auth"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase.client"
 import { useLanguage } from "@/contexts/language-context"
 
 interface Step {

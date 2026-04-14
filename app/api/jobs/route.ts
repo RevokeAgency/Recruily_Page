@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase"
+import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase.server"
 import { v4 as uuidv4 } from "uuid"
 
 export async function GET(request: NextRequest) {

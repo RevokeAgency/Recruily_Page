@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase.client"
 import { useAuth } from "@/contexts/auth-context"
 
 export interface Job {

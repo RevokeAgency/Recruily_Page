@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useLanguage } from "@/contexts/language-context"
 import { useAuth } from "@/hooks/use-auth"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase.client"
 import { CVUploadModal as CvUploadModal } from "@/components/cv-upload-modal"
 
 interface GuidedWorkflowProps {

@@ -1,10 +1,8 @@
-import { createClient } from "@supabase/supabase-js"
-import { createServerClient, type CookieOptions } from "@supabase/ssr"
-import { cookies } from "next/headers"
+// lib/supabase.client.ts
+// Client-side only: for use in Client Components and hooks
+// Safe to import from any "use client" component
 
-// ============================================================================
-// ENVIRONMENT VALIDATION
-// ============================================================================
+import { createClient } from "@supabase/supabase-js"
 
 function validateSupabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -20,10 +18,6 @@ function validateSupabaseEnv() {
   }
   return true
 }
-
-// ============================================================================
-// 1. BROWSER CLIENT (for Client Components)
-// ============================================================================
 
 export function createBrowserClient() {
   if (!validateSupabaseEnv()) {
@@ -43,76 +37,10 @@ export function createBrowserClient() {
   )
 }
 
-// ============================================================================
-// 2. SERVER CLIENT (for Server Components, API Routes, Middleware)
-// ============================================================================
-
-export async function createServerSupabaseClient() {
-  if (!validateSupabaseEnv()) {
-    console.warn("⚠️ Using MOCK client — data will NOT persist")
-    return createMockClient()
-  }
-
-  const cookieStore = await cookies()
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch (error) {
-            console.warn("❌ Could not set cookie:", error)
-          }
-        },
-      },
-    }
-  )
-}
-
-// ============================================================================
-// 3. ADMIN CLIENT (SERVICE ROLE — Server-Only, NEVER in browser!)
-// ============================================================================
-
-export function createAdminClient() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    throw new Error("❌ FATAL: NEXT_PUBLIC_SUPABASE_URL not set")
-  }
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error(
-      "❌ FATAL: SUPABASE_SERVICE_ROLE_KEY not set in .env (server-side only!)"
-    )
-  }
-
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  )
-}
-
-// ============================================================================
-// SINGLETON INSTANCES
-// ============================================================================
-
+// Singleton browser client
 export const supabase = createBrowserClient()
 
-// ============================================================================
-// MOCK CLIENT (for development without Supabase)
-// ============================================================================
-
+// Mock client for development without Supabase
 function createMockClient() {
   const mockError = new Error(
     "❌ MOCK CLIENT: Supabase not configured. Data will NOT persist! " +

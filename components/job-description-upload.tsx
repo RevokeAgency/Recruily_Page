@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
 import { useLanguage } from "@/contexts/language-context"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase.client"
 import { useAuth } from "@/hooks/use-auth"
 
 interface JobData {
