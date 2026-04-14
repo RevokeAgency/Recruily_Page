@@ -88,8 +88,8 @@ export async function POST(request: NextRequest) {
     let jobData = null
     try {
       const { data: job, error: jobError } = await (createAdminClient() as any)
-        .from('job_postings')
-        .select('title, description, requirements, location, salary_range')
+        .from('jobs')
+        .select('title, description, requirements, location, skills, employment_type, salary_min, salary_max')
         .eq('id', jobId)
         .single()
 

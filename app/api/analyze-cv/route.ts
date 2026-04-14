@@ -237,7 +237,7 @@ async function saveCandidateToSupabase(candidate: any) {
     const candidateRecord = {
       id: candidate.id,
       name: candidate.name || "Unknown Candidate",
-      email: candidate.email || `candidate_${Date.now()}@recruily-import.com`,
+      email: candidate.email || `candidate_${Date.now()}_${Math.random().toString(36).substr(2,6)}@recruily-import.com`,
       phone: candidate.phone || null,
       location: candidate.location || null,
       summary: candidate.summary || null,
@@ -255,7 +255,7 @@ async function saveCandidateToSupabase(candidate: any) {
 
     const { data, error } = await supabaseAdmin
       .from("candidates")
-      .insert(candidateRecord)
+      .upsert(candidateRecord, { onConflict: 'email', ignoreDuplicates: false })
       .select()
       .single()
 
