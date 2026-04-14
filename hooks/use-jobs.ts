@@ -359,10 +359,11 @@ export function useJobs(organisationId?: string) {
         }
 
         // Save via API route (uses service role — guaranteed to succeed)
+        console.log("createJob: calling getSession...")
         const { data: { session } } = await supabase.auth.getSession()
         const token = session?.access_token
+        console.log("createJob: session obtained, token available:", !!token)
         console.log("createJob fetch starting, orgId:", orgId)
-        console.log("Token available:", !!token)
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 8000)
         let response: Response

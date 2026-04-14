@@ -189,6 +189,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  console.log("=== POST /api/jobs called ===")
+  console.log("Headers:", Object.fromEntries(request.headers))
   try {
     console.log("📋 Jobs API - POST request received")
 
