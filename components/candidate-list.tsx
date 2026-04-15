@@ -89,34 +89,32 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
   const [filterBy, setFilterBy] = useState("all")
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateMatch | null>(null)
 
-  // Fetch candidates
-  useEffect(() => {
-    const fetchCandidates = async () => {
-      try {
-        console.log('🔍 Fetching candidates for job:', jobId)
-        setLoading(true)
-        
-        const response = await fetch(`/api/jobs/${jobId}/candidates`)
-        const result = await response.json()
-        
-        if (result.success) {
-          setCandidates(result.candidates || [])
-          console.log(`✅ Loaded ${result.candidates?.length || 0} candidates`)
-        } else {
-          setError(result.error || 'Failed to load candidates')
-        }
-      } catch (err: any) {
-        console.error('❌ Error fetching candidates:', err)
-        setError(err.message || 'Failed to load candidates')
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Fetch candidates from DB
+  const fetchCandidates = React.useCallback(async (silent = false) => {
+    try {
+      if (!silent) setLoading(true)
+      console.log('🔍 Fetching candidates for job:', jobId)
 
-    if (jobId) {
-      fetchCandidates()
+      const response = await fetch(`/api/jobs/${jobId}/candidates`)
+      const result = await response.json()
+
+      if (result.success) {
+        setCandidates(result.candidates || [])
+        console.log(`✅ Loaded ${result.candidates?.length || 0} candidates`)
+      } else {
+        setError(result.error || 'Failed to load candidates')
+      }
+    } catch (err: any) {
+      console.error('❌ Error fetching candidates:', err)
+      setError(err.message || 'Failed to load candidates')
+    } finally {
+      if (!silent) setLoading(false)
     }
   }, [jobId])
+
+  useEffect(() => {
+    if (jobId) fetchCandidates()
+  }, [jobId, fetchCandidates])
 
   // Filter and sort candidates
   const filteredCandidates = useMemo(() => {
@@ -246,6 +244,7 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
                 candidate: newCandidate,
               } as any, ...prev])
             }}
+            onUploadCompleted={() => fetchCandidates(true)}
           />
         </div>
       </div>
@@ -339,6 +338,7 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
                       candidate: newCandidate,
                     } as any, ...prev])
                   }}
+                  onUploadCompleted={() => fetchCandidates(true)}
                 />
               )}
             </CardContent>
