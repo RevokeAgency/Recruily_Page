@@ -84,32 +84,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Get job requirements for context
-    let jobData = null
-    try {
-      const { data: job, error: jobError } = await (createAdminClient() as any)
-        .from('jobs')
-        .select('title, description, requirements, location, skills, employment_type, salary_min, salary_max')
-        .eq('id', jobId)
-        .single()
-
-      if (!jobError && job) {
-        jobData = job
-        console.log(`📋 Job context loaded: ${job.title}`)
-      }
-    } catch (error) {
-      console.warn('⚠️ Could not fetch job data:', error)
-    }
-
-    // Extract CV data using Gemini AI with enhanced error handling
+    // Extract CV data using Gemini AI — start immediately without blocking on job data fetch
     let extractedData
     let usingFallback = false
-    
-    // Try multiple extraction methods in order of preference
+
     console.log('🤖 Attempting CV extraction with multiple methods...')
     console.log("STEP 3: Starting PDF/CV parse, file type:", file.type)
 
-    // Method 1: Try Gemini AI first (best results)
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY && !process.env.GEMINI_API_KEY) {
       console.log("WARNING: No Gemini API key - skipping AI, using fallback directly")
     }
@@ -117,7 +98,8 @@ export async function POST(request: NextRequest) {
     try {
       console.log("STEP 4: Starting AI analysis via Gemini")
       console.log('📋 Method 1: Gemini AI extraction...')
-      extractedData = await extractCVDataWithGemini(file, jobData)
+      // Pass null for jobData — job context is handled by add-candidate, saving 1-2s here
+      extractedData = await extractCVDataWithGemini(file, null)
       console.log('✅ Gemini AI extraction successful!')
       console.log('📊 Extracted data preview:', {
         candidateName: extractedData?.candidate?.name,

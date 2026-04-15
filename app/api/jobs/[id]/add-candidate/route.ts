@@ -81,7 +81,7 @@ export async function POST(
     // Step 2: Calculate match scores
     const matchingResult = calculateMatchScores(candidateData, extractedData)
 
-    // Step 3: Create job match record with correct schema
+    // Step 3: Create job match record aligned to actual matches table schema
     const matchRecord = {
       id: uuidv4(),
       candidate_id: candidateData.id,
@@ -91,18 +91,15 @@ export async function POST(
       weaknesses: matchingResult.gaps,
       skill_matches: {
         skills_score: Math.round(matchingResult.skillsScore),
+        experience_score: Math.round(matchingResult.experienceScore),
         education_score: Math.round(matchingResult.educationScore),
         languages_score: Math.round(matchingResult.languagesScore),
         certifications_score: Math.round(matchingResult.certificationsScore),
         other_score: Math.round(matchingResult.otherScore),
-      },
-      experience_match: Math.round(matchingResult.experienceScore),
-      ai_analysis: {
-        overall_score: Math.round(matchingResult.overallScore),
         recommendations: matchingResult.recommendations,
       },
+      experience_match: Math.round(matchingResult.experienceScore),
       status: 'pending',
-      created_at: new Date().toISOString(),
     }
 
     // Step 4: Save job match record using correct table name

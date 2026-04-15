@@ -340,17 +340,18 @@ function InviteCandidatesModal({
 
       onProgress(100)
 
+      const cm = addResult.candidateMatch as any
       return {
         success: true,
         candidate: {
           ...parseResult.candidate,
-          match_score: addResult.success ? (addResult.candidateMatch as any)?.score :
-                      (parseResult.extractedData?.matching?.overallScore || 75),
+          match_score: addResult.success ? (cm?.score ?? 75) : (parseResult.extractedData?.matching?.overallScore || 75),
+          skills_score: addResult.success ? (cm?.skill_matches?.skills_score ?? 0) : 0,
+          experience_score: addResult.success ? (cm?.experience_match ?? cm?.skill_matches?.experience_score ?? 0) : 0,
           filename: file.name,
-          strengths: addResult.success ? (addResult.candidateMatch as any)?.strengths :
-                    (parseResult.extractedData?.matching?.strengths || ['Profile processed successfully']),
-          gaps: addResult.success ? (addResult.candidateMatch as any)?.gaps :
-               (parseResult.extractedData?.matching?.gaps || []),
+          strengths: addResult.success ? (Array.isArray(cm?.strengths) ? cm.strengths : []) : (parseResult.extractedData?.matching?.strengths || []),
+          gaps: addResult.success ? (Array.isArray(cm?.weaknesses) ? cm.weaknesses : []) : (parseResult.extractedData?.matching?.gaps || []),
+          recommendations: addResult.success ? (cm?.skill_matches?.recommendations || []) : [],
           job_match_created: addResult.success
         },
         candidateMatch: addResult.success ? addResult.candidateMatch : null
