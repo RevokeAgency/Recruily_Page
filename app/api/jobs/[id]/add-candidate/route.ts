@@ -86,22 +86,23 @@ export async function POST(
       id: uuidv4(),
       candidate_id: candidateData.id,
       job_id: jobId,
-      match_score: Math.round(matchingResult.overallScore),
-      match_details: JSON.stringify({
-        overall_score: Math.round(matchingResult.overallScore),
+      score: Math.round(matchingResult.overallScore),
+      strengths: matchingResult.strengths,
+      weaknesses: matchingResult.gaps,
+      skill_matches: {
         skills_score: Math.round(matchingResult.skillsScore),
-        experience_score: Math.round(matchingResult.experienceScore),
         education_score: Math.round(matchingResult.educationScore),
         languages_score: Math.round(matchingResult.languagesScore),
         certifications_score: Math.round(matchingResult.certificationsScore),
         other_score: Math.round(matchingResult.otherScore),
-        strengths: matchingResult.strengths,
-        gaps: matchingResult.gaps,
-        recommendations: matchingResult.recommendations
-      }),
+      },
+      experience_match: Math.round(matchingResult.experienceScore),
+      ai_analysis: {
+        overall_score: Math.round(matchingResult.overallScore),
+        recommendations: matchingResult.recommendations,
+      },
       status: 'pending',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
     }
 
     // Step 4: Save job match record using correct table name

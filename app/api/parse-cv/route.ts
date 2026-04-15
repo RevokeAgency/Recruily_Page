@@ -394,12 +394,12 @@ async function extractCVDataWithGemini(file: File, jobData: any) {
     // Get the generative model with enhanced config
     console.log('🤖 Setting up Gemini model configuration...')
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-pro",
+      model: "gemini-1.5-flash",
       generationConfig: {
         temperature: 0.1, // Lower temperature for consistent extraction
         topK: 1,
         topP: 0.1,
-        maxOutputTokens: 4096, // Increased for complex CVs
+        maxOutputTokens: 2048,
       },
     })
 
@@ -513,7 +513,7 @@ RESPONSE FORMAT: Return only the JSON object, nothing else.`
     const startTime = Date.now()
 
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('AI_TIMEOUT')), 30000)
+      setTimeout(() => reject(new Error('AI_TIMEOUT')), 8000)
     )
 
     let result
