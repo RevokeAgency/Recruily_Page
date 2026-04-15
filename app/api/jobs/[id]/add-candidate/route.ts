@@ -60,22 +60,24 @@ export async function POST(
       }
     )
 
-    // Step 1: Create or update candidate record
-    let candidateRecord
+    // Step 1: Ensure candidate exists (parse-cv already inserted, this is idempotent)
+    let candidateRecord = candidateData
     try {
       const { data, error: candidateError } = await (supabaseAdmin as any)
         .from('candidates')
-        .upsert([candidateData])
+        .upsert([candidateData], { onConflict: 'email', ignoreDuplicates: false })
         .select()
         .single()
 
-      if (candidateError && !candidateError.message?.includes('Mock')) {
+      if (candidateError) {
+        console.error('❌ Candidate upsert error:', candidateError.message, candidateError.code)
         throw candidateError
       }
       candidateRecord = data || candidateData
+      console.log('✅ Candidate in DB:', candidateRecord.id)
     } catch (dbError: any) {
-      console.warn('⚠️ Candidate creation failed, using fallback:', dbError.message)
-      candidateRecord = candidateData
+      console.error('❌ Candidate upsert failed:', dbError.message)
+      // Use the data as-is; match insert will fail on FK if candidate isn't in DB
     }
 
     // Step 2: Calculate match scores
@@ -83,7 +85,6 @@ export async function POST(
 
     // Step 3: Create job match record aligned to actual matches table schema
     const matchRecord = {
-      id: uuidv4(),
       candidate_id: candidateData.id,
       job_id: jobId,
       score: Math.round(matchingResult.overallScore),
@@ -99,24 +100,35 @@ export async function POST(
         recommendations: matchingResult.recommendations,
       },
       experience_match: Math.round(matchingResult.experienceScore),
+      ai_analysis: {
+        overall_score: Math.round(matchingResult.overallScore),
+        skills_breakdown: {
+          skills: Math.round(matchingResult.skillsScore),
+          experience: Math.round(matchingResult.experienceScore),
+          education: Math.round(matchingResult.educationScore),
+          languages: Math.round(matchingResult.languagesScore),
+        },
+      },
       status: 'pending',
     }
 
-    // Step 4: Save job match record using correct table name
+    // Step 4: Upsert match record (UNIQUE constraint on job_id + candidate_id)
     let matchData
     try {
       const { data, error: matchError } = await (supabaseAdmin as any)
         .from('matches')
-        .insert([matchRecord])
+        .upsert([matchRecord], { onConflict: 'job_id,candidate_id', ignoreDuplicates: false })
         .select()
         .single()
 
-      if (matchError && !matchError.message?.includes('Mock')) {
+      if (matchError) {
+        console.error('❌ Match upsert error:', matchError.message, matchError.code)
         throw matchError
       }
       matchData = data || matchRecord
+      console.log('✅ Match saved to DB:', matchData.id || 'no id returned')
     } catch (dbError: any) {
-      console.warn('⚠️ Match creation failed, using fallback:', dbError.message)
+      console.error('❌ Match upsert failed:', dbError.message)
       matchData = matchRecord
     }
 
