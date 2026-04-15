@@ -277,84 +277,79 @@ function InviteCandidatesModal({
     }, 3000)
 
     try {
-      // Resolve org ID
-      let orgId = user?.app_metadata?.org_id || user?.user_metadata?.org_id || null
-      if (!orgId) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession()
-          const orgResponse = await fetch('/api/get-org-id', {
-            headers: { 'Authorization': `Bearer ${session?.access_token}` }
-          })
-          if (orgResponse.ok) {
-            const orgData = await orgResponse.json()
-            orgId = orgData.orgId || null
-          }
-        } catch (err) {
-          console.warn("get-org-id fetch error:", err)
-        }
-      }
-      if (!orgId) {
-        return { success: false, error: 'Organisation not found — please re-login' }
+      // ── Get Bearer token ─────────────────────────────────────────────────────
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) {
+        return { success: false, error: 'Not authenticated — please log in again' }
       }
 
-      onProgress(25)
+      onProgress(20)
 
-      // Step 1: Parse CV
+      // ── Step 1: Upload + parse CV → /api/candidates/upload ──────────────────
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('jobId', jobId)
-      formData.append('orgId', orgId)
 
-      onProgress(35)
+      onProgress(30)
 
-      const parseResponse = await fetch('/api/parse-cv', { method: 'POST', body: formData })
-      const parseResult = await parseResponse.json()
+      const uploadResponse = await fetch('/api/candidates/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      })
+      const uploadResult = await uploadResponse.json()
 
-      if (!parseResponse.ok || !parseResult.success) {
+      if (!uploadResponse.ok || !uploadResult.success) {
         return {
           success: false,
-          error: parseResult.error || 'Failed to parse CV',
-          needsApiKey: parseResult.needsApiKey,
-          instructions: parseResult.instructions
+          error: uploadResult.error || 'Failed to parse CV',
         }
       }
 
-      // Step 2: Add candidate to job with integrated matching
-      let addResult = { success: false, candidateMatch: null }
+      const candidate = uploadResult.candidate
+      console.log(`✅ Candidate parsed & saved: ${candidate.name} (${candidate.id})`)
+
+      onProgress(60)
+
+      // ── Step 2: Create match → /api/matches/create ───────────────────────────
+      let match: any = null
       try {
-        const addResponse = await fetch(`/api/jobs/${jobId}/add-candidate`, {
+        const matchResponse = await fetch('/api/matches/create', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            candidateData: parseResult.candidate,
-            extractedData: parseResult.extractedData
-          })
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ candidateId: candidate.id, jobId }),
         })
-        addResult = await addResponse.json()
-        if (!addResponse.ok) {
-          console.warn('⚠️ Add candidate failed, continuing with basic data:', (addResult as any).error)
+        const matchResult = await matchResponse.json()
+        if (matchResult.success) {
+          match = matchResult.match
+          console.log(`✅ Match created: ${match.score}%`)
+        } else {
+          console.warn('⚠️ Match creation failed (non-fatal):', matchResult.error)
         }
-      } catch (addError) {
-        console.warn('⚠️ Add candidate API error, using fallback:', addError)
+      } catch (matchErr) {
+        console.warn('⚠️ Match API error (non-fatal):', matchErr)
       }
 
       onProgress(100)
 
-      const cm = addResult.candidateMatch as any
       return {
         success: true,
         candidate: {
-          ...parseResult.candidate,
-          match_score: addResult.success ? (cm?.score ?? 75) : (parseResult.extractedData?.matching?.overallScore || 75),
-          skills_score: addResult.success ? (cm?.skill_matches?.skills_score ?? 0) : 0,
-          experience_score: addResult.success ? (cm?.experience_match ?? cm?.skill_matches?.experience_score ?? 0) : 0,
+          ...candidate,
           filename: file.name,
-          strengths: addResult.success ? (Array.isArray(cm?.strengths) ? cm.strengths : []) : (parseResult.extractedData?.matching?.strengths || []),
-          gaps: addResult.success ? (Array.isArray(cm?.weaknesses) ? cm.weaknesses : []) : (parseResult.extractedData?.matching?.gaps || []),
-          recommendations: addResult.success ? (cm?.skill_matches?.recommendations || []) : [],
-          job_match_created: addResult.success
+          match_score: match?.score ?? 75,
+          skills_score: match?.skill_matches?.skills_score ?? 0,
+          experience_score: match?.experience_match ?? match?.skill_matches?.experience_score ?? 0,
+          education_score: match?.skill_matches?.education_score ?? 0,
+          strengths: Array.isArray(match?.strengths) ? match.strengths : [],
+          gaps: Array.isArray(match?.weaknesses) ? match.weaknesses : [],
+          recommendations: Array.isArray(match?.skill_matches?.recommendations) ? match.skill_matches.recommendations : [],
+          job_match_created: !!match,
         },
-        candidateMatch: addResult.success ? addResult.candidateMatch : null
+        candidateMatch: match,
       }
     } finally {
       clearInterval(progressTick)
