@@ -114,17 +114,21 @@ function InviteCandidatesModal({
       overallProgress: 0
     })
 
+    // Track counts with plain variables — never inside setState updaters
+    let completedCount = 0
+    let errorCount = 0
+
     try {
       // Process files sequentially to avoid overwhelming the API
       for (let i = 0; i < fileStates.length; i++) {
         const fileState = fileStates[i]
-        
+
         console.log(`📄 Processing file ${i + 1}/${fileStates.length}: ${fileState.file.name}`)
-        
+
         // Update file status to processing
         setUploadState(prev => ({
           ...prev,
-          files: prev.files.map((f, index) => 
+          files: prev.files.map((f, index) =>
             index === i ? { ...f, status: 'processing', progress: 10 } : f
           )
         }))
@@ -134,27 +138,28 @@ function InviteCandidatesModal({
           const parseResult = await processSingleCV(fileState.file, jobId, (progress) => {
             setUploadState(prev => ({
               ...prev,
-              files: prev.files.map((f, index) => 
+              files: prev.files.map((f, index) =>
                 index === i ? { ...f, progress } : f
               )
             }))
           })
 
           if (parseResult.success) {
+            completedCount++
             console.log(`✅ Successfully processed: ${parseResult.candidate.name}`)
-            
+
             // Update file state with success
             setUploadState(prev => ({
               ...prev,
-              files: prev.files.map((f, index) => 
-                index === i ? { 
-                  ...f, 
-                  status: 'completed', 
+              files: prev.files.map((f, index) =>
+                index === i ? {
+                  ...f,
+                  status: 'completed',
                   progress: 100,
                   candidate: parseResult.candidate
                 } : f
               ),
-              completedCount: prev.completedCount + 1
+              completedCount,
             }))
 
             // Notify parent component
@@ -163,26 +168,21 @@ function InviteCandidatesModal({
             }
 
           } else {
+            errorCount++
             console.error(`❌ Failed to process: ${fileState.file.name}`)
-            
-            // Check if it's an API key issue
-            if (parseResult.needsApiKey) {
-              // Show API key setup instructions
-              alert(`⚠️ ${parseResult.error}\n\nTo fix this:\n${parseResult.instructions.steps.map((step: string, i: number) => `${i + 1}. ${step}`).join('\n')}\n\nAfter setting up the API key, refresh the page and try again.`)
-            }
-            
+
             // Update file state with error
             setUploadState(prev => ({
               ...prev,
-              files: prev.files.map((f, index) => 
-                index === i ? { 
-                  ...f, 
-                  status: 'error', 
+              files: prev.files.map((f, index) =>
+                index === i ? {
+                  ...f,
+                  status: 'error',
                   progress: 0,
-                  error: parseResult.needsApiKey ? 'API Key Required - See Instructions' : parseResult.error
+                  error: parseResult.error || 'Processing failed'
                 } : f
               ),
-              errorCount: prev.errorCount + 1
+              errorCount,
             }))
           }
 
@@ -193,27 +193,22 @@ function InviteCandidatesModal({
           }))
 
         } catch (error) {
+          errorCount++
           console.error(`❌ Error processing ${fileState.file.name}:`, error)
-          
-          // Check if it's a network error that might indicate API issues
+
           const errorMessage = error instanceof Error ? error.message : 'Processing failed'
-          const isApiError = errorMessage.includes('API key') || errorMessage.includes('401') || errorMessage.includes('403')
-          
-          if (isApiError) {
-            alert(`⚠️ API Configuration Issue\n\nPlease ensure your Gemini API key is properly configured:\n1. Visit https://aistudio.google.com/app/apikey\n2. Create a free API key\n3. Add GEMINI_API_KEY=your_key to .env.local\n4. Restart the application`)
-          }
-          
+
           setUploadState(prev => ({
             ...prev,
-            files: prev.files.map((f, index) => 
-              index === i ? { 
-                ...f, 
-                status: 'error', 
+            files: prev.files.map((f, index) =>
+              index === i ? {
+                ...f,
+                status: 'error',
                 progress: 0,
-                error: isApiError ? 'API Key Configuration Required' : errorMessage
+                error: errorMessage
               } : f
             ),
-            errorCount: prev.errorCount + 1,
+            errorCount,
             overallProgress: ((i + 1) / fileStates.length) * 100
           }))
         }
@@ -224,37 +219,21 @@ function InviteCandidatesModal({
         }
       }
 
-      // Final processing state with proper counting
-      let finalCompletedCount = 0
-      setUploadState(prev => {
-        const completedCount = prev.files.filter(f => f.status === 'completed').length
-        const errorCount = prev.files.filter(f => f.status === 'error').length
-        finalCompletedCount = completedCount
+      console.log(`🎉 Batch processing completed: ${completedCount} success, ${errorCount} errors`)
 
-        console.log(`🎉 Batch processing completed: ${completedCount} success, ${errorCount} errors`)
+      // Mark processing as done
+      setUploadState(prev => ({
+        ...prev,
+        processing: false,
+        overallProgress: 100,
+        completedCount,
+        errorCount,
+      }))
 
-        // Notify parent about completion
-        if (onUploadCompleted && completedCount > 0) {
-          setTimeout(() => {
-            console.log('🔄 Triggering onUploadCompleted callback with count:', completedCount)
-            onUploadCompleted(completedCount)
-          }, 500) // Small delay to ensure UI updates
-        }
-
-        return {
-          ...prev,
-          processing: false,
-          overallProgress: 100,
-          completedCount,
-          errorCount
-        }
-      })
-
-      // Auto-close modal after successful processing if no callback
-      if (finalCompletedCount > 0 && !onUploadCompleted) {
-        setTimeout(() => {
-          handleClose()
-        }, 3000)
+      // Reload candidate list from DB — called AFTER setState, outside any updater
+      if (completedCount > 0 && onUploadCompleted) {
+        console.log('🔄 Triggering onUploadCompleted to reload candidates from DB')
+        onUploadCompleted(completedCount)
       }
 
     } catch (batchError) {
