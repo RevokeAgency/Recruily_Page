@@ -186,12 +186,16 @@ export async function POST(request: NextRequest) {
       console.log(`✅ Fallback match score: ${scores.score}%`)
     }
 
-    // ── Build match record (aligned to actual matches table schema) ───────────
-    const matchRecord = {
-      id: uuidv4(),
-      candidate_id: candidateId,
-      job_id: jobId,
-      score: scores.score,                    // NOT NULL
+    // ── Check if match already exists ─────────────────────────────────────────
+    const { data: existingMatch } = await admin
+      .from('matches')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('candidate_id', candidateId)
+      .maybeSingle()
+
+    const scorePayload = {
+      score: scores.score,
       status: 'pending',
       strengths: scores.strengths,
       weaknesses: scores.weaknesses,
@@ -213,18 +217,36 @@ export async function POST(request: NextRequest) {
         },
         generated_by: 'gemini-1.5-flash',
       },
-      created_by: user.id,
     }
 
-    // ── UPSERT — handles UNIQUE(job_id, candidate_id) ─────────────────────────
-    const { data: savedMatch, error: matchErr } = await admin
-      .from('matches')
-      .upsert([matchRecord], { onConflict: 'job_id,candidate_id', ignoreDuplicates: false })
-      .select()
-      .single()
+    let savedMatch: any = null
+    let matchErr: any = null
+
+    if (existingMatch?.id) {
+      // ── UPDATE existing match ─────────────────────────────────────────────
+      console.log(`🔄 Updating existing match ${existingMatch.id}`)
+      const { data, error } = await admin
+        .from('matches')
+        .update(scorePayload)
+        .eq('id', existingMatch.id)
+        .select()
+        .single()
+      savedMatch = data
+      matchErr = error
+    } else {
+      // ── INSERT new match ──────────────────────────────────────────────────
+      console.log('➕ Inserting new match')
+      const { data, error } = await admin
+        .from('matches')
+        .insert([{ id: uuidv4(), candidate_id: candidateId, job_id: jobId, ...scorePayload }])
+        .select()
+        .single()
+      savedMatch = data
+      matchErr = error
+    }
 
     if (matchErr) {
-      console.error('❌ Match upsert error:', matchErr.message, matchErr.code)
+      console.error('❌ Match save error:', matchErr.message, matchErr.code, matchErr.details)
       return NextResponse.json({ success: false, error: matchErr.message }, { status: 500 })
     }
 

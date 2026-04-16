@@ -37,7 +37,6 @@ export async function GET(
           email,
           phone,
           location,
-          status,
           skills,
           experience_years,
           education,
@@ -45,8 +44,7 @@ export async function GET(
           languages,
           certifications,
           organisation_id,
-          created_at,
-          updated_at
+          created_at
         )
       `)
       .eq('job_id', params.id)
@@ -81,7 +79,6 @@ export async function GET(
           email: candidate.email || '',
           phone: candidate.phone,
           location: candidate.location,
-          status: candidate.status,
           skills: Array.isArray(candidate.skills) ? candidate.skills : [],
           education: candidate.education ? (typeof candidate.education === 'string' ? [candidate.education] : candidate.education) : [],
           summary: candidate.summary || '',
