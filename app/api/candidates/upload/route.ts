@@ -3,161 +3,183 @@ import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// ─── Gemini model ──────────────────────────────────────────────────────────────
+// ─── Gemini setup ──────────────────────────────────────────────────────────────
 
-function getModel() {
+function getGeminiClient() {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
-  const genAI = new GoogleGenerativeAI(apiKey)
-  // gemini-2.0-flash: faster + better document understanding than 1.5-flash
-  return genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
-    generationConfig: { maxOutputTokens: 1024, temperature: 0.1 },
-  })
+  if (!apiKey) throw new Error('GEMINI_API_KEY not set in environment variables')
+  return new GoogleGenerativeAI(apiKey)
 }
 
-const TIMEOUT_MS = 9000
+// Try models in order — first one that works wins
+const MODEL_PRIORITY = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash']
+
+// Netlify hard limit is 10s → leave 3s for auth+org+db → 7s for Gemini
+const TIMEOUT_MS = 7000
 
 function withTimeout<T>(promise: Promise<T>, ms = TIMEOUT_MS): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Gemini timeout after ${ms}ms`)), ms)),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Gemini timeout after ${ms}ms`)), ms)
+    ),
   ])
 }
 
-// ─── JSON extraction (handles Gemini wrapping JSON in text/markdown) ───────────
+// ─── JSON extraction ───────────────────────────────────────────────────────────
 
 function extractJSON(raw: string): any {
-  const stripped = raw.trim()
-  // Remove markdown code fences
-  const clean = stripped.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
-
-  // Try direct parse first
+  const clean = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
   try { return JSON.parse(clean) } catch {}
-
-  // Find the first {...} block in case Gemini added prose before/after
   const start = clean.indexOf('{')
   const end = clean.lastIndexOf('}')
   if (start !== -1 && end > start) {
     try { return JSON.parse(clean.slice(start, end + 1)) } catch {}
   }
-
-  throw new Error(`Could not extract JSON from Gemini response: ${clean.slice(0, 200)}`)
+  throw new Error(`Cannot parse Gemini JSON: ${clean.slice(0, 150)}`)
 }
 
-const CV_PROMPT = `You are a professional CV/Resume parser. Extract real personal information from this CV.
+// ─── CV prompt ────────────────────────────────────────────────────────────────
 
-RULES (follow strictly):
-- Extract ONLY information that is explicitly stated in the CV
-- "name" must be the real person's full name (e.g. "Maria Müller") — NOT a job title, file title, template heading, or keyword like "Lebenslauf"
-- If you cannot find a real person name, return null for "name"
-- If you cannot find an email address, return null for "email"
-- The CV may be in German, English, or another language — handle it correctly
-- Do NOT invent or fabricate any data
+const CV_PROMPT = `You are a CV/Resume parser. Extract real personal information.
 
-Return ONLY this exact JSON — no markdown, no explanation:
-{
-  "name": "Full Name or null",
-  "email": "email@example.com or null",
-  "phone": "+1234567890 or null",
-  "location": "City, Country or null",
-  "summary": "2-3 sentence professional summary or null",
-  "experience_years": 5,
-  "skills": ["Skill1", "Skill2"],
-  "education": "Degree and university or null",
-  "languages": ["German", "English"],
-  "certifications": ["Cert1"]
-}`
+STRICT RULES:
+- "name": real full name only (e.g. "Maria Müller"). NOT "Lebenslauf", "Resume", "CV", job titles, or headings.
+- "email": only real email addresses. NOT placeholder emails like "name@email.com".
+- Return null for any field you cannot find with certainty.
+- CV may be in German, English, or other languages.
+- Do NOT invent data.
 
-// ─── PDF: try text extraction first, fall back to Gemini multimodal ───────────
+Return ONLY valid JSON, no markdown fences, no explanation:
+{"name":null,"email":null,"phone":null,"location":null,"summary":null,"experience_years":0,"skills":[],"education":null,"languages":["German"],"certifications":[]}`
+
+// ─── Try Gemini with fallback models ──────────────────────────────────────────
+
+async function callGeminiText(prompt: string): Promise<string> {
+  const client = getGeminiClient()
+  let lastError: Error | null = null
+
+  for (const modelName of MODEL_PRIORITY) {
+    try {
+      console.log(`🤖 Trying model: ${modelName}`)
+      const model = client.getGenerativeModel({
+        model: modelName,
+        generationConfig: { maxOutputTokens: 512, temperature: 0.1 },
+      })
+      const result = await withTimeout(model.generateContent(prompt))
+      const text = (result as any).response.text()
+      console.log(`✅ ${modelName} responded (${text.length} chars)`)
+      return text
+    } catch (err: any) {
+      console.warn(`⚠️ ${modelName} failed: ${err.message}`)
+      lastError = err
+    }
+  }
+  throw lastError ?? new Error('All Gemini models failed')
+}
+
+async function callGeminiMultimodal(parts: any[]): Promise<string> {
+  const client = getGeminiClient()
+  let lastError: Error | null = null
+
+  for (const modelName of MODEL_PRIORITY) {
+    try {
+      console.log(`🤖 Trying multimodal model: ${modelName}`)
+      const model = client.getGenerativeModel({
+        model: modelName,
+        generationConfig: { maxOutputTokens: 512, temperature: 0.1 },
+      })
+      const result = await withTimeout(model.generateContent(parts))
+      const text = (result as any).response.text()
+      console.log(`✅ ${modelName} multimodal responded (${text.length} chars)`)
+      return text
+    } catch (err: any) {
+      console.warn(`⚠️ ${modelName} multimodal failed: ${err.message}`)
+      lastError = err
+    }
+  }
+  throw lastError ?? new Error('All Gemini models failed (multimodal)')
+}
+
+// ─── PDF parsing ──────────────────────────────────────────────────────────────
 
 async function parsePDF(file: File): Promise<any> {
   const buffer = Buffer.from(await file.arrayBuffer())
 
-  // Attempt 1: extract text with pdf-parse (import the lib directly to avoid
-  // the ENOENT test-file bug caused by the top-level require in the package root)
+  // Try text extraction first (faster, more reliable than multimodal)
   let pdfText = ''
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const pdfParseLib = require('pdf-parse/lib/pdf-parse.js')
     const fn = typeof pdfParseLib === 'function' ? pdfParseLib : pdfParseLib.default
     const parsed = await fn(buffer)
     pdfText = (parsed.text || '').trim()
-    console.log(`📄 pdf-parse extracted ${pdfText.length} chars`)
-  } catch (textErr: any) {
-    console.warn('⚠️ pdf-parse failed, will use Gemini multimodal:', textErr.message)
+    console.log(`📄 pdf-parse: ${pdfText.length} chars`)
+  } catch (err: any) {
+    console.warn('⚠️ pdf-parse failed:', err.message)
   }
 
-  const model = getModel()
-
-  // Attempt 2a: if we got meaningful text, use a text prompt (most reliable)
-  if (pdfText.length > 80) {
-    console.log('🤖 Sending extracted PDF text to Gemini...')
-    const prompt = `${CV_PROMPT}\n\nCV TEXT:\n${pdfText.substring(0, 4500)}`
-    const result = await withTimeout(model.generateContent(prompt))
-    return extractJSON((result as any).response.text())
+  if (pdfText.length > 100) {
+    const prompt = `${CV_PROMPT}\n\nCV TEXT:\n${pdfText.substring(0, 4000)}`
+    return extractJSON(await callGeminiText(prompt))
   }
 
-  // Attempt 2b: scanned/image PDF — send binary to Gemini multimodal
-  console.log('🤖 Sending PDF binary to Gemini (multimodal — likely scanned)...')
+  // Scanned/image PDF → multimodal
+  console.log('📷 Scanned PDF — using multimodal')
   const base64 = buffer.toString('base64')
-  const result = await withTimeout(
-    model.generateContent([
-      { inlineData: { data: base64, mimeType: 'application/pdf' } },
-      { text: CV_PROMPT },
-    ])
-  )
-  return extractJSON((result as any).response.text())
+  const text = await callGeminiMultimodal([
+    { inlineData: { data: base64, mimeType: 'application/pdf' } },
+    { text: CV_PROMPT },
+  ])
+  return extractJSON(text)
 }
 
-// ─── DOCX ─────────────────────────────────────────────────────────────────────
+// ─── DOCX parsing ─────────────────────────────────────────────────────────────
 
 async function parseDOCX(file: File): Promise<any> {
   const mammoth = await import('mammoth')
   const buffer = Buffer.from(await file.arrayBuffer())
   const { value: text } = await mammoth.extractRawText({ buffer })
-  if (!text || text.trim().length < 30) throw new Error('Could not extract text from DOCX')
-
-  console.log(`🤖 Sending DOCX text (${text.length} chars) to Gemini...`)
-  const model = getModel()
-  const prompt = `${CV_PROMPT}\n\nCV TEXT:\n${text.substring(0, 4500)}`
-  const result = await withTimeout(model.generateContent(prompt))
-  return extractJSON((result as any).response.text())
+  if (!text?.trim() || text.trim().length < 50) throw new Error('No text in DOCX')
+  const prompt = `${CV_PROMPT}\n\nCV TEXT:\n${text.substring(0, 4000)}`
+  return extractJSON(await callGeminiText(prompt))
 }
 
-// ─── TXT ──────────────────────────────────────────────────────────────────────
+// ─── TXT parsing ──────────────────────────────────────────────────────────────
 
 async function parseTXT(file: File): Promise<any> {
   const text = await file.text()
-  if (!text || text.trim().length < 30) throw new Error('Text file appears empty')
-
-  console.log(`🤖 Sending TXT (${text.length} chars) to Gemini...`)
-  const model = getModel()
-  const prompt = `${CV_PROMPT}\n\nCV TEXT:\n${text.substring(0, 4500)}`
-  const result = await withTimeout(model.generateContent(prompt))
-  return extractJSON((result as any).response.text())
+  if (!text?.trim() || text.trim().length < 50) throw new Error('TXT file is empty')
+  const prompt = `${CV_PROMPT}\n\nCV TEXT:\n${text.substring(0, 4000)}`
+  return extractJSON(await callGeminiText(prompt))
 }
 
-// ─── Validate parsed name (reject template headings / filenames) ───────────────
+// ─── Name validation ──────────────────────────────────────────────────────────
 
-const NON_NAME_PATTERNS = [
-  /^lebenslauf/i,       // German for "CV"
-  /^curriculum vitae/i,
-  /^resume/i,
-  /^bewerbung/i,        // German for "application"
-  /^vorlage/i,          // German for "template"
-  /^\s*$/,
-  /^\d+$/,
+const REJECT_NAME = [
+  /^lebenslauf/i, /^curriculum vitae/i, /^resume/i, /^bewerbung/i,
+  /^vorlage/i, /^template/i, /^name$/i, /^\s*$/, /^\d+$/,
 ]
 
-function isValidPersonName(name: string | null | undefined): boolean {
+function isValidName(name: string | null | undefined): boolean {
   if (!name || name.trim().length < 2) return false
   const n = name.trim()
-  // Must contain at least one space (first + last name) or be clearly a name
-  if (NON_NAME_PATTERNS.some(p => p.test(n))) return false
-  // If it's very long (>40 chars), it's probably a heading/title, not a name
-  if (n.length > 40) return false
+  if (n.length > 50) return false
+  if (REJECT_NAME.some(p => p.test(n))) return false
   return true
+}
+
+// ─── Deterministic fallback email ─────────────────────────────────────────────
+// Uses filename + size so the same CV re-upload upserts the same record
+// instead of creating a new duplicate each time.
+
+function fallbackEmail(file: File): string {
+  const slug = file.name
+    .replace(/\.[^/.]+$/, '')           // remove extension
+    .replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_')
+    .replace(/_+/g, '_')
+    .toLowerCase()
+    .slice(0, 40)
+  return `cv_import_${slug}_${file.size}@recruily-import.com`
 }
 
 // ─── Route Handler ─────────────────────────────────────────────────────────────
@@ -188,13 +210,13 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File | null
 
     if (!file) return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 })
-    if (file.size > 10 * 1024 * 1024) return NextResponse.json({ success: false, error: 'File exceeds 10 MB' }, { status: 400 })
+    if (file.size > 10 * 1024 * 1024) return NextResponse.json({ success: false, error: 'File too large (max 10 MB)' }, { status: 400 })
 
-    console.log(`📎 File: ${file.name} (${file.type}, ${Math.round(file.size / 1024)} KB)`)
+    console.log(`📎 ${file.name} (${file.type}, ${Math.round(file.size / 1024)} KB)`)
 
-    // ── Parse CV ──────────────────────────────────────────────────────────────
+    // ── Parse CV with Gemini ──────────────────────────────────────────────────
     let parsed: any = {}
-    let geminiSucceeded = false
+    let geminiError: string | null = null
 
     try {
       const type = file.type
@@ -210,64 +232,76 @@ export async function POST(request: NextRequest) {
       } else {
         return NextResponse.json({ success: false, error: `Unsupported file type: ${type}` }, { status: 400 })
       }
-      geminiSucceeded = true
-      console.log(`✅ Gemini raw result: name="${parsed.name}" email="${parsed.email}"`)
-    } catch (geminiErr: any) {
-      console.warn('⚠️ Gemini failed, using filename fallback:', geminiErr.message)
+      console.log(`✅ Gemini parsed: name="${parsed.name}" email="${parsed.email}" skills=${JSON.stringify(parsed.skills?.slice(0, 3))}`)
+    } catch (err: any) {
+      geminiError = err.message
+      console.error('❌ Gemini CV parsing failed:', geminiError)
     }
 
-    // Validate name — if Gemini returned a template heading, null it out
-    if (geminiSucceeded && !isValidPersonName(parsed.name)) {
-      console.warn(`⚠️ Parsed name "${parsed.name}" looks like a template heading — discarding`)
+    // Reject template headings extracted as names
+    if (parsed.name && !isValidName(parsed.name)) {
+      console.warn(`⚠️ Discarding invalid name: "${parsed.name}"`)
       parsed.name = null
     }
 
     // ── Build candidate record ────────────────────────────────────────────────
-    const candidateId = uuidv4()
-    const emailFallback = `cv_import_${Date.now()}_${Math.random().toString(36).slice(2, 8)}@recruily-import.com`
-    const nameFallback = file.name.replace(/\.[^/.]+$/, '').replace(/[_\-().]+/g, ' ').trim()
+    const nameFallback = file.name
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[_\-().]+/g, ' ')
+      .trim()
+
+    const emailFromGemini = parsed.email &&
+      parsed.email.includes('@') &&
+      !parsed.email.match(/@email\.com$/) &&
+      !parsed.email.match(/^(email|name|vorname|example)@/)
+      ? parsed.email
+      : null
 
     const candidateRecord = {
-      id: candidateId,
+      id: uuidv4(),
       organisation_id: org.id,
       created_by: user.id,
-      name: (isValidPersonName(parsed.name) ? parsed.name : nameFallback).trim() || 'Unknown Candidate',
-      email: (parsed.email && parsed.email.includes('@') && !parsed.email.includes('@email.com'))
-        ? parsed.email
-        : emailFallback,
+      name: (isValidName(parsed.name) ? parsed.name : nameFallback).trim() || 'Unknown',
+      email: emailFromGemini ?? fallbackEmail(file),
       phone: parsed.phone || null,
       location: parsed.location || null,
       summary: parsed.summary || null,
       experience_years: Number.isInteger(parsed.experience_years) && parsed.experience_years >= 0
-        ? parsed.experience_years
-        : 0,
-      skills: Array.isArray(parsed.skills) ? parsed.skills.filter((s: any) => typeof s === 'string' && s.trim()) : [],
+        ? parsed.experience_years : 0,
+      skills: Array.isArray(parsed.skills)
+        ? parsed.skills.filter((s: any) => typeof s === 'string' && s.trim().length > 0)
+        : [],
       education: typeof parsed.education === 'string' ? parsed.education : null,
-      languages: Array.isArray(parsed.languages) ? parsed.languages : ['English'],
+      languages: Array.isArray(parsed.languages) && parsed.languages.length > 0
+        ? parsed.languages : ['German'],
       certifications: Array.isArray(parsed.certifications) ? parsed.certifications : [],
       status: 'active',
     }
 
-    console.log(`💾 Saving candidate: name="${candidateRecord.name}" email="${candidateRecord.email}"`)
+    console.log(`💾 Saving: name="${candidateRecord.name}" email="${candidateRecord.email}"`)
 
-    // ── Upsert (email UNIQUE constraint) ──────────────────────────────────────
-    const { data: savedCandidate, error: dbError } = await admin
+    // ── Upsert on email (same CV re-upload → update existing record) ──────────
+    const { data: saved, error: dbError } = await admin
       .from('candidates')
       .upsert([candidateRecord], { onConflict: 'email', ignoreDuplicates: false })
       .select()
       .single()
 
     if (dbError) {
-      console.error('❌ Candidate upsert error:', dbError.message, dbError.code)
+      console.error('❌ DB error:', dbError.message, dbError.code)
       return NextResponse.json({ success: false, error: dbError.message }, { status: 500 })
     }
 
-    console.log(`✅ Candidate saved: ${savedCandidate.id} — ${savedCandidate.name}`)
+    console.log(`✅ Saved: ${saved.id} — ${saved.name}`)
 
     return NextResponse.json({
       success: true,
-      candidate: savedCandidate,
-      message: `CV parsed: ${savedCandidate.name}`,
+      candidate: saved,
+      gemini_failed: !!geminiError,
+      gemini_error: geminiError,
+      message: geminiError
+        ? `CV saved with partial data (AI parsing failed: ${geminiError})`
+        : `CV parsed: ${saved.name}`,
     })
 
   } catch (error: any) {
