@@ -1,66 +1,115 @@
-import { NextResponse } from "next/server"
-import { GoogleGenerativeAI } from "@google/generative-ai"
+import { NextResponse } from 'next/server'
+
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
 
 export async function GET() {
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+
   const result: Record<string, any> = {
     timestamp: new Date().toISOString(),
     env: {
-      GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY
-        ? `SET (length: ${process.env.GOOGLE_GENERATIVE_AI_API_KEY.length}, starts: ${process.env.GOOGLE_GENERATIVE_AI_API_KEY.substring(0, 6)}...)`
-        : "NOT SET",
-      GEMINI_API_KEY: process.env.GEMINI_API_KEY
-        ? `SET (length: ${process.env.GEMINI_API_KEY.length}, starts: ${process.env.GEMINI_API_KEY.substring(0, 6)}...)`
-        : "NOT SET",
+      GOOGLE_GENERATIVE_AI_API_KEY: apiKey
+        ? `SET (${apiKey.length} chars, starts: ${apiKey.substring(0, 6)}...)`
+        : 'NOT SET',
     },
-    gemini_test: null as any,
   }
-
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
 
   if (!apiKey) {
     return NextResponse.json({
       ...result,
       success: false,
-      error: "No Gemini API key found in environment variables",
-      fix: "Add GOOGLE_GENERATIVE_AI_API_KEY to Netlify environment variables",
+      error: 'No Gemini API key in environment variables',
+      fix: 'Add GOOGLE_GENERATIVE_AI_API_KEY to Netlify → Site configuration → Environment variables',
     }, { status: 500 })
   }
 
-  // Try gemini-1.5-flash with a minimal prompt
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+  // ── List available models ───────────────────────────────────────────────────
+  let availableModels: string[] = []
+  let listError: string | null = null
+  let usedApiVersion = 'v1beta'
 
-    const start = Date.now()
-    const response = await model.generateContent("Say exactly: OK")
-    const elapsed = Date.now() - start
-    const text = response.response.text()
-
-    result.gemini_test = {
-      model: "gemini-1.5-flash",
-      success: true,
-      response: text.trim(),
-      elapsed_ms: elapsed,
-      note: elapsed < 5000 ? "Fast enough for Netlify (< 5s)" : "Slow — may time out on Netlify",
+  for (const apiVersion of ['v1beta', 'v1']) {
+    try {
+      const res = await fetch(
+        `${GEMINI_BASE}/${apiVersion}/models?key=${apiKey}&pageSize=50`,
+        { signal: AbortSignal.timeout(4000) }
+      )
+      const data = await res.json() as any
+      if (!res.ok) {
+        listError = `${res.status} ${res.statusText}: ${JSON.stringify(data).slice(0, 200)}`
+        continue
+      }
+      availableModels = (data.models ?? [])
+        .filter((m: any) => (m.supportedGenerationMethods ?? []).includes('generateContent'))
+        .map((m: any) => m.name.replace('models/', ''))
+      usedApiVersion = apiVersion
+      break
+    } catch (err: any) {
+      listError = err.message
     }
+  }
 
-    return NextResponse.json({ ...result, success: true })
-  } catch (err: any) {
-    result.gemini_test = {
-      model: "gemini-1.5-flash",
-      success: false,
-      error: err.message,
-      error_type: err.constructor?.name,
-      status: err.status,
-    }
+  result.available_models = availableModels
+  result.list_error = listError
+  result.api_version = usedApiVersion
 
+  if (availableModels.length === 0) {
     return NextResponse.json({
       ...result,
       success: false,
-      error: `Gemini API call failed: ${err.message}`,
+      error: listError ?? 'No generateContent models found for this API key',
+    }, { status: 500 })
+  }
+
+  // ── Test the best available model ──────────────────────────────────────────
+  const PREFER = [
+    'gemini-2.0-flash', 'gemini-2.0-flash-001', 'gemini-2.0-flash-exp',
+    'gemini-2.0-flash-lite', 'gemini-1.5-flash-002', 'gemini-1.5-flash',
+    'gemini-1.5-flash-latest', 'gemini-1.5-pro-002', 'gemini-1.5-pro',
+  ]
+  const testModel =
+    PREFER.find(p => availableModels.includes(p)) ?? availableModels[0]
+
+  result.selected_model = testModel
+
+  try {
+    const start = Date.now()
+    const res = await fetch(
+      `${GEMINI_BASE}/${usedApiVersion}/models/${testModel}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: 'Say exactly: OK' }] }],
+          generationConfig: { maxOutputTokens: 10 },
+        }),
+        signal: AbortSignal.timeout(8000),
+      }
+    )
+    const elapsed = Date.now() - start
+    const data = await res.json() as any
+
+    if (!res.ok) {
+      return NextResponse.json({
+        ...result,
+        success: false,
+        error: `Generate call failed: ${res.status} ${res.statusText}`,
+        response_body: data,
+      }, { status: 500 })
+    }
+
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '(no text)'
+    result.test_response = { text: text.trim(), elapsed_ms: elapsed }
+
+    return NextResponse.json({ ...result, success: true })
+  } catch (err: any) {
+    return NextResponse.json({
+      ...result,
+      success: false,
+      error: `Generate call threw: ${err.message}`,
     }, { status: 500 })
   }
 }
 
-export const dynamic = "force-dynamic"
-export const runtime = "nodejs"
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'

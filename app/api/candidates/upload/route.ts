@@ -1,29 +1,127 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// ─── Gemini setup ──────────────────────────────────────────────────────────────
+// ─── Gemini REST API (no SDK — direct fetch for full control + error visibility) ─
 
-function getGeminiClient() {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY not set in environment variables')
-  return new GoogleGenerativeAI(apiKey)
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
+const TIMEOUT_MS = 7000   // Netlify hard limit 10s → leave 3s for auth+db
+
+function getApiKey(): string {
+  const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+  if (!key) throw new Error('GEMINI_API_KEY not set in Netlify environment variables')
+  return key
 }
 
-// Try models in order — first one that works wins
-const MODEL_PRIORITY = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash']
+// Module-level model cache: discovered once per cold-start
+let _cachedModel: string | null = null
 
-// Netlify hard limit is 10s → leave 3s for auth+org+db → 7s for Gemini
-const TIMEOUT_MS = 7000
+// ─── Discover which model is actually available for this API key ───────────────
 
-function withTimeout<T>(promise: Promise<T>, ms = TIMEOUT_MS): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`Gemini timeout after ${ms}ms`)), ms)
-    ),
-  ])
+async function discoverModel(): Promise<string> {
+  if (_cachedModel) return _cachedModel
+
+  const key = getApiKey()
+
+  // Try v1beta first, then v1
+  for (const apiVersion of ['v1beta', 'v1']) {
+    try {
+      const res = await fetch(
+        `${GEMINI_BASE}/${apiVersion}/models?key=${key}&pageSize=50`,
+        { signal: AbortSignal.timeout(3000) }
+      )
+      if (!res.ok) {
+        console.warn(`⚠️ List models (${apiVersion}): HTTP ${res.status}`)
+        continue
+      }
+      const data = await res.json() as { models?: Array<{ name: string; supportedGenerationMethods?: string[] }> }
+      const all = data.models ?? []
+      console.log(`📋 Available models (${apiVersion}):`, all.map(m => m.name).join(', '))
+
+      // Prefer flash models that support generateContent, newest first
+      const PREFER = [
+        'gemini-2.0-flash', 'gemini-2.0-flash-001',
+        'gemini-2.0-flash-exp', 'gemini-2.0-flash-lite',
+        'gemini-1.5-flash-002', 'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-pro-002', 'gemini-1.5-pro',
+        'gemini-1.0-pro',
+      ]
+      for (const preferred of PREFER) {
+        const match = all.find(m =>
+          m.name === `models/${preferred}` &&
+          (m.supportedGenerationMethods ?? []).includes('generateContent')
+        )
+        if (match) {
+          const modelId = match.name.replace('models/', '')
+          console.log(`✅ Using model: ${modelId} (${apiVersion})`)
+          _cachedModel = `${apiVersion}|${modelId}`
+          return _cachedModel
+        }
+      }
+
+      // If none of the preferred match, just take any generateContent capable one
+      const any = all.find(m =>
+        (m.supportedGenerationMethods ?? []).includes('generateContent') &&
+        m.name.includes('gemini')
+      )
+      if (any) {
+        const modelId = any.name.replace('models/', '')
+        console.log(`✅ Fallback model: ${modelId} (${apiVersion})`)
+        _cachedModel = `${apiVersion}|${modelId}`
+        return _cachedModel
+      }
+    } catch (err: any) {
+      console.warn(`⚠️ discoverModel (${apiVersion}) error:`, err.message)
+    }
+  }
+
+  // Hard fallback — try without discovery
+  console.warn('⚠️ Model discovery failed — using gemini-1.5-flash default')
+  _cachedModel = 'v1beta|gemini-1.5-flash'
+  return _cachedModel
+}
+
+// ─── Call Gemini REST API ──────────────────────────────────────────────────────
+
+async function callGemini(contents: any[]): Promise<string> {
+  const key = getApiKey()
+  const modelSpec = await discoverModel()
+  const [apiVersion, modelId] = modelSpec.split('|')
+
+  const url = `${GEMINI_BASE}/${apiVersion}/models/${modelId}:generateContent?key=${key}`
+
+  const body = {
+    contents,
+    generationConfig: { maxOutputTokens: 512, temperature: 0.1 },
+  }
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timer)
+  }
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '(no body)')
+    // Reset cache on 404 so next request re-discovers
+    if (res.status === 404) _cachedModel = null
+    throw new Error(`Gemini ${res.status} ${res.statusText}: ${errBody.slice(0, 300)}`)
+  }
+
+  const data = await res.json() as any
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) throw new Error(`Gemini returned no text: ${JSON.stringify(data).slice(0, 200)}`)
+  return text
 }
 
 // ─── JSON extraction ───────────────────────────────────────────────────────────
@@ -36,7 +134,7 @@ function extractJSON(raw: string): any {
   if (start !== -1 && end > start) {
     try { return JSON.parse(clean.slice(start, end + 1)) } catch {}
   }
-  throw new Error(`Cannot parse Gemini JSON: ${clean.slice(0, 150)}`)
+  throw new Error(`Cannot parse Gemini JSON: ${clean.slice(0, 200)}`)
 }
 
 // ─── CV prompt ────────────────────────────────────────────────────────────────
@@ -45,7 +143,7 @@ const CV_PROMPT = `You are a CV/Resume parser. Extract real personal information
 
 STRICT RULES:
 - "name": real full name only (e.g. "Maria Müller"). NOT "Lebenslauf", "Resume", "CV", job titles, or headings.
-- "email": only real email addresses. NOT placeholder emails like "name@email.com".
+- "email": only real email addresses. NOT placeholder like "name@email.com".
 - Return null for any field you cannot find with certainty.
 - CV may be in German, English, or other languages.
 - Do NOT invent data.
@@ -53,60 +151,12 @@ STRICT RULES:
 Return ONLY valid JSON, no markdown fences, no explanation:
 {"name":null,"email":null,"phone":null,"location":null,"summary":null,"experience_years":0,"skills":[],"education":null,"languages":["German"],"certifications":[]}`
 
-// ─── Try Gemini with fallback models ──────────────────────────────────────────
-
-async function callGeminiText(prompt: string): Promise<string> {
-  const client = getGeminiClient()
-  let lastError: Error | null = null
-
-  for (const modelName of MODEL_PRIORITY) {
-    try {
-      console.log(`🤖 Trying model: ${modelName}`)
-      const model = client.getGenerativeModel({
-        model: modelName,
-        generationConfig: { maxOutputTokens: 512, temperature: 0.1 },
-      })
-      const result = await withTimeout(model.generateContent(prompt))
-      const text = (result as any).response.text()
-      console.log(`✅ ${modelName} responded (${text.length} chars)`)
-      return text
-    } catch (err: any) {
-      console.warn(`⚠️ ${modelName} failed: ${err.message}`)
-      lastError = err
-    }
-  }
-  throw lastError ?? new Error('All Gemini models failed')
-}
-
-async function callGeminiMultimodal(parts: any[]): Promise<string> {
-  const client = getGeminiClient()
-  let lastError: Error | null = null
-
-  for (const modelName of MODEL_PRIORITY) {
-    try {
-      console.log(`🤖 Trying multimodal model: ${modelName}`)
-      const model = client.getGenerativeModel({
-        model: modelName,
-        generationConfig: { maxOutputTokens: 512, temperature: 0.1 },
-      })
-      const result = await withTimeout(model.generateContent(parts))
-      const text = (result as any).response.text()
-      console.log(`✅ ${modelName} multimodal responded (${text.length} chars)`)
-      return text
-    } catch (err: any) {
-      console.warn(`⚠️ ${modelName} multimodal failed: ${err.message}`)
-      lastError = err
-    }
-  }
-  throw lastError ?? new Error('All Gemini models failed (multimodal)')
-}
-
-// ─── PDF parsing ──────────────────────────────────────────────────────────────
+// ─── File parsers ──────────────────────────────────────────────────────────────
 
 async function parsePDF(file: File): Promise<any> {
   const buffer = Buffer.from(await file.arrayBuffer())
 
-  // Try text extraction first (faster, more reliable than multimodal)
+  // Try text extraction first
   let pdfText = ''
   try {
     const pdfParseLib = require('pdf-parse/lib/pdf-parse.js')
@@ -119,38 +169,46 @@ async function parsePDF(file: File): Promise<any> {
   }
 
   if (pdfText.length > 100) {
-    const prompt = `${CV_PROMPT}\n\nCV TEXT:\n${pdfText.substring(0, 4000)}`
-    return extractJSON(await callGeminiText(prompt))
+    const text = await callGemini([{
+      role: 'user',
+      parts: [{ text: `${CV_PROMPT}\n\nCV TEXT:\n${pdfText.substring(0, 4000)}` }],
+    }])
+    return extractJSON(text)
   }
 
   // Scanned/image PDF → multimodal
-  console.log('📷 Scanned PDF — using multimodal')
+  console.log('📷 Scanned PDF — sending binary to Gemini')
   const base64 = buffer.toString('base64')
-  const text = await callGeminiMultimodal([
-    { inlineData: { data: base64, mimeType: 'application/pdf' } },
-    { text: CV_PROMPT },
-  ])
+  const text = await callGemini([{
+    role: 'user',
+    parts: [
+      { inlineData: { data: base64, mimeType: 'application/pdf' } },
+      { text: CV_PROMPT },
+    ],
+  }])
   return extractJSON(text)
 }
-
-// ─── DOCX parsing ─────────────────────────────────────────────────────────────
 
 async function parseDOCX(file: File): Promise<any> {
   const mammoth = await import('mammoth')
   const buffer = Buffer.from(await file.arrayBuffer())
-  const { value: text } = await mammoth.extractRawText({ buffer })
-  if (!text?.trim() || text.trim().length < 50) throw new Error('No text in DOCX')
-  const prompt = `${CV_PROMPT}\n\nCV TEXT:\n${text.substring(0, 4000)}`
-  return extractJSON(await callGeminiText(prompt))
+  const { value: rawText } = await mammoth.extractRawText({ buffer })
+  if (!rawText?.trim() || rawText.trim().length < 50) throw new Error('No text in DOCX')
+  const text = await callGemini([{
+    role: 'user',
+    parts: [{ text: `${CV_PROMPT}\n\nCV TEXT:\n${rawText.substring(0, 4000)}` }],
+  }])
+  return extractJSON(text)
 }
 
-// ─── TXT parsing ──────────────────────────────────────────────────────────────
-
 async function parseTXT(file: File): Promise<any> {
-  const text = await file.text()
-  if (!text?.trim() || text.trim().length < 50) throw new Error('TXT file is empty')
-  const prompt = `${CV_PROMPT}\n\nCV TEXT:\n${text.substring(0, 4000)}`
-  return extractJSON(await callGeminiText(prompt))
+  const rawText = await file.text()
+  if (!rawText?.trim() || rawText.trim().length < 50) throw new Error('TXT file is empty')
+  const text = await callGemini([{
+    role: 'user',
+    parts: [{ text: `${CV_PROMPT}\n\nCV TEXT:\n${rawText.substring(0, 4000)}` }],
+  }])
+  return extractJSON(text)
 }
 
 // ─── Name validation ──────────────────────────────────────────────────────────
@@ -164,18 +222,15 @@ function isValidName(name: string | null | undefined): boolean {
   if (!name || name.trim().length < 2) return false
   const n = name.trim()
   if (n.length > 50) return false
-  if (REJECT_NAME.some(p => p.test(n))) return false
-  return true
+  return !REJECT_NAME.some(p => p.test(n))
 }
 
-// ─── Deterministic fallback email ─────────────────────────────────────────────
-// Uses filename + size so the same CV re-upload upserts the same record
-// instead of creating a new duplicate each time.
+// ─── Deterministic fallback email (filename+size → no duplicates on re-upload) ─
 
 function fallbackEmail(file: File): string {
   const slug = file.name
-    .replace(/\.[^/.]+$/, '')           // remove extension
-    .replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_')
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[^a-zA-Z0-9]/g, '_')
     .replace(/_+/g, '_')
     .toLowerCase()
     .slice(0, 40)
@@ -238,7 +293,6 @@ export async function POST(request: NextRequest) {
       console.error('❌ Gemini CV parsing failed:', geminiError)
     }
 
-    // Reject template headings extracted as names
     if (parsed.name && !isValidName(parsed.name)) {
       console.warn(`⚠️ Discarding invalid name: "${parsed.name}"`)
       parsed.name = null
@@ -280,7 +334,6 @@ export async function POST(request: NextRequest) {
 
     console.log(`💾 Saving: name="${candidateRecord.name}" email="${candidateRecord.email}"`)
 
-    // ── Upsert on email (same CV re-upload → update existing record) ──────────
     const { data: saved, error: dbError } = await admin
       .from('candidates')
       .upsert([candidateRecord], { onConflict: 'email', ignoreDuplicates: false })
@@ -300,7 +353,7 @@ export async function POST(request: NextRequest) {
       gemini_failed: !!geminiError,
       gemini_error: geminiError,
       message: geminiError
-        ? `CV saved with partial data (AI parsing failed: ${geminiError})`
+        ? `CV saved (AI parsing failed: ${geminiError})`
         : `CV parsed: ${saved.name}`,
     })
 
