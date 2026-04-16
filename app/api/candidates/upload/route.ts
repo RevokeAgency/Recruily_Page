@@ -312,12 +312,9 @@ export async function POST(request: NextRequest) {
       ? parsed.email
       : null
 
-    const candidateRecord = {
-      id: uuidv4(),
-      organisation_id: org.id,
-      created_by: user.id,
+    const email = emailFromGemini ?? fallbackEmail(file)
+    const dataFields = {
       name: (isValidName(parsed.name) ? parsed.name : nameFallback).trim() || 'Unknown',
-      email: emailFromGemini ?? fallbackEmail(file),
       phone: parsed.phone || null,
       location: parsed.location || null,
       summary: parsed.summary || null,
@@ -333,13 +330,39 @@ export async function POST(request: NextRequest) {
       status: 'active',
     }
 
-    console.log(`💾 Saving: name="${candidateRecord.name}" email="${candidateRecord.email}"`)
+    console.log(`💾 Saving: name="${dataFields.name}" email="${email}"`)
 
-    const { data: saved, error: dbError } = await admin
+    // ── Check if candidate already exists by email ────────────────────────────
+    // NEVER change the id of an existing candidate — that breaks matches FK
+    const { data: existing } = await admin
       .from('candidates')
-      .upsert([candidateRecord], { onConflict: 'email', ignoreDuplicates: false })
-      .select()
-      .single()
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
+
+    let saved: any = null
+    let dbError: any = null
+
+    if (existing?.id) {
+      console.log(`🔄 Updating existing candidate ${existing.id}`)
+      const { data, error } = await admin
+        .from('candidates')
+        .update(dataFields)
+        .eq('id', existing.id)
+        .select()
+        .single()
+      saved = data
+      dbError = error
+    } else {
+      console.log('➕ Inserting new candidate')
+      const { data, error } = await admin
+        .from('candidates')
+        .insert([{ id: uuidv4(), organisation_id: org.id, created_by: user.id, email, ...dataFields }])
+        .select()
+        .single()
+      saved = data
+      dbError = error
+    }
 
     if (dbError) {
       console.error('❌ DB error:', dbError.message, dbError.code)
