@@ -67,24 +67,77 @@ async function callGemini(contents: any[]): Promise<string> {
   throw lastError ?? new Error('All Gemini models failed')
 }
 
-// ─── JSON extraction ───────────────────────────────────────────────────────────
+// ─── JSON extraction & repair ─────────────────────────────────────────────────
+
+/** Strip markdown fences and non-printable control chars (keep \t \n \r) */
+function stripMarkdown(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .trim()
+}
+
+/**
+ * Escape literal \n / \r / \t that appear INSIDE JSON string values.
+ * These are valid whitespace outside strings but invalid inside — the most
+ * common reason Stefan's CV fails while Denise's works fine.
+ */
+function fixInlineNewlines(s: string): string {
+  let out = ''
+  let inStr = false
+  let esc = false
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]
+    if (esc) { out += c; esc = false; continue }
+    if (c === '\\' && inStr) { out += c; esc = true; continue }
+    if (c === '"') { inStr = !inStr; out += c; continue }
+    if (inStr) {
+      if (c === '\n') { out += '\\n'; continue }
+      if (c === '\r') { out += '\\r'; continue }
+      if (c === '\t') { out += '\\t'; continue }
+    }
+    out += c
+  }
+  return out
+}
 
 function extractJSON(raw: string): any {
-  const clean = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
-  try { return JSON.parse(clean) } catch {}
-  const start = clean.indexOf('{')
-  const end = clean.lastIndexOf('}')
+  const s = stripMarkdown(raw)
+
+  // Layer 1 — direct parse after markdown strip
+  try { return JSON.parse(s) } catch {}
+
+  // Layer 2 — extract only the {...} block (ignore preamble/postamble)
+  const start = s.indexOf('{')
+  const end = s.lastIndexOf('}')
   if (start !== -1 && end > start) {
-    try { return JSON.parse(clean.slice(start, end + 1)) } catch {}
+    const block = s.slice(start, end + 1)
+
+    // Layer 2a — raw block
+    try { return JSON.parse(block) } catch {}
+
+    // Layer 2b — fix literal newlines inside string values
+    try { return JSON.parse(fixInlineNewlines(block)) } catch {}
+
+    // Layer 2c — remove trailing commas + fix newlines
+    const repaired = fixInlineNewlines(block.replace(/,\s*([\}\]])/g, '$1'))
+    try { return JSON.parse(repaired) } catch {}
   }
-  throw new Error(`Cannot parse Gemini JSON: ${clean.slice(0, 200)}`)
+
+  // All attempts failed — log FULL raw string so we can see exactly what broke
+  console.error(`❌ GEMINI RAW OUTPUT (${raw.length} chars):\n${raw}`)
+  throw new Error(`Cannot parse Gemini JSON (${raw.length} chars). First 300: ${s.slice(0, 300)}`)
 }
 
 // ─── CV prompt ────────────────────────────────────────────────────────────────
 
 const CV_PROMPT = `Extract only the hard facts from this CV. Return ONLY valid JSON, no markdown, no explanation. Always end the JSON with '}'.
 
-Fields: name (full name, null if heading/title), email (real only, null if placeholder), phone, location, experience_years (integer), skills (max 6 items), education (one line), languages (array), certifications (array). Set summary to null always.
+IMPORTANT: Use only simple plain text inside values. No newlines, no backslashes, no unescaped quotes within string values. If a value contains a newline, replace it with a space. If you cannot fill a field, use null.
+
+Fields: name (full name only, null if heading/title/role), email (real address only, null if placeholder), phone (digits only), location (city/country, single line), experience_years (integer ≥ 0), skills (max 6 short strings), education (one line), languages (array), certifications (array). Set summary to null always.
 
 {"name":null,"email":null,"phone":null,"location":null,"summary":null,"experience_years":0,"skills":[],"education":null,"languages":["German"],"certifications":[]}`
 
