@@ -33,7 +33,7 @@ async function callGemini(contents: any[]): Promise<string> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents,
-          generationConfig: { maxOutputTokens: 2048, temperature: 0.1, responseMimeType: 'application/json' },
+          generationConfig: { maxOutputTokens: 4096, temperature: 0.1, responseMimeType: 'application/json' },
         }),
         signal: controller.signal,
       })
@@ -82,16 +82,9 @@ function extractJSON(raw: string): any {
 
 // ─── CV prompt ────────────────────────────────────────────────────────────────
 
-const CV_PROMPT = `Extract CV data and return ONLY this JSON object. No markdown, no explanation. Always close the JSON object completely with '}'.
+const CV_PROMPT = `Extract only the hard facts from this CV. Return ONLY valid JSON, no markdown, no explanation. Always end the JSON with '}'.
 
-Rules:
-- name: full name only (e.g. "Maria Müller"). Null if it is a heading like "Lebenslauf", "Resume", job titles.
-- email: real address only. Null if placeholder (e.g. name@email.com).
-- summary: max 80 characters. Null if not found.
-- skills: max 8 items. Empty array if none.
-- experience_years: integer ≥ 0. Default 0.
-- languages: array, default ["German"] if CV is in German.
-- Return null for any field you cannot determine with certainty. Do NOT invent data.
+Fields: name (full name, null if heading/title), email (real only, null if placeholder), phone, location, experience_years (integer), skills (max 6 items), education (one line), languages (array), certifications (array). Set summary to null always.
 
 {"name":null,"email":null,"phone":null,"location":null,"summary":null,"experience_years":0,"skills":[],"education":null,"languages":["German"],"certifications":[]}`
 

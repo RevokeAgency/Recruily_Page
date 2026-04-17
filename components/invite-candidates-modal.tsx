@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useRef, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -53,6 +53,10 @@ function InviteCandidatesModal({
   const { user } = useAuth()
   const [open, setOpen] = useState(isOpen)
   const [activeTab, setActiveTab] = useState("upload")
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  // Guard: prevent setState calls after unmount (avoids removeChild errors)
+  const mountedRef = useRef(true)
+  useEffect(() => { return () => { mountedRef.current = false } }, [])
   const [uploadState, setUploadState] = useState<UploadState>({
     processing: false,
     files: [],
@@ -85,6 +89,7 @@ function InviteCandidatesModal({
       errorCount: 0,
       overallProgress: 0
     })
+    setUploadError(null)
   }
 
   const removeFile = (index: number) => {
@@ -136,6 +141,7 @@ function InviteCandidatesModal({
         try {
           // Step 1: Parse CV with enhanced API
           const parseResult = await processSingleCV(fileState.file, jobId, (progress) => {
+            if (!mountedRef.current) return
             setUploadState(prev => ({
               ...prev,
               files: prev.files.map((f, index) =>
@@ -236,12 +242,10 @@ function InviteCandidatesModal({
         onUploadCompleted(completedCount)
       }
 
-    } catch (batchError) {
+    } catch (batchError: any) {
       console.error('❌ Batch processing error:', batchError)
-      setUploadState(prev => ({
-        ...prev,
-        processing: false
-      }))
+      setUploadState(prev => ({ ...prev, processing: false }))
+      setUploadError(batchError?.message || 'An unexpected error occurred during processing')
     }
   }, [jobId, onCandidateAdded, onUploadCompleted])
 
@@ -271,12 +275,31 @@ function InviteCandidatesModal({
 
       onProgress(30)
 
-      const uploadResponse = await fetch('/api/candidates/upload', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData,
-      })
-      const uploadResult = await uploadResponse.json()
+      // 30s client-side timeout — Netlify hard limit is 10s, extra headroom for slow networks
+      const uploadAbort = new AbortController()
+      const uploadTimer = setTimeout(() => uploadAbort.abort(), 30_000)
+
+      let uploadResponse!: Response
+      let uploadResult: any
+      try {
+        uploadResponse = await fetch('/api/candidates/upload', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData,
+          signal: uploadAbort.signal,
+        })
+        uploadResult = await uploadResponse.json()
+      } catch (fetchErr: any) {
+        const isTimeout = fetchErr?.name === 'AbortError'
+        return {
+          success: false,
+          error: isTimeout
+            ? 'Upload timed out after 30 seconds — check Netlify function logs'
+            : `Network error: ${fetchErr.message}`,
+        }
+      } finally {
+        clearTimeout(uploadTimer)
+      }
 
       if (!uploadResponse.ok || !uploadResult.success) {
         return {
@@ -367,7 +390,11 @@ function InviteCandidatesModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(val) => val ? setOpen(true) : handleClose()}>
+    <Dialog open={open} onOpenChange={(val) => {
+      // Block close during processing to prevent Radix portal removeChild errors
+      if (!val && uploadState.processing) return
+      val ? setOpen(true) : handleClose()
+    }}>
       <DialogTrigger asChild>
         {trigger || (
           <Button size="sm" className="gap-2">
@@ -418,6 +445,14 @@ function InviteCandidatesModal({
                 </div>
               </div>
             </div>
+
+            {/* Upload Error Alert */}
+            {uploadError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{uploadError}</AlertDescription>
+              </Alert>
+            )}
 
             {/* Processing Status */}
             {uploadState.processing && (
