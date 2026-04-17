@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
 
-// ─── Gemini REST API (no SDK — direct fetch for full control + error visibility) ─
+// ─── Gemini REST API (direct fetch, no SDK, no model discovery) ───────────────
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
-const TIMEOUT_MS = 7000   // Netlify hard limit 10s → leave 3s for auth+db
+const GEMINI_API_VERSION = 'v1beta'
+// Primary model → fallback. No discovery call needed (saves ~3-6s per request).
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash']
+// Netlify hard limit is 10s. Auth+Org+DB ≈ 1s. Leave 8s for Gemini.
+const TIMEOUT_MS = 8000
 
 function getApiKey(): string {
   const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
@@ -13,116 +17,55 @@ function getApiKey(): string {
   return key
 }
 
-// Module-level model cache: discovered once per cold-start
-let _cachedModel: string | null = null
-
-// ─── Discover which model is actually available for this API key ───────────────
-
-async function discoverModel(): Promise<string> {
-  if (_cachedModel) return _cachedModel
-
-  const key = getApiKey()
-
-  // Try v1beta first, then v1
-  for (const apiVersion of ['v1beta', 'v1']) {
-    try {
-      const res = await fetch(
-        `${GEMINI_BASE}/${apiVersion}/models?key=${key}&pageSize=50`,
-        { signal: AbortSignal.timeout(3000) }
-      )
-      if (!res.ok) {
-        console.warn(`⚠️ List models (${apiVersion}): HTTP ${res.status}`)
-        continue
-      }
-      const data = await res.json() as { models?: Array<{ name: string; supportedGenerationMethods?: string[] }> }
-      const all = data.models ?? []
-      console.log(`📋 Available models (${apiVersion}):`, all.map(m => m.name).join(', '))
-
-      // Prefer flash models that support generateContent, newest first
-      const PREFER = [
-        'gemini-2.5-flash', 'gemini-2.5-flash-preview-05-20',
-        'gemini-2.5-flash-preview-04-17',
-        'gemini-2.0-flash', 'gemini-2.0-flash-001',
-        'gemini-2.0-flash-exp', 'gemini-2.0-flash-lite',
-        'gemini-1.5-flash-002', 'gemini-1.5-flash',
-        'gemini-1.5-flash-latest',
-        'gemini-1.5-pro-002', 'gemini-1.5-pro',
-      ]
-      for (const preferred of PREFER) {
-        const match = all.find(m =>
-          m.name === `models/${preferred}` &&
-          (m.supportedGenerationMethods ?? []).includes('generateContent')
-        )
-        if (match) {
-          const modelId = match.name.replace('models/', '')
-          console.log(`✅ Using model: ${modelId} (${apiVersion})`)
-          _cachedModel = `${apiVersion}|${modelId}`
-          return _cachedModel
-        }
-      }
-
-      // If none of the preferred match, just take any generateContent capable one
-      const any = all.find(m =>
-        (m.supportedGenerationMethods ?? []).includes('generateContent') &&
-        m.name.includes('gemini')
-      )
-      if (any) {
-        const modelId = any.name.replace('models/', '')
-        console.log(`✅ Fallback model: ${modelId} (${apiVersion})`)
-        _cachedModel = `${apiVersion}|${modelId}`
-        return _cachedModel
-      }
-    } catch (err: any) {
-      console.warn(`⚠️ discoverModel (${apiVersion}) error:`, err.message)
-    }
-  }
-
-  // Hard fallback — try without discovery
-  console.warn('⚠️ Model discovery failed — using gemini-1.5-flash default')
-  _cachedModel = 'v1beta|gemini-1.5-flash'
-  return _cachedModel
-}
-
-// ─── Call Gemini REST API ──────────────────────────────────────────────────────
+// ─── Call Gemini REST API — tries primary model, falls back on 404/error ──────
 
 async function callGemini(contents: any[]): Promise<string> {
   const key = getApiKey()
-  const modelSpec = await discoverModel()
-  const [apiVersion, modelId] = modelSpec.split('|')
+  let lastError: Error | null = null
 
-  const url = `${GEMINI_BASE}/${apiVersion}/models/${modelId}:generateContent?key=${key}`
+  for (const modelId of GEMINI_MODELS) {
+    const url = `${GEMINI_BASE}/${GEMINI_API_VERSION}/models/${modelId}:generateContent?key=${key}`
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
-  const body = {
-    contents,
-    generationConfig: { maxOutputTokens: 512, temperature: 0.1 },
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          generationConfig: { maxOutputTokens: 1024, temperature: 0.1 },
+        }),
+        signal: controller.signal,
+      })
+
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '')
+        const err = new Error(`Gemini ${res.status} on ${modelId}: ${errBody.slice(0, 200)}`)
+        console.warn(`⚠️ ${err.message}`)
+        lastError = err
+        continue   // try next model
+      }
+
+      const data = await res.json() as any
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+      if (!text) {
+        lastError = new Error(`Gemini returned no text (model: ${modelId})`)
+        continue
+      }
+
+      console.log(`✅ Gemini ${modelId}: ${text.length} chars`)
+      return text
+
+    } catch (err: any) {
+      console.warn(`⚠️ Gemini ${modelId} error: ${err.message}`)
+      lastError = err
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-
-  let res: Response
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    })
-  } finally {
-    clearTimeout(timer)
-  }
-
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '(no body)')
-    // Reset cache on 404 so next request re-discovers
-    if (res.status === 404) _cachedModel = null
-    throw new Error(`Gemini ${res.status} ${res.statusText}: ${errBody.slice(0, 300)}`)
-  }
-
-  const data = await res.json() as any
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) throw new Error(`Gemini returned no text: ${JSON.stringify(data).slice(0, 200)}`)
-  return text
+  throw lastError ?? new Error('All Gemini models failed')
 }
 
 // ─── JSON extraction ───────────────────────────────────────────────────────────
@@ -149,7 +92,8 @@ STRICT RULES:
 - CV may be in German, English, or other languages.
 - Do NOT invent data.
 
-Return ONLY valid JSON, no markdown fences, no explanation:
+Return ONLY valid JSON, no markdown fences, no explanation.
+Keep "summary" under 100 characters. Keep "skills" to max 8 items.
 {"name":null,"email":null,"phone":null,"location":null,"summary":null,"experience_years":0,"skills":[],"education":null,"languages":["German"],"certifications":[]}`
 
 // ─── File parsers ──────────────────────────────────────────────────────────────
