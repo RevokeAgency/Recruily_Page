@@ -54,6 +54,10 @@ async function callGemini(contents: any[]): Promise<string> {
       }
 
       console.log(`✅ Gemini ${modelId}: ${text.length} chars`)
+      // Log suspiciously short responses immediately — helps diagnose Stefan-style failures
+      if (text.length < 150) {
+        console.warn(`⚠️ Very short Gemini response (${text.length} chars) — full text:\n${text}`)
+      }
       return text
 
     } catch (err: any) {
@@ -133,11 +137,20 @@ function extractJSON(raw: string): any {
 
 // ─── CV prompt ────────────────────────────────────────────────────────────────
 
-const CV_PROMPT = `Extract only the hard facts from this CV. Return ONLY valid JSON, no markdown, no explanation. Always end the JSON with '}'.
+const CV_PROMPT = `Extract hard facts from this CV. Return ONLY valid JSON — no markdown, no explanation. Always close the object with '}'.
 
-IMPORTANT: Use only simple plain text inside values. No newlines, no backslashes, no unescaped quotes within string values. If a value contains a newline, replace it with a space. If you cannot fill a field, use null.
-
-Fields: name (full name only, null if heading/title/role), email (real address only, null if placeholder), phone (digits only), location (city/country, single line), experience_years (integer ≥ 0), skills (max 6 short strings), education (one line), languages (array), certifications (array). Set summary to null always.
+RULES (follow exactly):
+- name: Full personal name only (e.g. "Stefan Müller"). Null if it is a heading like "Lebenslauf", job title, or company name.
+- email: Search the ENTIRE text for any pattern containing '@'. Email format: user@domain.tld. Extract it exactly as written. If multiple, use the first. If none found, null. Never invent one.
+- phone: Digits, spaces, +, () only. Single line. Null if not found.
+- location: City and/or country. Single line, no newlines. Null if not found.
+- experience_years: Total years of professional experience as integer ≥ 0. Default 0.
+- skills: Up to 6 short skill names. Empty array if none.
+- education: Highest degree + institution, single line. Null if not found.
+- languages: Array of languages. Default ["German"] if CV is in German.
+- certifications: Array of certification names. Empty array if none.
+- summary: Always null.
+- IMPORTANT: No newlines, no backslashes, no unescaped quotes inside any string value.
 
 {"name":null,"email":null,"phone":null,"location":null,"summary":null,"experience_years":0,"skills":[],"education":null,"languages":["German"],"certifications":[]}`
 
@@ -215,6 +228,21 @@ function isValidName(name: string | null | undefined): boolean {
   return !REJECT_NAME.some(p => p.test(n))
 }
 
+/**
+ * Rescue an email from a field value that may contain extra chars, spaces, or
+ * surrounding text (e.g. "E-Mail: s.mueller@company.de," → "s.mueller@company.de").
+ * Returns null for placeholders or if no @ pattern is found.
+ */
+function extractEmailFromString(raw: string | null | undefined): string | null {
+  if (!raw || typeof raw !== 'string') return null
+  const match = raw.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/)
+  if (!match) return null
+  const email = match[0].toLowerCase()
+  // Reject obvious placeholders
+  if (/@email\.com$/.test(email) || /^(email|name|vorname|example|user|test)@/.test(email)) return null
+  return email
+}
+
 // ─── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -281,16 +309,14 @@ export async function POST(request: NextRequest) {
 
     // ── Mandatory field validation — no DB write without real name + email ──────
     const validatedName = isValidName(parsed.name) ? parsed.name.trim() : null
-    const validatedEmail = typeof parsed.email === 'string' &&
-      parsed.email.includes('@') &&
-      !parsed.email.match(/@email\.com$/) &&
-      !parsed.email.match(/^(email|name|vorname|example)@/)
-      ? parsed.email.trim().toLowerCase()
-      : null
+    // extractEmailFromString handles garbled values: "E-Mail: s@co.de," → "s@co.de"
+    const validatedEmail = extractEmailFromString(parsed.email)
 
     if (!validatedName || !validatedEmail) {
       const missing = [!validatedName && 'Name', !validatedEmail && 'E-Mail'].filter(Boolean).join(' & ')
-      console.warn(`⚠️ Mandatory fields missing [${missing}]: name="${parsed.name}" email="${parsed.email}"`)
+      // Log the full parsed object so we can see exactly what Gemini returned
+      console.warn(`⚠️ 422 — Mandatory fields missing [${missing}]`)
+      console.warn(`⚠️ Gemini parsed object: ${JSON.stringify(parsed, null, 2)}`)
       return NextResponse.json(
         { success: false, error: `CV konnte nicht gelesen werden (${missing} fehlt) — bitte erneut versuchen.` },
         { status: 422 }
