@@ -244,7 +244,11 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
                 candidate: newCandidate,
               } as any, ...prev])
             }}
-            onUploadCompleted={() => fetchCandidates(true)}
+            onUploadCompleted={() => {
+              fetchCandidates(true)
+              // Second fetch after 2.5 s — catches slow match writes or DB propagation lag
+              setTimeout(() => fetchCandidates(true), 2500)
+            }}
           />
         </div>
       </div>
@@ -338,7 +342,11 @@ export function CandidateList({ jobId, jobTitle = "Job Position" }: CandidateLis
                       candidate: newCandidate,
                     } as any, ...prev])
                   }}
-                  onUploadCompleted={() => fetchCandidates(true)}
+                  onUploadCompleted={() => {
+              fetchCandidates(true)
+              // Second fetch after 2.5 s — catches slow match writes or DB propagation lag
+              setTimeout(() => fetchCandidates(true), 2500)
+            }}
                 />
               )}
             </CardContent>

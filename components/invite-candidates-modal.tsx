@@ -142,10 +142,11 @@ function InviteCandidatesModal({
           // Step 1: Parse CV with enhanced API
           const parseResult = await processSingleCV(fileState.file, jobId, (progress) => {
             if (!mountedRef.current) return
+            // Math.max: per-file progress never goes backwards in state
             setUploadState(prev => ({
               ...prev,
               files: prev.files.map((f, index) =>
-                index === i ? { ...f, progress } : f
+                index === i ? { ...f, progress: Math.max(f.progress, progress) } : f
               )
             }))
           })
@@ -236,10 +237,10 @@ function InviteCandidatesModal({
         errorCount,
       }))
 
-      // Reload candidate list from DB — called AFTER setState, outside any updater
+      // Reload candidate list from DB — brief delay lets the DB commit settle
       if (completedCount > 0 && onUploadCompleted) {
         console.log('🔄 Triggering onUploadCompleted to reload candidates from DB')
-        onUploadCompleted(completedCount)
+        setTimeout(() => onUploadCompleted(completedCount), 800)
       }
 
     } catch (batchError: any) {
@@ -251,12 +252,15 @@ function InviteCandidatesModal({
 
   // Process a single CV file
   async function processSingleCV(file: File, jobId: string, onProgress: (progress: number) => void) {
-    // Continuous ticker: advances +3% every 3s up to 85%, so user always sees movement
-    let tickValue = 10
-    onProgress(tickValue)
+    // Progress NEVER goes backwards: advance() only moves forward
+    let maxProg = 0
+    const advance = (p: number) => {
+      maxProg = Math.max(maxProg, p)
+      onProgress(maxProg)
+    }
+    advance(10)
     const progressTick = setInterval(() => {
-      tickValue = Math.min(tickValue + 3, 85)
-      onProgress(tickValue)
+      advance(Math.min(maxProg + 3, 85))
     }, 3000)
 
     try {
@@ -267,13 +271,13 @@ function InviteCandidatesModal({
         return { success: false, error: 'Not authenticated — please log in again' }
       }
 
-      onProgress(20)
+      advance(20)
 
       // ── Step 1: Upload + parse CV → /api/candidates/upload ──────────────────
       const formData = new FormData()
       formData.append('file', file)
 
-      onProgress(30)
+      advance(30)
 
       // 30s client-side timeout — Netlify hard limit is 10s, extra headroom for slow networks
       const uploadAbort = new AbortController()
@@ -314,31 +318,35 @@ function InviteCandidatesModal({
       }
       console.log(`✅ Candidate parsed & saved: ${candidate.name} (${candidate.id})`)
 
-      onProgress(60)
+      advance(60)
 
-      // ── Step 2: Create match → /api/matches/create ───────────────────────────
+      // ── Step 2: Create match → /api/matches/create (with one retry) ─────────
       let match: any = null
-      try {
-        const matchResponse = await fetch('/api/matches/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ candidateId: candidate.id, jobId }),
-        })
-        const matchResult = await matchResponse.json()
-        if (matchResult.success) {
-          match = matchResult.match
-          console.log(`✅ Match created: ${match.score}%`)
-        } else {
-          console.warn('⚠️ Match creation failed (non-fatal):', matchResult.error)
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const matchResponse = await fetch('/api/matches/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ candidateId: candidate.id, jobId }),
+          })
+          const matchResult = await matchResponse.json()
+          if (matchResult.success) {
+            match = matchResult.match
+            console.log(`✅ Match created: ${match.score}%`)
+            break
+          }
+          console.warn(`⚠️ Match attempt ${attempt} failed:`, matchResult.error)
+        } catch (matchErr) {
+          console.warn(`⚠️ Match attempt ${attempt} error:`, matchErr)
         }
-      } catch (matchErr) {
-        console.warn('⚠️ Match API error (non-fatal):', matchErr)
+        if (attempt === 1) await new Promise(r => setTimeout(r, 600))
       }
+      if (!match) console.error('❌ Match creation failed after retry — candidate saved but not visible in job list')
 
-      onProgress(100)
+      advance(100)
 
       return {
         success: true,
