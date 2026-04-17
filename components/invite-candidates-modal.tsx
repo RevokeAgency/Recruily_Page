@@ -313,9 +313,6 @@ function InviteCandidatesModal({
       }
 
       const candidate = uploadResult.candidate
-      if (uploadResult.gemini_failed) {
-        console.warn(`⚠️ Gemini CV parsing failed: ${uploadResult.gemini_error}`)
-      }
       console.log(`✅ Candidate parsed & saved: ${candidate.name} (${candidate.id})`)
 
       advance(60)
@@ -350,7 +347,6 @@ function InviteCandidatesModal({
 
       return {
         success: true,
-        gemini_failed: !!uploadResult.gemini_failed,
         candidate: {
           ...candidate,
           filename: file.name,
@@ -362,7 +358,6 @@ function InviteCandidatesModal({
           gaps: Array.isArray(match?.weaknesses) ? match.weaknesses : [],
           recommendations: Array.isArray(match?.skill_matches?.recommendations) ? match.skill_matches.recommendations : [],
           job_match_created: !!match,
-          gemini_failed: !!uploadResult.gemini_failed,
         },
         candidateMatch: match,
       }
@@ -490,14 +485,9 @@ function InviteCandidatesModal({
                             <p className="text-xs text-gray-500">
                               {Math.round(fileState.file.size / 1024)} KB
                             </p>
-                            {fileState.candidate && !fileState.candidate.gemini_failed && (
+                            {fileState.candidate && (
                               <p className="text-xs text-green-600 font-medium">
                                 → {fileState.candidate.name} ({fileState.candidate.match_score}% match)
-                              </p>
-                            )}
-                            {fileState.candidate?.gemini_failed && (
-                              <p className="text-xs text-amber-600 font-medium">
-                                ⚠ AI parsing failed — check Gemini API key in Netlify
                               </p>
                             )}
                             {fileState.error && (

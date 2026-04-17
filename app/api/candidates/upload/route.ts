@@ -215,18 +215,6 @@ function isValidName(name: string | null | undefined): boolean {
   return !REJECT_NAME.some(p => p.test(n))
 }
 
-// ─── Deterministic fallback email (filename+size → no duplicates on re-upload) ─
-
-function fallbackEmail(file: File): string {
-  const slug = file.name
-    .replace(/\.[^/.]+$/, '')
-    .replace(/[^a-zA-Z0-9]/g, '_')
-    .replace(/_+/g, '_')
-    .toLowerCase()
-    .slice(0, 40)
-  return `cv_import_${slug}_${file.size}@recruily-import.com`
-}
-
 // ─── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -291,27 +279,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (parsed.name && !isValidName(parsed.name)) {
-      console.warn(`⚠️ Discarding invalid name: "${parsed.name}"`)
-      parsed.name = null
-    }
-
-    // ── Build candidate record ────────────────────────────────────────────────
-    const nameFallback = file.name
-      .replace(/\.[^/.]+$/, '')
-      .replace(/[_\-().]+/g, ' ')
-      .trim()
-
-    const emailFromGemini = parsed.email &&
+    // ── Mandatory field validation — no DB write without real name + email ──────
+    const validatedName = isValidName(parsed.name) ? parsed.name.trim() : null
+    const validatedEmail = typeof parsed.email === 'string' &&
       parsed.email.includes('@') &&
       !parsed.email.match(/@email\.com$/) &&
       !parsed.email.match(/^(email|name|vorname|example)@/)
-      ? parsed.email
+      ? parsed.email.trim().toLowerCase()
       : null
 
-    const email = emailFromGemini ?? fallbackEmail(file)
+    if (!validatedName || !validatedEmail) {
+      const missing = [!validatedName && 'Name', !validatedEmail && 'E-Mail'].filter(Boolean).join(' & ')
+      console.warn(`⚠️ Mandatory fields missing [${missing}]: name="${parsed.name}" email="${parsed.email}"`)
+      return NextResponse.json(
+        { success: false, error: `CV konnte nicht gelesen werden (${missing} fehlt) — bitte erneut versuchen.` },
+        { status: 422 }
+      )
+    }
+
+    // ── Build candidate record ────────────────────────────────────────────────
+    const email = validatedEmail
     const dataFields = {
-      name: (isValidName(parsed.name) ? parsed.name : nameFallback).trim() || 'Unknown',
+      name: validatedName,
       phone: parsed.phone || null,
       location: parsed.location || null,
       summary: parsed.summary || null,
@@ -324,7 +313,6 @@ export async function POST(request: NextRequest) {
       languages: Array.isArray(parsed.languages) && parsed.languages.length > 0
         ? parsed.languages : ['German'],
       certifications: Array.isArray(parsed.certifications) ? parsed.certifications : [],
-      status: 'active',
     }
 
     console.log(`💾 Saving: name="${dataFields.name}" email="${email}"`)
@@ -371,11 +359,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       candidate: saved,
-      gemini_failed: !!geminiError,
-      gemini_error: geminiError,
-      message: geminiError
-        ? `CV saved (AI parsing failed: ${geminiError})`
-        : `CV parsed: ${saved.name}`,
+      message: `CV parsed: ${saved.name}`,
     })
 
   } catch (error: any) {
