@@ -7,8 +7,8 @@ import { v4 as uuidv4 } from 'uuid'
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
 const GEMINI_MODELS = ['gemini-3.0-flash', 'gemini-2.5-flash']
-// Netlify hard limit is 10s. Auth+Org+DB ≈ 1s → 8s for Gemini.
-const TIMEOUT_MS = 8000
+// maxDuration = 26s. Non-Gemini overhead ≈ 2s → 11s per model (2 attempts = 22s budget).
+const TIMEOUT_MS = 11000
 
 function getApiKey(): string {
   const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
@@ -21,7 +21,9 @@ function getApiKey(): string {
 async function callGemini(contents: any[]): Promise<string> {
   const key = getApiKey()
   let lastError: Error | null = null
+  console.time('gemini-call')
 
+  try {
   for (const modelId of GEMINI_MODELS) {
     const url = `${GEMINI_BASE}/${GEMINI_API_VERSION}/models/${modelId}:generateContent?key=${key}`
     const controller = new AbortController()
@@ -69,6 +71,9 @@ async function callGemini(contents: any[]): Promise<string> {
   }
 
   throw lastError ?? new Error('All Gemini models failed')
+  } finally {
+    console.timeEnd('gemini-call')
+  }
 }
 
 // ─── JSON extraction & repair ─────────────────────────────────────────────────
@@ -396,3 +401,4 @@ export async function POST(request: NextRequest) {
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+export const maxDuration = 26 // seconds — Netlify Pro limit; gives Gemini 22s budget

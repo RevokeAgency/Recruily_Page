@@ -7,35 +7,24 @@ import { v4 as uuidv4 } from 'uuid'
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
 const MATCH_MODELS = ['gemini-3.0-flash', 'gemini-2.5-flash']
-const TIMEOUT_MS = 8000
+const TIMEOUT_MS = 11000
 
 async function matchWithGemini(candidate: any, job: any): Promise<any> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
 
-  const prompt = `Analyze the match between this candidate and job. Always close the JSON object completely with '}'.
-
-CANDIDATE:
-Name: ${candidate.name}
-Experience: ${candidate.experience_years ?? 0} years
-Skills: ${(candidate.skills ?? []).join(', ') || 'Not specified'}
-Education: ${candidate.education || 'Not specified'}
-Languages: ${(candidate.languages ?? []).join(', ') || 'Not specified'}
-Summary: ${(candidate.summary || '').substring(0, 300)}
-
-JOB:
-Title: ${job.title}
-Company: ${job.company || 'Unknown'}
-Required Skills: ${(job.skills ?? []).join(', ') || 'Not specified'}
-Requirements: ${(job.requirements || '').substring(0, 400)}
-Description: ${(job.description || '').substring(0, 300)}
-
-Return ONLY this JSON (integers 0-100, arrays of strings):
-{"score":75,"skills_score":70,"experience_score":80,"education_score":75,"languages_score":85,"strengths":["Strength 1"],"weaknesses":["Gap 1"],"recommendations":["Recommendation 1"]}`
+  const cSkills = (candidate.skills ?? []).join(', ') || '—'
+  const jSkills = (job.skills ?? []).join(', ') || '—'
+  const prompt = `Score candidate vs job. Return ONLY this JSON object, no prose, no markdown.
+C: ${candidate.name} | ${candidate.experience_years ?? 0}y exp | Skills: ${cSkills} | Lang: ${(candidate.languages ?? []).join(', ')} | Edu: ${candidate.education || '—'}
+J: ${job.title} @ ${job.company || '—'} | Skills: ${jSkills} | ${(job.requirements || '').substring(0, 200)}
+{"score":0,"skills_score":0,"experience_score":0,"education_score":0,"languages_score":0,"strengths":[],"weaknesses":[],"recommendations":[]}`
 
   const contents = [{ role: 'user', parts: [{ text: prompt }] }]
   let lastError: Error | null = null
+  console.time('gemini-match')
 
+  try {
   for (const modelId of MATCH_MODELS) {
     const url = `${GEMINI_BASE}/${GEMINI_API_VERSION}/models/${modelId}:generateContent?key=${apiKey}`
     const controller = new AbortController()
@@ -75,6 +64,9 @@ Return ONLY this JSON (integers 0-100, arrays of strings):
   }
 
   throw lastError ?? new Error('All Gemini models failed')
+  } finally {
+    console.timeEnd('gemini-match')
+  }
 }
 
 // ─── Fallback scoring (no Gemini) ─────────────────────────────────────────────
@@ -284,3 +276,4 @@ export async function POST(request: NextRequest) {
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+export const maxDuration = 26

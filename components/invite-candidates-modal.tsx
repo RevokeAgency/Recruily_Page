@@ -279,9 +279,10 @@ function InviteCandidatesModal({
 
       advance(30)
 
-      // 30s client-side timeout — Netlify hard limit is 10s, extra headroom for slow networks
+      // 55s client-side timeout — server maxDuration is 26s, this leaves 29s buffer
+      // Browser fetch never closes the connection on its own; we only abort if server is silent
       const uploadAbort = new AbortController()
-      const uploadTimer = setTimeout(() => uploadAbort.abort(), 30_000)
+      const uploadTimer = setTimeout(() => uploadAbort.abort(), 55_000)
 
       let uploadResponse!: Response
       let uploadResult: any
@@ -298,7 +299,7 @@ function InviteCandidatesModal({
         return {
           success: false,
           error: isTimeout
-            ? 'Upload timed out after 30 seconds — check Netlify function logs'
+            ? 'Upload timed out after 55 seconds — check Netlify function logs'
             : `Network error: ${fetchErr.message}`,
         }
       } finally {
