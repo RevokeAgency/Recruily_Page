@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// ─── Gemini Matching ───────────────────────────────────────────────────────────
+// ─── Gemini REST API (direct fetch — no SDK, no model discovery) ──────────────
+
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
+const GEMINI_API_VERSION = 'v1beta'
+const MATCH_MODELS = ['gemini-3.0-flash', 'gemini-2.5-flash']
+const TIMEOUT_MS = 8000
 
 async function matchWithGemini(candidate: any, job: any): Promise<any> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
 
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    generationConfig: { maxOutputTokens: 1024, temperature: 0.1 },
-  })
-
-  const prompt = `Analyze the match between this candidate and job. Return ONLY valid JSON, no markdown.
+  const prompt = `Analyze the match between this candidate and job. Always close the JSON object completely with '}'.
 
 CANDIDATE:
 Name: ${candidate.name}
@@ -32,31 +30,51 @@ Required Skills: ${(job.skills ?? []).join(', ') || 'Not specified'}
 Requirements: ${(job.requirements || '').substring(0, 400)}
 Description: ${(job.description || '').substring(0, 300)}
 
-Return this exact JSON (integers 0-100, arrays of strings):
-{
-  "score": 75,
-  "skills_score": 70,
-  "experience_score": 80,
-  "education_score": 75,
-  "languages_score": 85,
-  "strengths": ["Strength 1", "Strength 2", "Strength 3"],
-  "weaknesses": ["Gap 1", "Gap 2"],
-  "recommendations": ["Recommendation 1", "Recommendation 2"]
-}`
+Return ONLY this JSON (integers 0-100, arrays of strings):
+{"score":75,"skills_score":70,"experience_score":80,"education_score":75,"languages_score":85,"strengths":["Strength 1"],"weaknesses":["Gap 1"],"recommendations":["Recommendation 1"]}`
 
-  const timeoutMs = 8000
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('Gemini timeout')), timeoutMs)
-  )
+  const contents = [{ role: 'user', parts: [{ text: prompt }] }]
+  let lastError: Error | null = null
 
-  const result = await Promise.race([
-    model.generateContent(prompt),
-    timeoutPromise,
-  ])
+  for (const modelId of MATCH_MODELS) {
+    const url = `${GEMINI_BASE}/${GEMINI_API_VERSION}/models/${modelId}:generateContent?key=${apiKey}`
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
-  const responseText = (result as any).response.text().trim()
-  const jsonText = responseText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
-  return JSON.parse(jsonText)
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          generationConfig: { maxOutputTokens: 1024, temperature: 0.1, responseMimeType: 'application/json' },
+        }),
+        signal: controller.signal,
+      })
+
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '')
+        lastError = new Error(`Gemini ${res.status} on ${modelId}: ${errBody.slice(0, 200)}`)
+        console.warn(`⚠️ ${lastError.message}`)
+        continue
+      }
+
+      const data = await res.json() as any
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+      if (!text) { lastError = new Error(`No text from ${modelId}`); continue }
+
+      console.log(`✅ Gemini match ${modelId}: ${text.length} chars`)
+      return JSON.parse(text)
+
+    } catch (err: any) {
+      console.warn(`⚠️ Gemini ${modelId} error: ${err.message}`)
+      lastError = err
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  throw lastError ?? new Error('All Gemini models failed')
 }
 
 // ─── Fallback scoring (no Gemini) ─────────────────────────────────────────────

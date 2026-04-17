@@ -6,9 +6,8 @@ import { v4 as uuidv4 } from 'uuid'
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
-// Primary model → fallback. No discovery call needed (saves ~3-6s per request).
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash']
-// Netlify hard limit is 10s. Auth+Org+DB ≈ 1s. Leave 8s for Gemini.
+const GEMINI_MODELS = ['gemini-3.0-flash', 'gemini-2.5-flash']
+// Netlify hard limit is 10s. Auth+Org+DB ≈ 1s → 8s for Gemini.
 const TIMEOUT_MS = 8000
 
 function getApiKey(): string {
@@ -34,7 +33,7 @@ async function callGemini(contents: any[]): Promise<string> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents,
-          generationConfig: { maxOutputTokens: 1024, temperature: 0.1 },
+          generationConfig: { maxOutputTokens: 2048, temperature: 0.1, responseMimeType: 'application/json' },
         }),
         signal: controller.signal,
       })
@@ -83,17 +82,17 @@ function extractJSON(raw: string): any {
 
 // ─── CV prompt ────────────────────────────────────────────────────────────────
 
-const CV_PROMPT = `You are a CV/Resume parser. Extract real personal information.
+const CV_PROMPT = `Extract CV data and return ONLY this JSON object. No markdown, no explanation. Always close the JSON object completely with '}'.
 
-STRICT RULES:
-- "name": real full name only (e.g. "Maria Müller"). NOT "Lebenslauf", "Resume", "CV", job titles, or headings.
-- "email": only real email addresses. NOT placeholder like "name@email.com".
-- Return null for any field you cannot find with certainty.
-- CV may be in German, English, or other languages.
-- Do NOT invent data.
+Rules:
+- name: full name only (e.g. "Maria Müller"). Null if it is a heading like "Lebenslauf", "Resume", job titles.
+- email: real address only. Null if placeholder (e.g. name@email.com).
+- summary: max 80 characters. Null if not found.
+- skills: max 8 items. Empty array if none.
+- experience_years: integer ≥ 0. Default 0.
+- languages: array, default ["German"] if CV is in German.
+- Return null for any field you cannot determine with certainty. Do NOT invent data.
 
-Return ONLY valid JSON, no markdown fences, no explanation.
-Keep "summary" under 100 characters. Keep "skills" to max 8 items.
 {"name":null,"email":null,"phone":null,"location":null,"summary":null,"experience_years":0,"skills":[],"education":null,"languages":["German"],"certifications":[]}`
 
 // ─── File parsers ──────────────────────────────────────────────────────────────
@@ -236,6 +235,14 @@ export async function POST(request: NextRequest) {
     } catch (err: any) {
       geminiError = err.message
       console.error('❌ Gemini CV parsing failed:', geminiError)
+    }
+
+    // ── Hard stop: no DB write without parsed data ────────────────────────────
+    if (geminiError) {
+      return NextResponse.json(
+        { success: false, error: `CV parsing failed: ${geminiError}` },
+        { status: 422 }
+      )
     }
 
     if (parsed.name && !isValidName(parsed.name)) {
