@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const config = { maxDuration: 28 };
+export const maxDuration = 28;
 
 async function processGeminiResponse(result: any) {
   const rawText = result.candidates[0].content.parts[0].text;
@@ -14,7 +14,9 @@ export async function POST(req: NextRequest) {
     const { text, url } = await req.json();
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
-    if (!apiKey) return NextResponse.json({ error: "API Key fehlt" }, { status: 500 });
+    if (!apiKey) {
+      return NextResponse.json({ error: "API Key fehlt" }, { status: 500 });
+    }
 
     const modelsToTry = [
       "gemini-3.1-flash",
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest) {
       "gemini-2.5-flash"
     ];
 
-    const prompt = `Analysiere diesen Job-Text und extrahiere NUR JSON:
+    const prompt = `Analysiere diesen Job-Text und extrahiere NUR JSON (kein Markdown):
     {
       "title": "String",
       "company": "String",
@@ -51,11 +53,12 @@ export async function POST(req: NextRequest) {
           return NextResponse.json(jobData);
         }
       } catch (e) {
+        console.warn(`Fehler mit Modell ${modelName}, versuche nächstes...`);
         continue;
       }
     }
 
-    return NextResponse.json({ error: "Alle Gemini Modelle (3.1/2.5) haben abgelehnt." }, { status: 500 });
+    return NextResponse.json({ error: "Alle Gemini Modelle haben abgelehnt." }, { status: 500 });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
