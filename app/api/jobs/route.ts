@@ -1,46 +1,50 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// ─── Gemini Job Parsing ────────────────────────────────────────────────────────
+// ─── Gemini Job Parsing (direct REST, no SDK) ────────────────────────────────
+
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
+const GEMINI_API_VERSION = 'v1beta'
+const JOB_MODELS = ['gemini-3.0-flash', 'gemini-2.5-flash']
 
 async function parseJobWithGemini(description: string): Promise<Record<string, any>> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('No Gemini API key')
 
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    generationConfig: { maxOutputTokens: 512, temperature: 0.1 },
-  })
+  const prompt = `Extract structured job data. Return ONLY valid JSON, no markdown, no explanation.
+DESCRIPTION: ${description.substring(0, 3000)}
+{"title":null,"company":null,"location":null,"employment_type":"full-time","salary_min":null,"salary_max":null,"skills":[],"requirements":null,"experience_level":null}`
 
-  const prompt = `Extract structured job data from this description. Return ONLY valid JSON, no markdown.
+  const contents = [{ role: 'user', parts: [{ text: prompt }] }]
 
-DESCRIPTION:
-${description.substring(0, 3000)}
-
-Return this exact JSON (use null for missing fields):
-{
-  "title": "Job Title",
-  "company": "Company Name",
-  "location": "City, Country",
-  "employment_type": "full-time",
-  "salary_min": null,
-  "salary_max": null,
-  "skills": ["Skill1", "Skill2"],
-  "requirements": "Requirements summary",
-  "experience_level": "mid"
-}`
-
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('Gemini timeout')), 7000)
-  )
-
-  const result = await Promise.race([model.generateContent(prompt), timeoutPromise])
-  const text = (result as any).response.text().trim()
-  const json = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
-  return JSON.parse(json)
+  for (const modelId of JOB_MODELS) {
+    const url = `${GEMINI_BASE}/${GEMINI_API_VERSION}/models/${modelId}:generateContent?key=${apiKey}`
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 8000)
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          generationConfig: { maxOutputTokens: 512, temperature: 0.1, responseMimeType: 'application/json' },
+        }),
+        signal: controller.signal,
+      })
+      if (!res.ok) { console.warn(`⚠️ Gemini job parse ${res.status} on ${modelId}`); continue }
+      const data = await res.json() as any
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+      if (!text) { console.warn(`⚠️ No text from ${modelId}`); continue }
+      const s = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+      return JSON.parse(s)
+    } catch (err: any) {
+      console.warn(`⚠️ Job parse error on ${modelId}:`, err.message)
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  throw new Error('Gemini job parsing failed on all models')
 }
 
 // ─── Auth helper ───────────────────────────────────────────────────────────────
@@ -122,17 +126,26 @@ export async function POST(request: NextRequest) {
       ? skillsRaw
       : String(skillsRaw).split(',').map((s: string) => s.trim()).filter(Boolean)
 
+    const hardSkills = Array.isArray(body.hard_skills) ? body.hard_skills : []
+    const softSkills = Array.isArray(body.soft_skills) ? body.soft_skills : []
+    const benefits = Array.isArray(body.benefits) ? body.benefits : []
+
     const newJob = {
       id: uuidv4(),
       title: body.title || enriched.title || 'Untitled Position',
       description: body.description || null,
+      description_html: body.description_html || null,
       requirements: body.requirements || enriched.requirements || null,
       location: body.location || enriched.location || null,
       employment_type: body.employment_type || body.job_type || enriched.employment_type || 'full-time',
       company: body.company || body.company_name || enriched.company || null,
       skills,
+      hard_skills: hardSkills,
+      soft_skills: softSkills,
+      benefits,
       salary_min: body.salary_min ? parseInt(body.salary_min) : (enriched.salary_min ?? null),
       salary_max: body.salary_max ? parseInt(body.salary_max) : (enriched.salary_max ?? null),
+      salary_range: body.salary_range || null,
       experience_level: body.experience_level || enriched.experience_level || null,
       status: 'open',
       organisation_id: org.id,
@@ -235,3 +248,4 @@ export async function DELETE(request: NextRequest) {
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+export const maxDuration = 26

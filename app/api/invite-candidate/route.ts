@@ -1,407 +1,200 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { createAdminClient } from "@/lib/supabase"
-import { calculateMatchingScore } from "@/lib/gemini-ai"
-import { getOrgId } from "@/lib/get-org-id"
+import { type NextRequest, NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase'
+import { v4 as uuidv4 } from 'uuid'
+
+// ─── Gemini REST API (direct fetch, no SDK) ───────────────────────────────────
+
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
+const GEMINI_API_VERSION = 'v1beta'
+const MATCH_MODELS = ['gemini-3.0-flash', 'gemini-2.5-flash']
+const TIMEOUT_MS = 11000
+
+async function matchWithGemini(candidate: any, job: any): Promise<any> {
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
+
+  const cSkills = (candidate.skills ?? []).join(', ') || '—'
+  const jSkills = (job.skills ?? []).join(', ') || '—'
+
+  const prompt = `You are a senior DACH recruiter. Score this candidate against this job. Return ONLY the JSON object — no prose, no markdown.
+
+CANDIDATE:
+Name: ${candidate.name} | Experience: ${candidate.experience_years ?? 0} years
+Skills: ${cSkills}
+Education: ${candidate.education || '—'} | Languages: ${(candidate.languages ?? []).join(', ')} | Location: ${candidate.location || '—'}
+
+JOB:
+Title: ${job.title} | Company: ${job.company || '—'}
+Required Skills: ${jSkills}
+Requirements: ${(job.requirements || '').substring(0, 300)}
+
+{"score":0,"skills_score":0,"experience_score":0,"education_score":0,"languages_score":0,"strengths":[],"weaknesses":[],"recommendations":[]}`
+
+  const contents = [{ role: 'user', parts: [{ text: prompt }] }]
+  let lastError: Error | null = null
+
+  for (const modelId of MATCH_MODELS) {
+    const url = `${GEMINI_BASE}/${GEMINI_API_VERSION}/models/${modelId}:generateContent?key=${apiKey}`
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          generationConfig: { maxOutputTokens: 1024, temperature: 0.1, responseMimeType: 'application/json' },
+        }),
+        signal: controller.signal,
+      })
+      if (!res.ok) {
+        lastError = new Error(`Gemini ${res.status} on ${modelId}`)
+        console.warn(`⚠️ ${lastError.message}`)
+        continue
+      }
+      const data = await res.json() as any
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+      if (!text) { lastError = new Error(`No text from ${modelId}`); continue }
+      return JSON.parse(text)
+    } catch (err: any) {
+      lastError = err
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  throw lastError ?? new Error('All Gemini models failed')
+}
+
+// ─── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  try {
-    console.log("🤝 Invite Candidate API - POST request received")
+  console.log('🤝 [POST] /api/invite-candidate')
 
+  try {
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '')
+    if (!token) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const admin = createAdminClient()
+    const { data: { user }, error: authError } = await admin.auth.getUser(token)
+    if (!user || authError) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // ── Body ──────────────────────────────────────────────────────────────────
     const body = await request.json()
     const { jobId, candidateId } = body
 
-    if (!jobId) {
-      return NextResponse.json(
-        { success: false, error: "Job ID is required" },
-        { status: 400 }
-      )
+    if (!jobId) return NextResponse.json({ success: false, error: 'Job ID is required' }, { status: 400 })
+    if (!candidateId) return NextResponse.json({ success: false, error: 'Candidate ID is required' }, { status: 400 })
+
+    console.log(`🔗 Inviting candidate ${candidateId} to job ${jobId}`)
+
+    // ── Fetch job + candidate in parallel ─────────────────────────────────────
+    const [{ data: job, error: jobErr }, { data: candidate, error: candErr }] = await Promise.all([
+      admin.from('jobs').select('*').eq('id', jobId).single(),
+      admin.from('candidates').select('*').eq('id', candidateId).single(),
+    ])
+
+    if (jobErr || !job) {
+      console.error('❌ Job not found:', jobErr?.message)
+      return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 })
     }
 
-    if (!candidateId) {
-      return NextResponse.json(
-        { success: false, error: "Candidate ID is required" },
-        { status: 400 }
-      )
+    if (candErr || !candidate) {
+      console.error('❌ Candidate not found:', candErr?.message)
+      return NextResponse.json({ success: false, error: 'Candidate not found' }, { status: 404 })
     }
 
-    console.log(`🔗 Linking candidate ${candidateId} to job ${jobId}`)
-
-    // Fetch job details (try Supabase first, then fallback to localStorage mock)
-    let job = null
-    let jobError = null
-    
-    try {
-      const { data: jobData, error: supabaseJobError } = await createAdminClient()
-        .from('job_postings')
-        .select('*')
-        .eq('id', jobId)
-        .single()
-      
-      job = jobData
-      jobError = supabaseJobError
-    } catch (error) {
-      console.warn("⚠️ Supabase job query failed, using fallback")
-      jobError = error
-    }
-
-    // If Supabase query failed or returned no data, try localStorage fallback
-    if (jobError || !job) {
-      console.log("📋 Job not found in Supabase, checking localStorage fallback...")
-      
-      // Create a mock job data for development/testing
-      // In real usage, this should come from a proper database
-      const mockJobs = [
-        {
-          id: "job_1753952346309_960",
-          title: "Senior Frontend Developer", 
-          company: "TechCorp Solutions",
-          location: "San Francisco, CA",
-          description: "Senior Frontend Developer position",
-          requirements: "5+ years React experience",
-          technical_skills: "React, TypeScript, JavaScript",
-          experience_level: "Senior",
-          job_type: "Full-time",
-          salary_min: 120000,
-          salary_max: 160000
-        },
-        {
-          id: "job_1753952346310_961",
-          title: "Marketing Manager",
-          company: "Growth Dynamics", 
-          location: "New York, NY",
-          description: "Marketing Manager position",
-          requirements: "3+ years marketing experience",
-          technical_skills: "Google Analytics, HubSpot, Salesforce",
-          experience_level: "Mid-level",
-          job_type: "Full-time",
-          salary_min: 80000,
-          salary_max: 110000
-        }
-      ]
-      
-      job = mockJobs.find(j => j.id === jobId)
-      
-      if (!job) {
-        console.error("❌ Job not found in Supabase or localStorage fallback:", jobId)
-        return NextResponse.json(
-          { success: false, error: "Job not found" },
-          { status: 404 }
-        )
-      } else {
-        console.log(`✅ Using fallback job data: ${job.title}`)
-      }
-    }
-
-    // Fetch candidate details (try Supabase first, then fallback)
-    let candidate = null
-    let candidateError = null
-    
-    try {
-      const { data: candidateData, error: supabaseCandidateError } = await createAdminClient()
-        .from('candidates')
-        .select('*')
-        .eq('id', candidateId)
-        .single()
-      
-      candidate = candidateData
-      candidateError = supabaseCandidateError
-    } catch (error) {
-      console.warn("⚠️ Supabase candidate query failed, using fallback")
-      candidateError = error
-    }
-
-    // If Supabase query failed, create a fallback candidate for development
-    if (candidateError || !candidate) {
-      console.log("👤 Candidate not found in Supabase, using fallback data...")
-      
-      // Create a mock candidate based on the candidateId from the upload response
-      candidate = {
-        id: candidateId,
-        name: "John Doe",
-        email: "john.doe@email.com",
-        phone: "123-456-7890", 
-        location: "New York, NY",
-        skills: ["Sales", "Marketing", "Communication", "Negotiation"],
-        experience_years: 5,
-        education: "Bachelor of Science in Business Administration",
-        summary: "Experienced professional with strong sales background",
-        languages: ["English", "Spanish"],
-        certifications: ["Salesforce Certified"],
-        organisation_id: (await getOrgId()) || ""
-      }
-      
-      console.log(`✅ Using fallback candidate data: ${candidate.name}`)
-    }
-
-    // Check if match already exists
-    const { data: existingMatch } = await createAdminClient()
+    // ── Check for existing match ───────────────────────────────────────────────
+    const { data: existingMatch } = await admin
       .from('matches')
       .select('id')
       .eq('job_id', jobId)
       .eq('candidate_id', candidateId)
-      .single()
+      .maybeSingle()
 
-    if (existingMatch) {
+    if (existingMatch?.id) {
+      return NextResponse.json({ success: false, error: 'Candidate is already invited to this job' }, { status: 409 })
+    }
+
+    // ── Gemini matching (no dummy fallback) ───────────────────────────────────
+    let geminiScores: any
+    try {
+      geminiScores = await matchWithGemini(candidate, job)
+    } catch (geminiErr: any) {
+      console.error('❌ Gemini matching failed:', geminiErr.message)
       return NextResponse.json(
-        { success: false, error: "Candidate is already invited to this job" },
-        { status: 409 }
+        { success: false, error: `Match scoring unavailable: ${geminiErr.message}` },
+        { status: 503 }
       )
     }
 
-    console.log("🤖 Calculating AI matching score...")
+    const score = Math.max(0, Math.min(100, Math.round(geminiScores.score ?? 0)))
+    const skillsScore = Math.round(geminiScores.skills_score ?? 0)
+    const experienceScore = Math.round(geminiScores.experience_score ?? 0)
+    const educationScore = Math.round(geminiScores.education_score ?? 0)
+    const languagesScore = Math.round(geminiScores.languages_score ?? 0)
+    const strengths = Array.isArray(geminiScores.strengths) ? geminiScores.strengths : []
+    const weaknesses = Array.isArray(geminiScores.weaknesses) ? geminiScores.weaknesses : []
+    const recommendations = Array.isArray(geminiScores.recommendations) ? geminiScores.recommendations : []
 
-    // Calculate matching score using AI
-    let matchingResult
-    try {
-      matchingResult = await calculateMatchingScore(job, candidate)
-      console.log("✅ AI matching calculation successful")
-    } catch (error) {
-      console.warn("⚠️ AI matching failed, using fallback scoring:", error)
-      matchingResult = calculateFallbackScore(job, candidate)
+    console.log(`✅ Gemini score: ${score}%`)
+
+    // ── Insert match record ───────────────────────────────────────────────────
+    const { data: match, error: matchErr } = await admin
+      .from('matches')
+      .insert([{
+        id: uuidv4(),
+        job_id: jobId,
+        candidate_id: candidateId,
+        score,
+        status: 'invited',
+        strengths,
+        weaknesses,
+        skill_matches: {
+          skills_score: skillsScore,
+          experience_score: experienceScore,
+          education_score: educationScore,
+          languages_score: languagesScore,
+          recommendations,
+        },
+        experience_match: experienceScore,
+        ai_analysis: {
+          overall_score: score,
+          skills_breakdown: {
+            skills: skillsScore,
+            experience: experienceScore,
+            education: educationScore,
+            languages: languagesScore,
+          },
+          generated_by: 'gemini-3.0-flash',
+        },
+      }])
+      .select()
+      .single()
+
+    if (matchErr) {
+      console.error('❌ Match insert error:', matchErr.message)
+      return NextResponse.json({ success: false, error: matchErr.message }, { status: 500 })
     }
 
-    // Create match record
-    const matchRecord = {
-      job_id: jobId,
-      candidate_id: candidateId,
-      score: matchingResult.score,
-      status: 'invited',
-      match_reasons: matchingResult.match_reasons || {},
-      strengths: matchingResult.strengths || [],
-      weaknesses: matchingResult.weaknesses || [],
-      skill_matches: matchingResult.skill_matches || {},
-      experience_match: matchingResult.experience_match || 0,
-      location_match: matchingResult.location_match || false,
-      salary_match: matchingResult.salary_match || false,
-      ai_analysis: matchingResult.ai_analysis || {},
-      created_by: null // TODO: Get from user context
-    }
-
-    // Create match record (try Supabase, fallback to mock)
-    let match = null
-    let matchError = null
-    
-    try {
-      const { data: matchData, error: supabaseMatchError } = await (createAdminClient() as any)
-        .from('matches')
-        .insert([matchRecord])
-        .select(`
-          *,
-          job:job_postings(*),
-          candidate:candidates(*)
-        `)
-        .single()
-      
-      match = matchData
-      matchError = supabaseMatchError
-    } catch (error) {
-      console.warn("⚠️ Supabase match creation failed, using mock response")
-      matchError = error
-    }
-
-    // If Supabase failed, create a mock match for development
-    if (matchError || !match) {
-      console.log("🤝 Creating fallback match record...")
-      
-      match = {
-        id: `match_${Date.now()}`,
-        ...matchRecord,
-        job: job,
-        candidate: candidate,
-        created_at: new Date().toISOString()
-      }
-      
-      console.log(`✅ Using fallback match: ${match.id}`)
-    }
-
-    console.log(`✅ Match created: ${match.id} with score ${match.score}%`)
+    console.log(`✅ Invitation created: ${match.id} — ${score}%`)
 
     return NextResponse.json({
       success: true,
-      match: match,
-      message: `Candidate successfully invited with ${match.score}% match score`
+      match,
+      message: `Candidate successfully invited with ${score}% match score`,
     })
 
   } catch (error: any) {
-    console.error("❌ Invite Candidate API Error:", error)
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: error.message || "An unexpected error occurred" 
-      },
-      { status: 500 }
-    )
+    console.error('❌ /api/invite-candidate error:', error)
+    return NextResponse.json({ success: false, error: error.message || 'Unexpected error' }, { status: 500 })
   }
 }
 
-// Fallback scoring when AI is unavailable
-function calculateFallbackScore(job: any, candidate: any): any {
-  let totalScore = 0
-  let maxScore = 0
-  const strengths: string[] = []
-  const weaknesses: string[] = []
-  const skillMatches: any = {}
-
-  // Skill matching (40% weight)
-  const skillWeight = 40
-  maxScore += skillWeight
-  
-  const jobSkills = Array.isArray(job.skills) ? job.skills : 
-    (job.technical_skills ? job.technical_skills.split(',').map((s: string) => s.trim().toLowerCase()) : [])
-  const candidateSkills = Array.isArray(candidate.skills) ? 
-    candidate.skills.map((s: string) => s.toLowerCase()) : []
-
-  if (jobSkills.length > 0 && candidateSkills.length > 0) {
-    const matchedSkills = jobSkills.filter((skill: string) => 
-      candidateSkills.some((cs: string) => cs.includes(skill.toLowerCase()) || skill.toLowerCase().includes(cs))
-    )
-    
-    const skillScore = (matchedSkills.length / jobSkills.length) * skillWeight
-    totalScore += skillScore
-    
-    skillMatches.matched = matchedSkills
-    skillMatches.missing = jobSkills.filter((skill: string) => !matchedSkills.includes(skill))
-    
-    if (matchedSkills.length >= jobSkills.length * 0.7) {
-      strengths.push(`Strong skill match (${matchedSkills.length}/${jobSkills.length} skills)`)
-    } else if (matchedSkills.length < jobSkills.length * 0.3) {
-      weaknesses.push(`Limited skill match (${matchedSkills.length}/${jobSkills.length} skills)`)
-    }
-  } else {
-    totalScore += skillWeight * 0.5 // Neutral score when no skills data
-  }
-
-  // Experience matching (30% weight)
-  const expWeight = 30
-  maxScore += expWeight
-  
-  const candidateExp = candidate.experience_years || 0
-  const jobExpRequired = extractRequiredExperience(job.requirements || job.description || '')
-  
-  if (jobExpRequired > 0) {
-    if (candidateExp >= jobExpRequired) {
-      const expScore = Math.min(expWeight, (candidateExp / jobExpRequired) * expWeight)
-      totalScore += expScore
-      strengths.push(`Meets experience requirement (${candidateExp} years)`)
-    } else {
-      const expScore = (candidateExp / jobExpRequired) * expWeight * 0.7
-      totalScore += expScore
-      weaknesses.push(`Below required experience (${candidateExp}/${jobExpRequired} years)`)
-    }
-  } else {
-    totalScore += expWeight * 0.7 // Neutral score when no experience requirement
-  }
-
-  // Location matching (15% weight)
-  const locationWeight = 15
-  maxScore += locationWeight
-  
-  const locationMatch = checkLocationMatch(job.location, candidate.location)
-  if (locationMatch) {
-    totalScore += locationWeight
-    strengths.push('Location match')
-  } else if (job.remote_ok) {
-    totalScore += locationWeight * 0.8
-    strengths.push('Remote work available')
-  } else {
-    totalScore += locationWeight * 0.3
-    weaknesses.push('Location mismatch')
-  }
-
-  // Education matching (15% weight)
-  const eduWeight = 15
-  maxScore += eduWeight
-  
-  if (candidate.degree || candidate.education) {
-    totalScore += eduWeight * 0.8
-    strengths.push('Has education background')
-  } else {
-    totalScore += eduWeight * 0.5
-  }
-
-  // Calculate final percentage
-  const finalScore = Math.round((totalScore / maxScore) * 100)
-
-  return {
-    score: Math.max(20, Math.min(95, finalScore)), // Keep between 20-95%
-    match_reasons: {
-      skill_match: skillMatches.matched?.length || 0,
-      experience_match: candidateExp >= (jobExpRequired || 0),
-      location_match: locationMatch
-    },
-    strengths,
-    weaknesses,
-    skill_matches: skillMatches,
-    experience_match: Math.min(100, Math.round((candidateExp / Math.max(jobExpRequired || 1, 1)) * 100)),
-    location_match: locationMatch,
-    salary_match: checkSalaryMatch(job, candidate),
-    ai_analysis: {
-      method: 'fallback',
-      timestamp: new Date().toISOString(),
-      factors_considered: ['skills', 'experience', 'location', 'education']
-    }
-  }
-}
-
-function extractRequiredExperience(text: string): number {
-  const expPatterns = [
-    /(\d+)\+?\s*years?\s*(?:of\s*)?(?:experience|exp)/i,
-    /minimum\s*(?:of\s*)?(\d+)\s*years?/i,
-    /(\d+)\s*to\s*\d+\s*years?\s*experience/i
-  ]
-  
-  for (const pattern of expPatterns) {
-    const match = text.match(pattern)
-    if (match && match[1]) {
-      return parseInt(match[1], 10)
-    }
-  }
-  
-  return 0
-}
-
-function checkLocationMatch(jobLocation: string, candidateLocation: string): boolean {
-  if (!jobLocation || !candidateLocation) return false
-  
-  const jobLoc = jobLocation.toLowerCase()
-  const candLoc = candidateLocation.toLowerCase()
-  
-  // Check for exact match or city/state overlap
-  if (jobLoc === candLoc) return true
-  
-  // Extract cities and states/countries
-  const jobParts = jobLoc.split(',').map(p => p.trim())
-  const candParts = candLoc.split(',').map(p => p.trim())
-  
-  // Check if any parts match
-  return jobParts.some(jp => candParts.some(cp => 
-    jp.includes(cp) || cp.includes(jp) || 
-    (jp.length > 3 && cp.length > 3 && (jp.includes(cp.substring(0, 4)) || cp.includes(jp.substring(0, 4))))
-  ))
-}
-
-function checkSalaryMatch(job: any, candidate: any): boolean {
-  const jobSalaryMin = job.salary_min || 0
-  const jobSalaryMax = job.salary_max || 0
-  const candSalaryMin = candidate.salary_expectation_min || 0
-  const candSalaryMax = candidate.salary_expectation_max || 0
-  
-  // If no salary data, assume neutral match
-  if (!jobSalaryMin && !jobSalaryMax && !candSalaryMin && !candSalaryMax) {
-    return true
-  }
-  
-  // Check if ranges overlap
-  if (jobSalaryMax > 0 && candSalaryMin > 0) {
-    return jobSalaryMax >= candSalaryMin
-  }
-  
-  if (jobSalaryMin > 0 && candSalaryMax > 0) {
-    return jobSalaryMin <= candSalaryMax
-  }
-  
-  return true // Default to true if insufficient data
-}
-
-export const dynamic = "force-dynamic"
-export const runtime = "nodejs"
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+export const maxDuration = 26

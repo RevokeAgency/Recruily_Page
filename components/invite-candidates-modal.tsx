@@ -178,14 +178,14 @@ function InviteCandidatesModal({
             errorCount++
             console.error(`❌ Failed to process: ${fileState.file.name}`)
 
-            // Update file state with error
+            // Update file state with error — progress 100 so bar shows completion
             setUploadState(prev => ({
               ...prev,
               files: prev.files.map((f, index) =>
                 index === i ? {
                   ...f,
                   status: 'error',
-                  progress: 0,
+                  progress: 100,
                   error: parseResult.error || 'Processing failed'
                 } : f
               ),
@@ -211,7 +211,7 @@ function InviteCandidatesModal({
               index === i ? {
                 ...f,
                 status: 'error',
-                progress: 0,
+                progress: 100,
                 error: errorMessage
               } : f
             ),
@@ -542,6 +542,15 @@ function InviteCandidatesModal({
                   🎉 Successfully processed {uploadState.completedCount} CV{uploadState.completedCount > 1 ? 's' : ''} with real data extraction and job matching!
                 </AlertDescription>
               </Alert>
+            )}
+
+            {/* Manual close — only visible after processing is fully done */}
+            {!uploadState.processing && uploadState.files.length > 0 && (
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" onClick={handleClose}>
+                  Schließen
+                </Button>
+              </div>
             )}
           </TabsContent>
 

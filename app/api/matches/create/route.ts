@@ -2,12 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
 
-// ─── Gemini REST API (direct fetch — no SDK, no model discovery) ──────────────
+// ─── Gemini REST API (direct fetch — no SDK) ───────────────────────────────────
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
 const MATCH_MODELS = ['gemini-3.0-flash', 'gemini-2.5-flash']
 const TIMEOUT_MS = 11000
+
+// ─── IMLRS 6-Layer Matching ────────────────────────────────────────────────────
+// Based on RECRUILY Product Sheet — Intelligent Multi-Layer Recruiting System
+//
+// Layer 1 — Hard Skills Match       (25%) skills overlap
+// Layer 2 — Experience Trajectory   (20%) years, progression, industry relevance
+// Layer 3 — Soft Skills & Culture   (15%) inferred from CV language
+// Layer 4 — Motivation & Fit        (10%) job–background alignment
+// Layer 5 — Languages & Education   (16%) language reqs, degree fit
+// Layer 6 — Location & CV Quality   (14%) remote/onsite fit, data completeness
 
 async function matchWithGemini(candidate: any, job: any): Promise<any> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
@@ -15,106 +25,80 @@ async function matchWithGemini(candidate: any, job: any): Promise<any> {
 
   const cSkills = (candidate.skills ?? []).join(', ') || '—'
   const jSkills = (job.skills ?? []).join(', ') || '—'
-  const prompt = `Score candidate vs job. Return ONLY this JSON object, no prose, no markdown.
-C: ${candidate.name} | ${candidate.experience_years ?? 0}y exp | Skills: ${cSkills} | Lang: ${(candidate.languages ?? []).join(', ')} | Edu: ${candidate.education || '—'}
-J: ${job.title} @ ${job.company || '—'} | Skills: ${jSkills} | ${(job.requirements || '').substring(0, 200)}
-{"score":0,"skills_score":0,"experience_score":0,"education_score":0,"languages_score":0,"strengths":[],"weaknesses":[],"recommendations":[]}`
+  const requirements = (job.requirements || '').substring(0, 300)
+
+  const prompt = `You are a senior DACH recruiter. Evaluate this candidate against this job using the 6-layer IMLRS framework. Return ONLY the JSON object — no prose, no markdown fences.
+
+CANDIDATE:
+Name: ${candidate.name} | Experience: ${candidate.experience_years ?? 0} years
+Skills: ${cSkills}
+Education: ${candidate.education || '—'} | Languages: ${(candidate.languages ?? []).join(', ')} | Location: ${candidate.location || '—'}
+
+JOB:
+Title: ${job.title} | Company: ${job.company || '—'}
+Required Skills: ${jSkills}
+Requirements: ${requirements}
+
+SCORING LAYERS (integer scores 0-100):
+- skills_score (25%): Hard skills overlap — how many required skills does the candidate have?
+- experience_score (20%): Years, seniority progression, industry relevance.
+- soft_skills_score (15%): Inferred from CV completeness, language, career coherence.
+- motivation_score (10%): Job-background alignment, logical career move.
+- education_score (8%): Degree level fit, language requirements met.
+- location_score (7%): Location/remote fit based on job and candidate location.
+- score: Weighted overall 0-100. Formula: skills*0.25 + experience*0.20 + soft_skills*0.15 + motivation*0.10 + education*0.08 + location*0.07 + (completeness bonus up to 15).
+- strengths: Up to 3 specific reasons this candidate fits (cite concrete facts).
+- weaknesses: Up to 3 specific gaps or risks (cite concrete facts).
+- recommendations: 1-2 actionable recruiter recommendations.
+
+{"score":0,"skills_score":0,"experience_score":0,"soft_skills_score":0,"motivation_score":0,"education_score":0,"location_score":0,"strengths":[],"weaknesses":[],"recommendations":[]}`
 
   const contents = [{ role: 'user', parts: [{ text: prompt }] }]
   let lastError: Error | null = null
   console.time('gemini-match')
 
   try {
-  for (const modelId of MATCH_MODELS) {
-    const url = `${GEMINI_BASE}/${GEMINI_API_VERSION}/models/${modelId}:generateContent?key=${apiKey}`
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+    for (const modelId of MATCH_MODELS) {
+      const url = `${GEMINI_BASE}/${GEMINI_API_VERSION}/models/${modelId}:generateContent?key=${apiKey}`
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          generationConfig: { maxOutputTokens: 1024, temperature: 0.1, responseMimeType: 'application/json' },
-        }),
-        signal: controller.signal,
-      })
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents,
+            generationConfig: { maxOutputTokens: 1024, temperature: 0.1, responseMimeType: 'application/json' },
+          }),
+          signal: controller.signal,
+        })
 
-      if (!res.ok) {
-        const errBody = await res.text().catch(() => '')
-        lastError = new Error(`Gemini ${res.status} on ${modelId}: ${errBody.slice(0, 200)}`)
-        console.warn(`⚠️ ${lastError.message}`)
-        continue
+        if (!res.ok) {
+          const errBody = await res.text().catch(() => '')
+          lastError = new Error(`Gemini ${res.status} on ${modelId}: ${errBody.slice(0, 200)}`)
+          console.warn(`⚠️ ${lastError.message}`)
+          continue
+        }
+
+        const data = await res.json() as any
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+        if (!text) { lastError = new Error(`No text from ${modelId}`); continue }
+
+        console.log(`✅ Gemini match ${modelId}: ${text.length} chars`)
+        return JSON.parse(text)
+
+      } catch (err: any) {
+        console.warn(`⚠️ Gemini ${modelId} error: ${err.message}`)
+        lastError = err
+      } finally {
+        clearTimeout(timer)
       }
-
-      const data = await res.json() as any
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-      if (!text) { lastError = new Error(`No text from ${modelId}`); continue }
-
-      console.log(`✅ Gemini match ${modelId}: ${text.length} chars`)
-      return JSON.parse(text)
-
-    } catch (err: any) {
-      console.warn(`⚠️ Gemini ${modelId} error: ${err.message}`)
-      lastError = err
-    } finally {
-      clearTimeout(timer)
     }
-  }
 
-  throw lastError ?? new Error('All Gemini models failed')
+    throw lastError ?? new Error('All Gemini models failed')
   } finally {
     console.timeEnd('gemini-match')
-  }
-}
-
-// ─── Fallback scoring (no Gemini) ─────────────────────────────────────────────
-
-function calculateFallbackScore(candidate: any, job: any) {
-  const candidateSkills: string[] = (candidate.skills ?? []).map((s: string) => s.toLowerCase())
-  const jobSkills: string[] = (job.skills ?? []).map((s: string) => s.toLowerCase())
-
-  const matchedSkills = jobSkills.filter(js =>
-    candidateSkills.some(cs => cs.includes(js) || js.includes(cs))
-  )
-
-  const skillsScore = jobSkills.length > 0
-    ? Math.round((matchedSkills.length / jobSkills.length) * 100)
-    : 60
-
-  const expYears = candidate.experience_years ?? 0
-  const experienceScore = Math.min(100, 40 + expYears * 8)
-  const educationScore = candidate.education ? 75 : 60
-  const languagesScore = (candidate.languages?.length ?? 0) > 1 ? 85 : 75
-
-  const score = Math.round(
-    skillsScore * 0.40 +
-    experienceScore * 0.30 +
-    educationScore * 0.10 +
-    languagesScore * 0.10 +
-    70 * 0.10   // other
-  )
-
-  return {
-    score,
-    skills_score: skillsScore,
-    experience_score: experienceScore,
-    education_score: educationScore,
-    languages_score: languagesScore,
-    strengths: [
-      `${expYears} years of professional experience`,
-      matchedSkills.length > 0 ? `Skills match: ${matchedSkills.slice(0, 3).join(', ')}` : 'Professional background',
-      candidate.education ? `Education: ${candidate.education}` : 'Industry experience',
-    ].filter(Boolean),
-    weaknesses: [
-      matchedSkills.length < jobSkills.length ? `Missing skills: ${jobSkills.filter(s => !matchedSkills.includes(s)).slice(0, 2).join(', ')}` : null,
-      expYears < 2 ? 'Limited work experience' : null,
-    ].filter(Boolean) as string[],
-    recommendations: [
-      score >= 75 ? 'Strong candidate — schedule interview' : 'Consider for initial screening',
-      'Review full CV for additional context',
-    ],
   }
 }
 
@@ -174,27 +158,32 @@ export async function POST(request: NextRequest) {
 
     console.log(`👤 Candidate: ${candidate.name} | 💼 Job: ${job.title}`)
 
-    // ── Calculate match scores ────────────────────────────────────────────────
-    let scores: ReturnType<typeof calculateFallbackScore>
-
+    // ── IMLRS 6-Layer Matching (no fallback — clean error on failure) ─────────
+    let geminiScores: any
     try {
-      const geminiScores = await matchWithGemini(candidate, job)
-      scores = {
-        score: Math.max(0, Math.min(100, Math.round(geminiScores.score ?? 70))),
-        skills_score: Math.round(geminiScores.skills_score ?? 70),
-        experience_score: Math.round(geminiScores.experience_score ?? 70),
-        education_score: Math.round(geminiScores.education_score ?? 70),
-        languages_score: Math.round(geminiScores.languages_score ?? 80),
-        strengths: Array.isArray(geminiScores.strengths) ? geminiScores.strengths : [],
-        weaknesses: Array.isArray(geminiScores.weaknesses) ? geminiScores.weaknesses : [],
-        recommendations: Array.isArray(geminiScores.recommendations) ? geminiScores.recommendations : [],
-      }
-      console.log(`✅ Gemini match score: ${scores.score}%`)
+      geminiScores = await matchWithGemini(candidate, job)
     } catch (geminiErr: any) {
-      console.warn('⚠️ Gemini matching failed, using fallback:', geminiErr.message)
-      scores = calculateFallbackScore(candidate, job)
-      console.log(`✅ Fallback match score: ${scores.score}%`)
+      console.error('❌ Gemini matching failed:', geminiErr.message)
+      return NextResponse.json(
+        { success: false, error: `Match scoring unavailable: ${geminiErr.message}` },
+        { status: 503 }
+      )
     }
+
+    const scores = {
+      score: Math.max(0, Math.min(100, Math.round(geminiScores.score ?? 0))),
+      skills_score: Math.round(geminiScores.skills_score ?? 0),
+      experience_score: Math.round(geminiScores.experience_score ?? 0),
+      soft_skills_score: Math.round(geminiScores.soft_skills_score ?? 0),
+      motivation_score: Math.round(geminiScores.motivation_score ?? 0),
+      education_score: Math.round(geminiScores.education_score ?? 0),
+      location_score: Math.round(geminiScores.location_score ?? 0),
+      strengths: Array.isArray(geminiScores.strengths) ? geminiScores.strengths : [],
+      weaknesses: Array.isArray(geminiScores.weaknesses) ? geminiScores.weaknesses : [],
+      recommendations: Array.isArray(geminiScores.recommendations) ? geminiScores.recommendations : [],
+    }
+
+    console.log(`✅ IMLRS score: ${scores.score}% (skills:${scores.skills_score} exp:${scores.experience_score} soft:${scores.soft_skills_score})`)
 
     // ── Check if match already exists ─────────────────────────────────────────
     const { data: existingMatch } = await admin
@@ -213,7 +202,9 @@ export async function POST(request: NextRequest) {
         skills_score: scores.skills_score,
         experience_score: scores.experience_score,
         education_score: scores.education_score,
-        languages_score: scores.languages_score,
+        soft_skills_score: scores.soft_skills_score,
+        motivation_score: scores.motivation_score,
+        location_score: scores.location_score,
         recommendations: scores.recommendations,
       },
       experience_match: scores.experience_score,
@@ -223,9 +214,12 @@ export async function POST(request: NextRequest) {
           skills: scores.skills_score,
           experience: scores.experience_score,
           education: scores.education_score,
-          languages: scores.languages_score,
+          soft_skills: scores.soft_skills_score,
+          motivation: scores.motivation_score,
+          location: scores.location_score,
         },
-        generated_by: 'gemini-1.5-flash',
+        generated_by: 'gemini-3.0-flash',
+        framework: 'IMLRS-6-layer',
       },
     }
 
@@ -233,7 +227,6 @@ export async function POST(request: NextRequest) {
     let matchErr: any = null
 
     if (existingMatch?.id) {
-      // ── UPDATE existing match ─────────────────────────────────────────────
       console.log(`🔄 Updating existing match ${existingMatch.id}`)
       const { data, error } = await admin
         .from('matches')
@@ -244,7 +237,6 @@ export async function POST(request: NextRequest) {
       savedMatch = data
       matchErr = error
     } else {
-      // ── INSERT new match ──────────────────────────────────────────────────
       console.log('➕ Inserting new match')
       const { data, error } = await admin
         .from('matches')

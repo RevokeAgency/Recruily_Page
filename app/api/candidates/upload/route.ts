@@ -35,7 +35,7 @@ async function callGemini(contents: any[]): Promise<string> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents,
-          generationConfig: { maxOutputTokens: 4096, temperature: 0.1, responseMimeType: 'application/json' },
+          generationConfig: { maxOutputTokens: 2048, temperature: 0.1, responseMimeType: 'application/json' },
         }),
         signal: controller.signal,
       })
@@ -159,6 +159,28 @@ RULES (follow exactly):
 
 {"name":null,"email":null,"phone":null,"location":null,"summary":null,"experience_years":0,"skills":[],"education":null,"languages":["German"],"certifications":[]}`
 
+// ─── Text pre-cleaning ────────────────────────────────────────────────────────
+
+/**
+ * Remove known watermarks, template placeholders, and noise from extracted
+ * CV text before it is sent to Gemini. Keeps the character budget low and
+ * prevents watermark strings from confusing the model.
+ */
+function cleanCVText(text: string): string {
+  return text
+    .replace(/LEBENSLAUF\.DE/gi, '')
+    .replace(/www\.lebenslauf\.de/gi, '')
+    .replace(/Powered by LEBENSLAUF/gi, '')
+    .replace(/\[Vor- und Nachname\]/g, '')
+    .replace(/\[Datum\]/g, '')
+    .replace(/\[Ort\]/g, '')
+    .replace(/\[Straße und Hausnummer\]/g, '')
+    .replace(/\[PLZ\]/g, '')
+    .replace(/\[Stadt\]/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 // ─── File parsers ──────────────────────────────────────────────────────────────
 
 async function parsePDF(file: File): Promise<any> {
@@ -170,8 +192,8 @@ async function parsePDF(file: File): Promise<any> {
     const pdfParseLib = require('pdf-parse/lib/pdf-parse.js')
     const fn = typeof pdfParseLib === 'function' ? pdfParseLib : pdfParseLib.default
     const parsed = await fn(buffer)
-    pdfText = (parsed.text || '').trim()
-    console.log(`📄 pdf-parse: ${pdfText.length} chars`)
+    pdfText = cleanCVText((parsed.text || '').trim())
+    console.log(`📄 pdf-parse: ${pdfText.length} chars (after cleaning)`)
   } catch (err: any) {
     console.warn('⚠️ pdf-parse failed:', err.message)
   }
@@ -201,20 +223,22 @@ async function parseDOCX(file: File): Promise<any> {
   const mammoth = await import('mammoth')
   const buffer = Buffer.from(await file.arrayBuffer())
   const { value: rawText } = await mammoth.extractRawText({ buffer })
-  if (!rawText?.trim() || rawText.trim().length < 50) throw new Error('No text in DOCX')
+  const cleaned = cleanCVText(rawText || '')
+  if (!cleaned || cleaned.length < 50) throw new Error('No text in DOCX')
   const text = await callGemini([{
     role: 'user',
-    parts: [{ text: `${CV_PROMPT}\n\nCV TEXT:\n${rawText.substring(0, 4000)}` }],
+    parts: [{ text: `${CV_PROMPT}\n\nCV TEXT:\n${cleaned.substring(0, 4000)}` }],
   }])
   return extractJSON(text)
 }
 
 async function parseTXT(file: File): Promise<any> {
   const rawText = await file.text()
-  if (!rawText?.trim() || rawText.trim().length < 50) throw new Error('TXT file is empty')
+  const cleaned = cleanCVText(rawText || '')
+  if (!cleaned || cleaned.length < 50) throw new Error('TXT file is empty')
   const text = await callGemini([{
     role: 'user',
-    parts: [{ text: `${CV_PROMPT}\n\nCV TEXT:\n${rawText.substring(0, 4000)}` }],
+    parts: [{ text: `${CV_PROMPT}\n\nCV TEXT:\n${cleaned.substring(0, 4000)}` }],
   }])
   return extractJSON(text)
 }

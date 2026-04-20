@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { FileText, Check, ArrowRight, Loader2, X, Upload, Globe, FormInput } from "lucide-react"
+import { FileText, Check, ArrowRight, Loader2, X, Upload, Globe, FormInput, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,6 +20,9 @@ interface JobData {
   company?: string
   location: string
   description: string
+  description_html?: string
+  hard_skills?: string[]
+  soft_skills?: string[]
   requirements: string[]
   skills: string[]
   jobType: string
@@ -32,7 +35,7 @@ export function JobDescriptionUploader() {
   const { language } = useLanguage()
   const { toast } = useToast()
   const router = useRouter()
-  const { user } = useAuth()
+  const { session } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [step, setStep] = useState(1)
@@ -40,13 +43,17 @@ export function JobDescriptionUploader() {
   const [isProcessingFile, setIsProcessingFile] = useState(false)
   const [jobUrl, setJobUrl] = useState("")
   const [jobText, setJobText] = useState("")
-  const [scrapedData, setScrapedData] = useState<any>(null)
+  const [urlBlocked, setUrlBlocked] = useState(false)
+  const [blockedPasteText, setBlockedPasteText] = useState("")
   const [activeTab, setActiveTab] = useState("upload")
   const [jobData, setJobData] = useState<JobData>({
     title: "",
     company: "",
     location: "",
     description: "",
+    description_html: "",
+    hard_skills: [],
+    soft_skills: [],
     requirements: [],
     skills: [],
     jobType: "full-time",
@@ -55,27 +62,24 @@ export function JobDescriptionUploader() {
     applicationDeadline: "",
   })
 
-  // Helper function to get user organization ID
-  const getUserOrgId = (): string => {
-    // Try to get from localStorage first
-    const storedUser = localStorage.getItem("recruitify_user")
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser)
-        if (user.email) {
-          return user.email.replace("@", "_").replace(".", "_")
-        }
-      } catch (e) {
-        console.error("Error parsing stored user:", e)
-      }
-    }
-
-    // Try to get from auth context
-    if (user && user.email) {
-      return user.email.replace("@", "_").replace(".", "_")
-    }
-
-    return "demo-org-123"
+  const applyParsedData = (data: any) => {
+    const hardSkills = Array.isArray(data.hard_skills) ? data.hard_skills : []
+    const softSkills = Array.isArray(data.soft_skills) ? data.soft_skills : []
+    setJobData({
+      title: data.title || "",
+      company: data.company || "",
+      location: data.location || "",
+      description: data.description || "",
+      description_html: data.description_html || "",
+      hard_skills: hardSkills,
+      soft_skills: softSkills,
+      skills: [...hardSkills, ...softSkills],
+      requirements: Array.isArray(data.requirements) ? data.requirements : [],
+      jobType: data.employment_type || "full-time",
+      salaryRange: data.salary_range || "",
+      benefits: Array.isArray(data.benefits) ? data.benefits : [],
+      applicationDeadline: "",
+    })
   }
 
   // Handle file selection
@@ -83,40 +87,50 @@ export function JobDescriptionUploader() {
     fileInputRef.current?.click()
   }
 
-  // Handle file upload
+  // Handle file upload — sends file to /api/jobs/import for server-side parsing + Gemini
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
 
+    const file = e.target.files[0]
     setIsProcessingFile(true)
 
     try {
-      // Read the first file
-      const file = e.target.files[0]
-      const text = await file.text()
+      const formData = new FormData()
+      formData.append("file", file)
 
-      // Set the job text
-      setJobText(text)
+      const response = await fetch("/api/jobs/import", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to parse file")
+      }
+
+      applyParsedData(data)
 
       toast({
-        title: language === "EN" ? "File uploaded successfully" : "Datei erfolgreich hochgeladen",
+        title: language === "EN" ? "File parsed successfully" : "Datei erfolgreich analysiert",
         description:
           language === "EN"
-            ? "Job description has been extracted from the file."
-            : "Stellenbeschreibung wurde aus der Datei extrahiert.",
+            ? `Job data extracted from ${file.name}`
+            : `Jobdaten aus ${file.name} extrahiert`,
         variant: "default",
       })
 
-      // Parse the job text automatically
-      await handleParseJobText(text)
+      setStep(2)
     } catch (error) {
       console.error("Error processing file:", error)
-
       toast({
         title: language === "EN" ? "Error processing file" : "Fehler bei der Verarbeitung der Datei",
         description:
-          language === "EN"
-            ? "Failed to extract job description from the file."
-            : "Fehler beim Extrahieren der Stellenbeschreibung aus der Datei.",
+          error instanceof Error
+            ? error.message
+            : language === "EN"
+              ? "Failed to extract job description from the file."
+              : "Fehler beim Extrahieren der Stellenbeschreibung aus der Datei.",
         variant: "destructive",
       })
     } finally {
@@ -124,95 +138,62 @@ export function JobDescriptionUploader() {
     }
   }
 
-  // Handle URL scraping - FIXED VERSION
+  // Handle URL import — calls /api/jobs/import, shows paste fallback on block
   const handleScrapeUrl = async () => {
     if (!jobUrl) return
 
     setIsLoading(true)
+    setUrlBlocked(false)
 
     try {
-      console.log("🌐 Starting URL scraping for:", jobUrl)
-
-      // Validate URL format
       let validUrl = jobUrl
       if (!jobUrl.startsWith("http://") && !jobUrl.startsWith("https://")) {
         validUrl = "https://" + jobUrl
       }
+      new URL(validUrl) // validate format
 
-      // Test if URL is reachable
-      try {
-        new URL(validUrl)
-      } catch (urlError) {
-        throw new Error("Invalid URL format. Please enter a valid URL.")
-      }
-
-      // Call the enhanced scraping API
-      const response = await fetch("/api/scrape-url", {
+      const response = await fetch("/api/jobs/import", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: validUrl }),
       })
 
-      console.log("📡 API response status:", response.status)
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-      }
-
       const data = await response.json()
-      console.log("✅ Enhanced scraping successful:", data.success)
+
+      if (data.blocked) {
+        setUrlBlocked(true)
+        return
+      }
 
       if (!data.success) {
-        throw new Error(data.error || "Failed to scrape URL")
+        throw new Error(data.error || "Import failed")
       }
 
-      // Update job text and scraped data
-      setJobText(data.content || "")
-      setScrapedData({
-        ...data.structuredData,
-        siteType: data.siteType,
-        url: data.url,
-        contentLength: data.length
-      })
+      applyParsedData(data)
 
       toast({
-        title: language === "EN" ? "URL scraped successfully" : "URL erfolgreich gescrapt",
+        title: language === "EN" ? "URL imported successfully" : "URL erfolgreich importiert",
         description:
           language === "EN"
-            ? `Job data extracted from ${data.siteType} site with enhanced parsing.`
-            : `Jobdaten von ${data.siteType}-Seite mit verbessertem Parsing extrahiert.`,
+            ? `Job data extracted from ${data.siteType} site`
+            : `Jobdaten von ${data.siteType}-Seite extrahiert`,
         variant: "default",
       })
 
-      // Parse the scraped content with enhanced structured data
-      console.log("📝 Parsing scraped content with structured data")
-      await handleParseJobText(data.content, data.structuredData)
+      setStep(2)
     } catch (error) {
-      console.error("❌ Error scraping URL:", error)
-
-      toast({
-        title: language === "EN" ? "Error scraping URL" : "Fehler beim Scrapen der URL",
-        description:
-          language === "EN"
-            ? error instanceof Error
-              ? error.message
-              : "Failed to extract job description from the URL. Please check the URL and try again."
-            : "Fehler beim Extrahieren der Stellenbeschreibung aus der URL. Bitte überprüfen Sie die URL und versuchen Sie es erneut.",
-        variant: "destructive",
-      })
+      console.error("Error importing URL:", error)
+      // Treat any network/parse error as a block — show the paste fallback
+      setUrlBlocked(true)
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Handle job text parsing - ENHANCED VERSION
-  const handleParseJobText = async (textToProcess?: string, structuredData?: any) => {
-    const textContent = textToProcess || jobText
+  // Handle raw text parsing via /api/jobs/import
+  const handleParseJobText = async (textToProcess?: string) => {
+    const textContent = textToProcess || jobText || blockedPasteText
     if (!textContent) {
-      console.error("No text content to process")
       toast({
         title: language === "EN" ? "No content to parse" : "Kein Inhalt zum Parsen",
         description:
@@ -227,27 +208,11 @@ export function JobDescriptionUploader() {
     setIsLoading(true)
 
     try {
-      console.log("🔍 Enhanced parsing job text with length:", textContent.length)
-      if (structuredData) {
-        console.log("📊 Using structured data for enhanced parsing:", structuredData)
-      }
-
-      // Call the enhanced job parsing API
-      const response = await fetch("/api/parse-job", {
+      const response = await fetch("/api/jobs/import", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          text: textContent,
-          structuredData: structuredData 
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: textContent }),
       })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-        throw new Error(errorData.error || "Failed to parse job description")
-      }
 
       const data = await response.json()
 
@@ -255,44 +220,24 @@ export function JobDescriptionUploader() {
         throw new Error(data.error || "Failed to parse job description")
       }
 
-      console.log("✅ Job parsing successful")
-
-      // Update job data with parsed content
-      setJobData({
-        title: data.title || "",
-        company: data.company || "",
-        location: data.location || "",
-        description: data.description || "",
-        requirements: Array.isArray(data.requirements) ? data.requirements : [],
-        skills: Array.isArray(data.skills) ? data.skills : [],
-        jobType: data.jobType || "full-time",
-        salaryRange: data.salaryRange || "",
-        benefits: Array.isArray(data.benefits) ? data.benefits : [],
-        applicationDeadline: data.applicationDeadline || "",
-      })
+      applyParsedData(data)
 
       toast({
         title: language === "EN" ? "Job description parsed successfully" : "Stellenbeschreibung erfolgreich analysiert",
-        description:
-          language === "EN"
-            ? `Job information extracted using ${data.method} method with enhanced accuracy.`
-            : `Jobinformationen mit ${data.method}-Methode und verbesserter Genauigkeit extrahiert.`,
         variant: "default",
       })
 
-      // Move to next step
       setStep(2)
     } catch (error) {
-      console.error("❌ Error parsing job text:", error)
-
+      console.error("Error parsing job text:", error)
       toast({
         title: language === "EN" ? "Error parsing job description" : "Fehler beim Parsen der Stellenbeschreibung",
         description:
-          language === "EN"
-            ? error instanceof Error
-              ? error.message
-              : "Failed to extract information from the job description."
-            : "Fehler beim Extrahieren von Informationen aus der Stellenbeschreibung.",
+          error instanceof Error
+            ? error.message
+            : language === "EN"
+              ? "Failed to extract information from the job description."
+              : "Fehler beim Extrahieren von Informationen aus der Stellenbeschreibung.",
         variant: "destructive",
       })
     } finally {
@@ -300,13 +245,9 @@ export function JobDescriptionUploader() {
     }
   }
 
-  // Handle job creation with comprehensive error handling
+  // Handle job creation
   const handleCreateJob = async () => {
-    console.log("=== STARTING JOB CREATION ===")
-    console.log("Current job data:", jobData)
-
     if (!jobData.title || !jobData.description) {
-      console.error("Missing required fields:", { title: !!jobData.title, description: !!jobData.description })
       toast({
         title: language === "EN" ? "Missing required fields" : "Erforderliche Felder fehlen",
         description:
@@ -318,41 +259,49 @@ export function JobDescriptionUploader() {
       return
     }
 
+    if (!session?.access_token) {
+      toast({
+        title: language === "EN" ? "Not authenticated" : "Nicht angemeldet",
+        description: language === "EN" ? "Please log in to create a job." : "Bitte melden Sie sich an.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      const userOrgId = getUserOrgId()
-      console.log("Using organization ID:", userOrgId)
+      const allSkills = [
+        ...(jobData.hard_skills || []),
+        ...(jobData.soft_skills || []),
+        ...jobData.skills,
+      ].filter((s, i, a) => s && a.indexOf(s) === i) // deduplicate
 
-      // Prepare job data for API with proper data types
       const jobPayload = {
         title: String(jobData.title).trim(),
         description: String(jobData.description).trim(),
+        description_html: jobData.description_html || null,
+        hard_skills: jobData.hard_skills || [],
+        soft_skills: jobData.soft_skills || [],
         requirements: Array.isArray(jobData.requirements)
           ? jobData.requirements.join("\n")
           : String(jobData.requirements || ""),
         location: String(jobData.location || ""),
-        jobType: String(jobData.jobType || "full-time"),
-        salaryRange: String(jobData.salaryRange || ""),
-        organisationId: userOrgId, // Use user-specific org ID
-        skills: Array.isArray(jobData.skills) ? jobData.skills.join(", ") : String(jobData.skills || ""),
-        benefits: Array.isArray(jobData.benefits)
-          ? (jobData.benefits || []).join(", ")
-          : String(jobData.benefits || ""),
+        employment_type: String(jobData.jobType || "full-time"),
+        salary_range: String(jobData.salaryRange || ""),
+        skills: allSkills,
+        benefits: Array.isArray(jobData.benefits) ? jobData.benefits : [],
         company: String(jobData.company || ""),
-        applicationDeadline: jobData.applicationDeadline || null,
       }
 
-      console.log("Sending job payload:", jobPayload)
-
-      // Create job via API with timeout
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
 
       const response = await fetch("/api/jobs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(jobPayload),
         signal: controller.signal,
@@ -360,27 +309,18 @@ export function JobDescriptionUploader() {
 
       clearTimeout(timeoutId)
 
-      console.log("API response status:", response.status)
-
-      // Handle response
-      let result
       const responseText = await response.text()
-      console.log("Raw response:", responseText)
-
+      let result: any
       try {
         result = JSON.parse(responseText)
-      } catch (parseError) {
-        console.error("Failed to parse response as JSON:", parseError)
-        throw new Error(`Invalid response from server: ${responseText.substring(0, 100)}...`)
+      } catch {
+        throw new Error(`Invalid response from server: ${responseText.substring(0, 100)}`)
       }
-
-      console.log("Parsed API response data:", result)
 
       if (!response.ok) {
         throw new Error(result.error || `HTTP error! status: ${response.status}`)
       }
 
-      // Show success message
       toast({
         title: language === "EN" ? "Job created successfully!" : "Job erfolgreich erstellt!",
         description:
@@ -390,31 +330,18 @@ export function JobDescriptionUploader() {
         variant: "default",
       })
 
-      console.log("Job creation successful, redirecting to workspace...")
-
-      // Get the job ID from the response
       const jobId = result.job?.id || result.id
+      setTimeout(() => {
+        router.push(jobId ? `/dashboard/jobs/${jobId}/workspace` : "/dashboard/jobs")
+      }, 1500)
 
-      if (jobId) {
-        // Wait a moment for the user to see the success message, then redirect to the job workspace
-        setTimeout(() => {
-          router.push(`/dashboard/jobs/${jobId}/workspace`)
-        }, 1500)
-      } else {
-        // Fallback to jobs page if no ID is returned
-        setTimeout(() => {
-          router.push("/dashboard/jobs")
-        }, 1500)
-      }
     } catch (error) {
-      console.error("=== JOB CREATION ERROR ===")
-      console.error("Error creating job:", error)
-
-      let errorMessage = "Failed to create the job. Please try again."
+      console.error("Job creation error:", error)
+      let errorMessage = language === "EN" ? "Failed to create the job. Please try again." : "Fehler beim Erstellen des Jobs."
 
       if (error instanceof Error) {
         if (error.name === "AbortError") {
-          errorMessage = "Request timed out. Please try again."
+          errorMessage = language === "EN" ? "Request timed out. Please try again." : "Zeitüberschreitung. Bitte erneut versuchen."
         } else {
           errorMessage = error.message
         }
@@ -422,8 +349,7 @@ export function JobDescriptionUploader() {
 
       toast({
         title: language === "EN" ? "Error creating job" : "Fehler beim Erstellen des Jobs",
-        description:
-          language === "EN" ? errorMessage : "Fehler beim Erstellen des Jobs. Bitte versuchen Sie es erneut.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -502,7 +428,6 @@ export function JobDescriptionUploader() {
     const jobType = formData.get("jobType") as string
     const salaryRange = formData.get("salaryRange") as string
 
-    // Update job data
     setJobData({
       ...jobData,
       title,
@@ -512,7 +437,6 @@ export function JobDescriptionUploader() {
       salaryRange,
     })
 
-    // Move to next step
     setStep(2)
   }
 
@@ -663,7 +587,7 @@ export function JobDescriptionUploader() {
                             : "https://beispiel.de/jobs/softwareentwickler"
                         }
                         value={jobUrl}
-                        onChange={(e) => setJobUrl(e.target.value)}
+                        onChange={(e) => { setJobUrl(e.target.value); setUrlBlocked(false) }}
                         disabled={isLoading}
                       />
                       <Button
@@ -674,210 +598,68 @@ export function JobDescriptionUploader() {
                         {isLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {language === "EN" ? "Scraping..." : "Scraping..."}
+                            {language === "EN" ? "Importing..." : "Importieren..."}
                           </>
                         ) : (
                           <>
                             <Globe className="mr-2 h-4 w-4" />
-                            {language === "EN" ? "Scrape URL" : "URL scrapen"}
+                            {language === "EN" ? "Import URL" : "URL importieren"}
                           </>
                         )}
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {language === "EN"
-                        ? "Enter any job posting URL (LinkedIn, Indeed, company websites, etc.)"
-                        : "Geben Sie eine beliebige Stellenausschreibungs-URL ein (LinkedIn, Indeed, Unternehmenswebsites, etc.)"}
+                        ? "Enter any job posting URL (karriere.at, LinkedIn, company websites, etc.)"
+                        : "Beliebige Stellenausschreibungs-URL eingeben (karriere.at, LinkedIn, Unternehmenswebsites, etc.)"}
                     </p>
                   </div>
 
-                  {(jobText || scrapedData) && !isProcessingFile && (
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium">
-                          {language === "EN" ? "Extracted Job Data" : "Extrahierte Jobdaten"}
-                        </h3>
-                        <Button variant="outline" size="sm" onClick={() => handleParseJobText()} disabled={isLoading}>
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              {language === "EN" ? "Processing..." : "Verarbeitung..."}
-                            </>
-                          ) : (
-                            <>{language === "EN" ? "Parse & Structure Data" : "Daten parsen & strukturieren"}</>
-                          )}
-                        </Button>
-                      </div>
-
-                      {/* Structured Data Preview */}
-                      {scrapedData && (scrapedData.title || scrapedData.company || scrapedData.location || scrapedData.description) && (
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-sm font-medium text-blue-800">
-                              {language === "EN" ? "Structured Data Extracted" : "Strukturierte Daten extrahiert"}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              {scrapedData.siteType || "generic"}
-                            </Badge>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {scrapedData.title && (
-                              <div className="bg-white rounded-md p-3 border border-blue-100">
-                                <label className="text-xs font-medium text-blue-600 uppercase tracking-wide">
-                                  {language === "EN" ? "Job Title" : "Stellentitel"}
-                                </label>
-                                <p className="text-sm font-semibold text-gray-900 mt-1">{scrapedData.title}</p>
-                              </div>
-                            )}
-                            
-                            {scrapedData.company && (
-                              <div className="bg-white rounded-md p-3 border border-blue-100">
-                                <label className="text-xs font-medium text-blue-600 uppercase tracking-wide">
-                                  {language === "EN" ? "Company" : "Unternehmen"}
-                                </label>
-                                <p className="text-sm font-semibold text-gray-900 mt-1">{scrapedData.company}</p>
-                              </div>
-                            )}
-                            
-                            {scrapedData.location && (
-                              <div className="bg-white rounded-md p-3 border border-blue-100">
-                                <label className="text-xs font-medium text-blue-600 uppercase tracking-wide">
-                                  {language === "EN" ? "Location" : "Standort"}
-                                </label>
-                                <p className="text-sm font-semibold text-gray-900 mt-1">{scrapedData.location}</p>
-                              </div>
-                            )}
-                            
-                            <div className="bg-white rounded-md p-3 border border-blue-100">
-                              <label className="text-xs font-medium text-blue-600 uppercase tracking-wide">
-                                {language === "EN" ? "Source" : "Quelle"}
-                              </label>
-                              <p className="text-sm text-gray-900 mt-1 truncate">{scrapedData.url}</p>
-                            </div>
-                          </div>
-                          
-                          {scrapedData.description && (
-                            <div className="bg-white rounded-md p-3 border border-blue-100 mt-4">
-                              <label className="text-xs font-medium text-blue-600 uppercase tracking-wide">
-                                {language === "EN" ? "Job Description Preview" : "Stellenbeschreibung Vorschau"}
-                              </label>
-                              <p className="text-sm text-gray-700 mt-1 line-clamp-3">
-                                {scrapedData.description.substring(0, 200)}
-                                {scrapedData.description.length > 200 ? "..." : ""}
-                              </p>
-                            </div>
-                          )}
-                          
-                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-blue-100">
-                            <div className="flex items-center gap-4 text-xs text-blue-600">
-                              <span>
-                                {language === "EN" ? "Content Length" : "Inhaltslänge"}: {scrapedData.contentLength?.toLocaleString()} chars
-                              </span>
-                              <span>•</span>
-                              <span>
-                                {language === "EN" ? "Quality" : "Qualität"}: 
-                                <span className="font-medium ml-1">
-                                  {(scrapedData.title && scrapedData.company && scrapedData.location) ? (
-                                    language === "EN" ? "Excellent" : "Ausgezeichnet"
-                                  ) : (scrapedData.title || scrapedData.description) ? (
-                                    language === "EN" ? "Good" : "Gut"
-                                  ) : (
-                                    language === "EN" ? "Basic" : "Grundlegend"
-                                  )}
-                                </span>
-                              </span>
-                            </div>
-                            
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                if (scrapedData) {
-                                  setJobData({
-                                    ...jobData,
-                                    title: scrapedData.title || jobData.title,
-                                    company: scrapedData.company || jobData.company,
-                                    location: scrapedData.location || jobData.location,
-                                    description: scrapedData.description || jobData.description,
-                                  })
-                                  toast({
-                                    title: language === "EN" ? "Data pre-filled" : "Daten vorausgefüllt",
-                                    description: language === "EN" ? "Structured data filled into form fields" : "Strukturierte Daten in Formularfelder eingefügt",
-                                    variant: "default"
-                                  })
-                                  setStep(2) // Move to review step
-                                }
-                              }}
-                              className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
-                            >
-                              {language === "EN" ? "Auto-fill Form" : "Formular auto-füllen"} →
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Show message when no structured data was found */}
-                      {scrapedData && !(scrapedData.title || scrapedData.company || scrapedData.location || scrapedData.description) && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                            <span className="text-sm font-medium text-yellow-800">
-                              {language === "EN" ? "Limited Structure Found" : "Begrenzte Struktur gefunden"}
-                            </span>
-                            <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
-                              {scrapedData.siteType || "generic"}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-yellow-700">
-                            {language === "EN" 
-                              ? "The page was scraped, but no structured job data was found. The AI parser will try to extract information from the raw content."
-                              : "Die Seite wurde gescrapt, aber keine strukturierten Jobdaten gefunden. Der KI-Parser wird versuchen, Informationen aus dem rohen Inhalt zu extrahieren."
-                            }
+                  {/* Blocked URL fallback — shown when the site can't be read automatically */}
+                  {urlBlocked && (
+                    <div className="space-y-3">
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
+                        <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-800">
+                            {language === "EN"
+                              ? "Link could not be read automatically"
+                              : "Link konnte nicht automatisch gelesen werden"}
                           </p>
-                          <div className="mt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleParseJobText()}
-                              disabled={isLoading}
-                              className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300"
-                            >
-                              {isLoading ? (
-                                <>
-                                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                  {language === "EN" ? "Processing..." : "Verarbeitung..."}
-                                </>
-                              ) : (
-                                <>{language === "EN" ? "Try AI Parser" : "KI-Parser versuchen"}</>
-                              )}
-                            </Button>
-                          </div>
+                          <p className="text-sm text-amber-700 mt-1">
+                            {language === "EN"
+                              ? "Please copy the job ad text manually and paste it below."
+                              : "Bitte kopiere den Text der Anzeige manuell hier hinein."}
+                          </p>
                         </div>
-                      )}
-
-                      {/* Raw Text Preview (Collapsible) */}
-                      {jobText && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg">
-                          <details className="group">
-                            <summary className="cursor-pointer p-3 text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center justify-between">
-                              <span>
-                                {language === "EN" ? "View Raw Extracted Text" : "Rohen extrahierten Text anzeigen"}
-                                <span className="text-xs text-gray-500 ml-2">({jobText.length} characters)</span>
-                              </span>
-                              <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </summary>
-                            <div className="border-t border-gray-200 p-3 bg-white">
-                              <pre className="text-xs whitespace-pre-wrap text-gray-600 max-h-[200px] overflow-y-auto">
-                                {jobText}
-                              </pre>
-                            </div>
-                          </details>
-                        </div>
-                      )}
+                      </div>
+                      <Textarea
+                        placeholder={
+                          language === "EN"
+                            ? "Paste the full job description text here..."
+                            : "Vollständigen Text der Stellenanzeige hier einfügen..."
+                        }
+                        value={blockedPasteText}
+                        onChange={(e) => setBlockedPasteText(e.target.value)}
+                        className="min-h-[200px]"
+                      />
+                      <Button
+                        onClick={() => handleParseJobText(blockedPasteText)}
+                        disabled={!blockedPasteText || isLoading}
+                        className="w-full bg-teal-600 hover:bg-teal-700"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {language === "EN" ? "Processing..." : "Verarbeitung..."}
+                          </>
+                        ) : (
+                          <>
+                            {language === "EN" ? "Parse & Import" : "Analysieren & Importieren"}
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -1213,7 +995,14 @@ export function JobDescriptionUploader() {
 
               <div>
                 <h4 className="text-sm font-medium mb-1">{language === "EN" ? "Description" : "Beschreibung"}</h4>
-                <p className="text-sm">{jobData.description}</p>
+                {jobData.description_html ? (
+                  <div
+                    className="text-sm prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: jobData.description_html }}
+                  />
+                ) : (
+                  <p className="text-sm">{jobData.description}</p>
+                )}
               </div>
 
               {jobData.skills.length > 0 && (
