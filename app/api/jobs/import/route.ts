@@ -8,12 +8,22 @@ export async function POST(req: NextRequest) {
     const { text, url } = await req.json();
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
-    if (!apiKey) return NextResponse.json({ error: "Key fehlt" }, { status: 500 });
+    if (!apiKey) {
+      console.error('IMPORT EARLY EXIT: no API key configured');
+      return NextResponse.json({ error: 'Kein Gemini API Key konfiguriert' }, { status: 500 });
+    }
+
+    const truncatedInput = text ? text.substring(0, 5000) : url;
+
+    if (!truncatedInput) {
+      console.error('IMPORT EARLY EXIT: no text or url in request body');
+      return NextResponse.json({ error: 'Kein Text und keine URL übergeben' }, { status: 400 });
+    }
 
     const model = GEMINI_MODEL_FAST;
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    const truncatedInput = text ? text.substring(0, 5000) : url;
+    console.log(`IMPORT: calling Gemini model=${model} inputLength=${truncatedInput.length}`);
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -30,12 +40,20 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const err = await response.json();
-      return NextResponse.json({ error: err.error?.message || "API Busy" }, { status: response.status });
+      const errMsg = err.error?.message || 'Gemini API Busy';
+      console.error(`IMPORT EARLY EXIT: Gemini HTTP ${response.status} — ${errMsg}`);
+      return NextResponse.json({ error: errMsg }, { status: response.status });
     }
 
     const result = await response.json();
-    const rawText = result.candidates[0].content.parts[0].text;
+    const candidate = result.candidates?.[0];
 
+    if (!candidate) {
+      console.error('IMPORT EARLY EXIT: Gemini returned no candidates', JSON.stringify(result));
+      return NextResponse.json({ error: 'Gemini returned no candidates' }, { status: 502 });
+    }
+
+    const rawText = candidate.content.parts[0].text;
     return NextResponse.json(JSON.parse(rawText));
 
   } catch (error: any) {
