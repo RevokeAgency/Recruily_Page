@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { parseDocumentServerSide } from '@/lib/server-pdf-parser'
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
@@ -7,7 +6,8 @@ if (!apiKey) {
   console.error('CRITICAL: No Google/Gemini API Key found in environment variables!')
 }
 console.log('API Key Source:', process.env.GOOGLE_GENERATIVE_AI_API_KEY ? 'Google Env' : 'Gemini Env')
-const genAI = new GoogleGenerativeAI(apiKey || '')
+
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`
 
 const PROMPT = `Du bist ein Expert Recruiting Scraper. Analysiere den folgenden Text einer Stellenanzeige.
 Extrahiere die Daten und antworte AUSSCHLIESSLICH im folgenden JSON-Format ohne Markdown-Codeblöcke:
@@ -30,17 +30,41 @@ Job-Inhalt:
 `
 
 async function distill(rawText: string): Promise<Record<string, any>> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-  const result = await model.generateContent(PROMPT + rawText.slice(0, 6000))
-  const text = result.response.text().trim()
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 22000)
 
-  // Strip optional markdown code fences
-  const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  try {
+    const res = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: PROMPT + rawText.slice(0, 6000) }] }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+        },
+      }),
+      signal: controller.signal,
+    })
 
-  // Extract first JSON object
-  const match = clean.match(/\{[\s\S]*\}/)
-  if (!match) throw new Error('Gemini returned no valid JSON')
-  return JSON.parse(match[0])
+    if (!res.ok) {
+      const errBody = await res.text()
+      throw new Error(`Gemini API ${res.status}: ${errBody.slice(0, 200)}`)
+    }
+
+    const json = await res.json()
+    const text = json?.candidates?.[0]?.content?.parts?.[0]?.text
+    if (!text) throw new Error('Gemini returned empty response')
+
+    // Strip optional markdown fences then parse
+    const clean = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    const match = clean.match(/\{[\s\S]*\}/)
+    if (!match) throw new Error('Gemini returned no valid JSON object')
+    return JSON.parse(match[0])
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 async function fetchJobUrl(url: string): Promise<{ text: string; siteType: string; blocked: boolean }> {
@@ -74,8 +98,6 @@ async function fetchJobUrl(url: string): Promise<{ text: string; siteType: strin
     }
 
     const html = await res.text()
-
-    // Try JSON-LD first for cleaner structured content
     const jsonLd = extractJsonLd(html)
 
     const stripped = html
@@ -109,7 +131,7 @@ function extractJsonLd(html: string): string | null {
         const desc = (data.description || '').replace(/<[^>]+>/g, ' ').slice(0, 2000)
         return `Title: ${data.title || ''}\nCompany: ${data.hiringOrganization?.name || ''}\nLocation: ${loc}\nDescription: ${desc}`
       }
-    } catch { /* invalid JSON */ }
+    } catch { /* invalid JSON-LD, skip */ }
   }
   return null
 }
@@ -123,7 +145,6 @@ export async function POST(request: NextRequest) {
     let siteType = 'unknown'
 
     if (contentType.includes('multipart/form-data')) {
-      // ── File upload ────────────────────────────────────────────────────────
       inputType = 'file'
       const formData = await request.formData()
       const file = formData.get('file') as File | null
@@ -140,7 +161,6 @@ export async function POST(request: NextRequest) {
       const body = await request.json()
 
       if (body.url) {
-        // ── URL fetch ──────────────────────────────────────────────────────
         inputType = 'url'
         const fetched = await fetchJobUrl(body.url)
         siteType = fetched.siteType
@@ -157,7 +177,6 @@ export async function POST(request: NextRequest) {
         console.log(`🌐 URL fetched: ${rawText.length} chars (${siteType})`)
 
       } else if (body.text) {
-        // ── Raw text ───────────────────────────────────────────────────────
         inputType = 'text'
         rawText = body.text
 
