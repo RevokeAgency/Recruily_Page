@@ -18,9 +18,9 @@ try {
 
 // ─── Central Gemini model constants ──────────────────────────────────────────
 // Update here to change models globally across all routes.
-export const GEMINI_MODEL_PRIMARY  = 'gemini-2.0-flash'
+export const GEMINI_MODEL_PRIMARY  = 'gemini-2.5-flash'
 export const GEMINI_MODEL_FALLBACK = 'gemini-2.5-flash'
-export const GEMINI_MODEL_FAST     = 'gemini-2.0-flash-lite'
+export const GEMINI_MODEL_FAST     = 'gemini-2.5-flash-lite'
 export const GEMINI_MODELS         = [GEMINI_MODEL_PRIMARY, GEMINI_MODEL_FALLBACK]
 // ─────────────────────────────────────────────────────────────────────────────
 
