@@ -332,7 +332,7 @@ export function JobDescriptionUploader() {
 
       const jobId = result.job?.id || result.id
       setTimeout(() => {
-        router.push("/dashboard")
+        window.location.href = '/dashboard'
       }, 1500)
 
     } catch (error) {

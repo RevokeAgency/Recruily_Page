@@ -466,7 +466,7 @@ export default function JobCreationWizard() {
         variant: "default",
       })
 
-      router.push("/dashboard")
+      window.location.href = '/dashboard'
     } catch (error: any) {
       console.error("Error creating job:", error)
       toast({
