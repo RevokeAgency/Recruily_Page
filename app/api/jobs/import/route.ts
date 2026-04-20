@@ -2,7 +2,12 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { parseDocumentServerSide } from '@/lib/server-pdf-parser'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
+const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+if (!apiKey) {
+  console.error('CRITICAL: No Google/Gemini API Key found in environment variables!')
+}
+console.log('API Key Source:', process.env.GOOGLE_GENERATIVE_AI_API_KEY ? 'Google Env' : 'Gemini Env')
+const genAI = new GoogleGenerativeAI(apiKey || '')
 
 const PROMPT = `Du bist ein Expert Recruiting Scraper. Analysiere den folgenden Text einer Stellenanzeige.
 Extrahiere die Daten und antworte AUSSCHLIESSLICH im folgenden JSON-Format ohne Markdown-Codeblöcke:
