@@ -142,7 +142,7 @@ export function useJobs(organisationId?: string) {
     console.log("➕ Creating job:", payload.title)
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
 
     let response: Response
     try {

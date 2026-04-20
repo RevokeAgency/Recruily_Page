@@ -152,19 +152,22 @@ export async function POST(request: NextRequest) {
       created_by: user.id,
     }
 
-    const { data: savedJob, error: dbError } = await admin
-      .from('jobs')
-      .insert([newJob])
-      .select()
-      .single()
+    let insertResult = await admin.from('jobs').insert([newJob]).select().single()
 
-    if (dbError) {
-      console.error('❌ Job insert error:', dbError)
-      return NextResponse.json({ success: false, error: dbError.message }, { status: 500 })
+    // If insert fails due to missing columns (migration not yet run), retry without new fields
+    if (insertResult.error?.message?.match(/column .* does not exist/i)) {
+      console.warn('⚠️ New columns missing — retrying without migration fields')
+      const { description_html, hard_skills, soft_skills, salary_range, ...legacyJob } = newJob
+      insertResult = await admin.from('jobs').insert([legacyJob]).select().single()
     }
 
-    console.log('✅ Job created:', savedJob.id, savedJob.title)
-    return NextResponse.json({ success: true, job: savedJob, message: 'Job created successfully' })
+    if (insertResult.error) {
+      console.error('❌ Job insert error:', insertResult.error)
+      return NextResponse.json({ success: false, error: insertResult.error.message }, { status: 500 })
+    }
+
+    console.log('✅ Job created:', insertResult.data.id, insertResult.data.title)
+    return NextResponse.json({ success: true, job: insertResult.data, message: 'Job created successfully' })
 
   } catch (error: any) {
     console.error('❌ POST /api/jobs error:', error)

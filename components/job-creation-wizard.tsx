@@ -39,57 +39,54 @@ interface ScrapedJobData {
 }
 type ParsedJobData = ScrapedJobData
 
-// ── Inline scraper: calls /api/scrape-url, normalises camelCase fields ──────
-async function scrapeJobFromUrl(url: string): Promise<{ success: boolean; data?: ScrapedJobData; error?: string }> {
+// ── Shared response mapper for /api/jobs/import ─────────────────────────────
+function mapImportResponse(result: any): ScrapedJobData {
+  const hardSkills: string[] = Array.isArray(result.hard_skills) ? result.hard_skills : []
+  const softSkills: string[] = Array.isArray(result.soft_skills) ? result.soft_skills : []
+  return {
+    title: result.title || undefined,
+    company: result.company || undefined,
+    location: result.location || undefined,
+    description: result.description || undefined,
+    requirements: Array.isArray(result.requirements)
+      ? result.requirements.join("\n")
+      : (result.requirements || undefined),
+    salary: result.salary_range || undefined,
+    skills: [...hardSkills, ...softSkills],
+    employmentType: result.employment_type || undefined,
+    experienceLevel: result.experience_level || undefined,
+  }
+}
+
+// ── Inline scraper: calls /api/jobs/import for Gemini-powered extraction ─────
+async function scrapeJobFromUrl(url: string): Promise<{ success: boolean; data?: ScrapedJobData; error?: string; blocked?: boolean }> {
   try {
-    const res = await fetch("/api/scrape-url", {
+    const res = await fetch("/api/jobs/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
     })
     const result = await res.json()
+    if (result.blocked) return { success: false, blocked: true, error: result.error }
     if (!result.success) return { success: false, error: result.error }
-    const sd = result.structuredData || {}
-    return {
-      success: true,
-      data: {
-        title: sd.title,
-        company: sd.company,
-        location: sd.location,
-        description: sd.description,
-        requirements: sd.requirements,
-        salary: sd.salary,
-        skills: Array.isArray(sd.skills) ? sd.skills : [],
-        employmentType: sd.employment_type || sd.employmentType,
-        experienceLevel: sd.experience_level || sd.experienceLevel,
-        applicationDeadline: sd.application_deadline,
-      },
-    }
+    return { success: true, data: mapImportResponse(result) }
   } catch (e: any) {
     return { success: false, error: e.message }
   }
 }
 
-// ── Inline file parser: extracts text from PDF/DOCX/TXT for description ─────
+// ── File parser: sends file to /api/jobs/import for server-side PDF/DOCX parsing ──
 async function parseJobDescriptionFile(file: File): Promise<{ success: boolean; data?: ParsedJobData; error?: string }> {
   try {
-    if (file.type === "text/plain") {
-      const text = await file.text()
-      return { success: true, data: { description: text, title: file.name.replace(/\.[^/.]+$/, "") } }
-    }
-    // For PDF/DOCX — send to server for text extraction + Gemini parsing
     const formData = new FormData()
     formData.append("file", file)
-    const res = await fetch("/api/candidates/upload", {
+    const res = await fetch("/api/jobs/import", {
       method: "POST",
       body: formData,
     })
-    // Even if this fails (auth), return description from filename so the form is usable
-    if (!res.ok) {
-      return { success: true, data: { description: `Job description from: ${file.name}`, title: file.name.replace(/\.[^/.]+$/, "") } }
-    }
-    // We only care about the raw text here — fallback to just setting description
-    return { success: true, data: { description: `Uploaded: ${file.name}`, title: file.name.replace(/\.[^/.]+$/, "") } }
+    const result = await res.json()
+    if (!result.success) return { success: false, error: result.error || "Failed to parse file" }
+    return { success: true, data: mapImportResponse(result) }
   } catch (e: any) {
     return { success: false, error: e.message }
   }
@@ -345,47 +342,39 @@ export default function JobCreationWizard() {
   // Handle URL scraping
   const handleUrlScrape = async () => {
     if (!jobUrl.trim()) {
-      toast({
-        title: "URL required",
-        description: "Please enter a job posting URL to scrape.",
-        variant: "destructive",
-      })
+      toast({ title: "URL required", description: "Please enter a job posting URL.", variant: "destructive" })
       return
     }
 
     setIsScrapingUrl(true)
     try {
-      console.log("🌐 Starting URL scraping for:", jobUrl.trim())
-      const result = await scrapeJobFromUrl(jobUrl.trim())
-      
-      if (result.success && result.data) {
-        console.log("✅ Scraping successful, populating form data:", result.data)
-        populateFormFromData(result.data, "url", jobUrl.trim())
-        
-        // Auto-redirect to review section after successful scraping
-        setTimeout(() => {
-          setCurrentStep("review")
-          toast({
-            title: "Scraping complete!",
-            description: "Review the extracted job details below and make any necessary edits.",
-            variant: "default",
-          })
-        }, 500) // Small delay to let the form populate
-        
-      } else {
+      let validUrl = jobUrl.trim()
+      if (!validUrl.startsWith("http")) validUrl = "https://" + validUrl
+
+      const result = await scrapeJobFromUrl(validUrl)
+
+      if (result.blocked) {
         toast({
-          title: "Scraping failed",
-          description: result.error || "Could not extract job data from the URL. Please try a different URL or use manual entry.",
+          title: "Seite nicht lesbar",
+          description: "Diese Seite blockiert automatisches Lesen. Bitte kopiere den Stellentext manuell und wähle 'Manual'.",
           variant: "destructive",
         })
+        setSelectedMethod("manual")
+        return
+      }
+
+      if (result.success && result.data) {
+        populateFormFromData(result.data, "url", validUrl)
+        // Defer step change to avoid Radix portal removeChild crash
+        setTimeout(() => {
+          setCurrentStep("review")
+          toast({ title: "Import erfolgreich!", description: "Überprüfe die extrahierten Jobdaten.", variant: "default" })
+        }, 50)
+      } else {
+        toast({ title: "Import fehlgeschlagen", description: result.error || "URL konnte nicht verarbeitet werden.", variant: "destructive" })
       }
     } catch (error: any) {
-      console.error("❌ URL scraping error:", error)
-      toast({
-        title: "Scraping error",
-        description: `Failed to scrape URL: ${error.message}`,
-        variant: "destructive",
-      })
+      toast({ title: "Fehler", description: error.message, variant: "destructive" })
     } finally {
       setIsScrapingUrl(false)
     }
@@ -398,42 +387,23 @@ export default function JobCreationWizard() {
 
     setIsParsingFile(true)
     try {
-      console.log("📄 Starting file parsing for:", file.name)
       const result = await parseJobDescriptionFile(file)
-      
+
       if (result.success && result.data) {
-        console.log("✅ File parsing successful, populating form data:", result.data)
         populateFormFromData(result.data, "file", file.name)
-        
-        // Auto-redirect to review section after successful parsing
+        // Defer step change to avoid Radix portal removeChild crash
         setTimeout(() => {
           setCurrentStep("review")
-          toast({
-            title: "File parsed successfully!",
-            description: "Review the extracted job details below and make any necessary edits.",
-            variant: "default",
-          })
-        }, 500) // Small delay to let the form populate
-        
+          toast({ title: "Datei erfolgreich analysiert!", description: "Überprüfe die extrahierten Jobdaten.", variant: "default" })
+        }, 50)
       } else {
-        toast({
-          title: "File parsing failed",
-          description: result.error || "Could not extract job data from the file. Please try a different file or use manual entry.",
-          variant: "destructive",
-        })
+        toast({ title: "Parsing fehlgeschlagen", description: result.error || "Datei konnte nicht verarbeitet werden.", variant: "destructive" })
       }
     } catch (error: any) {
-      console.error("❌ File parsing error:", error)
-      toast({
-        title: "File parsing error",
-        description: `Failed to parse file: ${error.message}`,
-        variant: "destructive",
-      })
+      toast({ title: "Fehler", description: error.message, variant: "destructive" })
     } finally {
       setIsParsingFile(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
+      if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
 
@@ -471,33 +441,37 @@ export default function JobCreationWizard() {
 
     setIsProcessing(true)
     try {
-      const jobData = {
+      const requirementsList = formData.requirements
+        .split(/\n|\\n/)
+        .map(r => r.trim())
+        .filter(Boolean)
+
+      const jobPayload = {
         ...formData,
         type: formData.employment_type,
         technical_skills: skills.join(", "),
-        requirements: formData.requirements.split("\\n").filter(r => r.trim()),
-        salary_range: formData.salary_min && formData.salary_max 
-          ? `$${formData.salary_min} - $${formData.salary_max}`
-          : formData.salary_min 
-            ? `$${formData.salary_min}+`
+        requirements: requirementsList,
+        salary_range: formData.salary_min && formData.salary_max
+          ? `${formData.salary_min} - ${formData.salary_max}`
+          : formData.salary_min
+            ? `${formData.salary_min}+`
             : undefined,
-        status: 'active' as const,
       }
 
-      await createJob(jobData)
-      
+      await createJob(jobPayload as any)
+
       toast({
-        title: "Job created successfully!",
-        description: `"${formData.title}" has been posted.`,
+        title: "Job erfolgreich erstellt!",
+        description: `"${formData.title}" wurde hinzugefügt.`,
         variant: "default",
       })
-      
+
       router.push("/dashboard/jobs")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating job:", error)
       toast({
-        title: "Error creating job",
-        description: "Failed to create the job. Please try again.",
+        title: "Fehler beim Erstellen",
+        description: error.message || "Job konnte nicht erstellt werden.",
         variant: "destructive",
       })
     } finally {
