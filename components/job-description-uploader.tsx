@@ -246,25 +246,9 @@ export function JobDescriptionUploader() {
   }
 
   // Handle job creation
-  const handleCreateJob = async () => {
-    if (!jobData.title || !jobData.description) {
-      toast({
-        title: language === "EN" ? "Missing required fields" : "Erforderliche Felder fehlen",
-        description:
-          language === "EN"
-            ? "Please fill in the job title and description."
-            : "Bitte füllen Sie den Jobtitel und die Beschreibung aus.",
-        variant: "destructive",
-      })
-      return
-    }
-
+  const handleFinalSave = async () => {
     if (!session?.access_token) {
-      toast({
-        title: language === "EN" ? "Not authenticated" : "Nicht angemeldet",
-        description: language === "EN" ? "Please log in to create a job." : "Bitte melden Sie sich an.",
-        variant: "destructive",
-      })
+      alert("Nicht angemeldet. Bitte neu einloggen.")
       return
     }
 
@@ -275,9 +259,9 @@ export function JobDescriptionUploader() {
         ...(jobData.hard_skills || []),
         ...(jobData.soft_skills || []),
         ...jobData.skills,
-      ].filter((s, i, a) => s && a.indexOf(s) === i) // deduplicate
+      ].filter((s, i, a) => s && a.indexOf(s) === i)
 
-      const jobPayload = {
+      const payload = {
         title: String(jobData.title).trim(),
         description: String(jobData.description).trim(),
         description_html: jobData.description_html || null,
@@ -294,65 +278,24 @@ export function JobDescriptionUploader() {
         company: String(jobData.company || ""),
       }
 
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000)
-
-      const response = await fetch("/api/jobs", {
+      const res = await fetch("/api/jobs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify(jobPayload),
-        signal: controller.signal,
+        body: JSON.stringify(payload),
       })
 
-      clearTimeout(timeoutId)
-
-      const responseText = await response.text()
-      let result: any
-      try {
-        result = JSON.parse(responseText)
-      } catch {
-        throw new Error(`Invalid response from server: ${responseText.substring(0, 100)}`)
+      if (res.ok) {
+        window.location.assign("/dashboard")
+      } else {
+        const errorData = await res.json()
+        alert("Fehler beim Speichern in Datenbank: " + (errorData.error || res.status))
+        setIsLoading(false)
       }
-
-      if (!response.ok) {
-        throw new Error(result.error || `HTTP error! status: ${response.status}`)
-      }
-
-      toast({
-        title: language === "EN" ? "Job created successfully!" : "Job erfolgreich erstellt!",
-        description:
-          language === "EN"
-            ? "Your job has been created and you'll be redirected to the workspace."
-            : "Ihr Job wurde erstellt und Sie werden zum Arbeitsbereich weitergeleitet.",
-        variant: "default",
-      })
-
-      const jobId = result.job?.id || result.id
-      setTimeout(() => {
-        window.location.href = '/dashboard'
-      }, 1500)
-
-    } catch (error) {
-      console.error("Job creation error:", error)
-      let errorMessage = language === "EN" ? "Failed to create the job. Please try again." : "Fehler beim Erstellen des Jobs."
-
-      if (error instanceof Error) {
-        if (error.name === "AbortError") {
-          errorMessage = language === "EN" ? "Request timed out. Please try again." : "Zeitüberschreitung. Bitte erneut versuchen."
-        } else {
-          errorMessage = error.message
-        }
-      }
-
-      toast({
-        title: language === "EN" ? "Error creating job" : "Fehler beim Erstellen des Jobs",
-        description: errorMessage,
-        variant: "destructive",
-      })
-    } finally {
+    } catch {
+      alert("Netzwerkfehler beim Speichern.")
       setIsLoading(false)
     }
   }
@@ -1049,7 +992,7 @@ export function JobDescriptionUploader() {
             <Button variant="outline" onClick={() => setStep(2)} disabled={isLoading}>
               {language === "EN" ? "Back" : "Zurück"}
             </Button>
-            <Button onClick={handleCreateJob} disabled={isLoading} className="bg-teal-600 hover:bg-teal-700">
+            <Button onClick={handleFinalSave} disabled={isLoading} className="bg-teal-600 hover:bg-teal-700">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

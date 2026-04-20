@@ -1,75 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const maxDuration = 26;
+export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-function processGeminiResponse(result: any) {
-  try {
-    const rawText = result.candidates[0].content.parts[0].text;
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Kein JSON im Text gefunden");
-    const data = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(data);
-  } catch (e: any) {
-    return NextResponse.json({ error: "Parsing Error: " + e.message }, { status: 500 });
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
     const { text, url } = await req.json();
+
+    // 1. Key Check
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: "Konfigurationsfehler: API Key fehlt." }, { status: 500 });
 
-    if (!apiKey) return NextResponse.json({ error: "API Key fehlt" }, { status: 500 });
-
-    const promptText = `Analysiere diesen Job-Text und extrahiere die Daten als JSON.
-    Antworte NUR mit dem JSON-Objekt:
+    // 2. Prompt Definition
+    const promptText = `Extrahiere Job-Daten aus folgendem Text/URL.
+    Antworte ausschließlich im JSON-Format:
     {
-      "title": "Job Titel",
-      "company": "Firmenname",
-      "location": "Standort",
-      "employment_type": "full-time",
-      "salary_range": "Gehalt",
-      "hard_skills": ["Skill1"],
-      "soft_skills": ["Skill1"],
-      "benefits": ["Benefit1"],
-      "description_html": "HTML String"
+      "title": "String",
+      "company": "String",
+      "location": "String",
+      "employment_type": "full-time | part-time",
+      "salary_range": "String",
+      "hard_skills": ["Array"],
+      "soft_skills": ["Array"],
+      "benefits": ["Array"],
+      "description_html": "HTML mit <h3> und <ul>"
     }
-    Text: ${text || url}`;
+    Input: ${text || url}`;
 
-    // Erster Versuch mit v1beta
-    const betaUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-    let response = await fetch(betaUrl, {
+    // 3. API Call (v1beta für maximale Modell-Kompatibilität)
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: promptText }] }]
+      })
     });
 
-    let result = await response.json();
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error?.message || "Gemini API Error");
 
-    // Fallback auf v1 falls v1beta nicht verfügbar
-    if (!response.ok && (response.status === 404 || response.status === 400)) {
-      console.log(`v1beta failed (${response.status}), falling back to v1...`);
-      const v1Url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      response = await fetch(v1Url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-      });
-      result = await response.json();
-    }
+    // 4. Robustes Parsing
+    const rawText = result.candidates[0].content.parts[0].text;
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("KI hat kein gültiges JSON geliefert.");
 
-    if (!response.ok) {
-      console.error("Gemini final error:", JSON.stringify(result));
-      return NextResponse.json({ error: result.error?.message || "Gemini API Error" }, { status: response.status });
-    }
-
-    return processGeminiResponse(result);
+    const jobData = JSON.parse(jsonMatch[0]);
+    return NextResponse.json(jobData);
 
   } catch (error: any) {
-    console.error("IMPORT_ERROR:", error);
+    console.error("IMPORT_CRASH:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
