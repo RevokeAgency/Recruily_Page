@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(JSON.parse(rawText));
 
   } catch (error: any) {
-    console.error("Timeout/Error:", error.message);
-    return NextResponse.json({ error: "Server braucht zu lange. Bitte Text manuell reinkopieren statt URL." }, { status: 504 });
+    console.error('IMPORT ERROR:', error.message, error.stack);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
