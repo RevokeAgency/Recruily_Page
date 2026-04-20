@@ -9,14 +9,12 @@ export async function POST(req: NextRequest) {
     const { text, url } = await req.json();
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
-    if (!apiKey) {
-      return NextResponse.json({ error: "API Key missing" }, { status: 500 });
-    }
+    if (!apiKey) return NextResponse.json({ error: "Key fehlt" }, { status: 500 });
 
     const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-    const promptText = `Analysiere den Job-Text und extrahiere Daten.
-    Antworte NUR mit validem JSON (kein Markdown, keine Backticks):
+    const promptText = `Analysiere diesen Job-Text und extrahiere die Daten als JSON.
+    WICHTIG: Antworte NUR im JSON-Format.
     {
       "title": "Job Titel",
       "company": "Firmenname",
@@ -26,7 +24,7 @@ export async function POST(req: NextRequest) {
       "hard_skills": ["Skill1"],
       "soft_skills": ["Skill1"],
       "benefits": ["Benefit1"],
-      "description_html": "HTML String mit <h3> und <ul>"
+      "description_html": "Strukturiertes HTML mit <h3> und <ul>"
     }
     Text: ${text || url}`;
 
@@ -39,14 +37,25 @@ export async function POST(req: NextRequest) {
     });
 
     const result = await response.json();
-    if (!response.ok) return NextResponse.json({ error: "Gemini API Error" }, { status: response.status });
+    if (!response.ok) {
+      console.error("Gemini Error Details:", JSON.stringify(result));
+      return NextResponse.json({ error: result.error?.message || "Gemini API Error" }, { status: response.status });
+    }
 
-    let rawText = result.candidates[0].content.parts[0].text;
-    // Bereinigung von Markdown-Resten, falls Gemini sie doch mitschickt
-    const cleanedJson = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+    const rawText = result.candidates[0].content.parts[0].text;
 
-    return NextResponse.json(JSON.parse(cleanedJson));
+    // Extrahiere alles zwischen der ersten { und der letzten }
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("Kein JSON im Gemini-Text gefunden:", rawText);
+      throw new Error("Invalid AI response format");
+    }
+
+    const jobData = JSON.parse(jsonMatch[0]);
+    return NextResponse.json(jobData);
+
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("IMPORT_ERROR:", error);
+    return NextResponse.json({ error: "Parsing fehlgeschlagen: " + error.message }, { status: 500 });
   }
 }
