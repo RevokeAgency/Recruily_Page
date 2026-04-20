@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
+import { GEMINI_MODELS } from '@/lib/gemini-ai'
 
 // ─── Gemini REST API (direct fetch, no SDK, no model discovery) ───────────────
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
-const GEMINI_MODELS = ['gemini-3.0-flash', 'gemini-2.5-flash']
 // maxDuration = 26s. Non-Gemini overhead ≈ 2s → 11s per model (2 attempts = 22s budget).
 const TIMEOUT_MS = 11000
 

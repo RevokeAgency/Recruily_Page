@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
+import { GEMINI_MODELS, GEMINI_MODEL_PRIMARY } from '@/lib/gemini-ai'
 
 // ─── Gemini REST API (direct fetch — no SDK) ───────────────────────────────────
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
-const MATCH_MODELS = ['gemini-3.0-flash', 'gemini-2.5-flash']
+const MATCH_MODELS = GEMINI_MODELS
 const TIMEOUT_MS = 11000
 
 // ─── IMLRS 6-Layer Matching ────────────────────────────────────────────────────
@@ -218,7 +219,7 @@ export async function POST(request: NextRequest) {
           motivation: scores.motivation_score,
           location: scores.location_score,
         },
-        generated_by: 'gemini-3.0-flash',
+        generated_by: GEMINI_MODEL_PRIMARY,
         framework: 'IMLRS-6-layer',
       },
     }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { GEMINI_MODEL_FAST } from '@/lib/gemini-ai';
 
 export const maxDuration = 60;
 
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     if (!apiKey) return NextResponse.json({ error: "Key fehlt" }, { status: 500 });
 
-    const model = "gemini-3.1-flash-lite";
+    const model = GEMINI_MODEL_FAST;
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const truncatedInput = text ? text.substring(0, 5000) : url;

@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
+import { GEMINI_MODELS } from '@/lib/gemini-ai'
 
 // ─── Gemini Job Parsing (direct REST, no SDK) ────────────────────────────────
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
-const JOB_MODELS = ['gemini-3.0-flash', 'gemini-2.5-flash']
+const JOB_MODELS = GEMINI_MODELS
 
 async function parseJobWithGemini(description: string): Promise<Record<string, any>> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY

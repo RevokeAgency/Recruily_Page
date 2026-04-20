@@ -16,6 +16,14 @@ try {
   console.error("❌ Failed to initialize Gemini AI:", error)
 }
 
+// ─── Central Gemini model constants ──────────────────────────────────────────
+// Update here to change models globally across all routes.
+export const GEMINI_MODEL_PRIMARY  = 'gemini-2.0-flash'
+export const GEMINI_MODEL_FALLBACK = 'gemini-2.5-flash'
+export const GEMINI_MODEL_FAST     = 'gemini-2.0-flash-lite'
+export const GEMINI_MODELS         = [GEMINI_MODEL_PRIMARY, GEMINI_MODEL_FALLBACK]
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface CandidateProfile {
   name: string
   email: string
@@ -207,9 +215,9 @@ export async function analyzeCVWithGemini(
         file.name,
       )
 
-      // Updated to use gemini-2.0-flash model as requested
+
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
+        model: GEMINI_MODEL_PRIMARY,
         generationConfig: {
           temperature: 0.7,
           topK: 40,
@@ -1048,7 +1056,7 @@ export async function normalizeJobDataWithGemini(
       console.log(`🤖 Starting Gemini job data normalization (attempt ${attempt + 1})`)
 
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
+        model: GEMINI_MODEL_PRIMARY,
         generationConfig: {
           temperature: 0.3, // Lower temperature for more consistent data extraction
           topK: 40,
@@ -1259,7 +1267,7 @@ export async function normalizeCandidateDataWithGemini(
     try {
       console.log(`🤖 Normalizing candidate data with Gemini AI (attempt ${attempt + 1})`)
 
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+      const model = genAI.getGenerativeModel({ model: GEMINI_MODEL_PRIMARY })
 
       const prompt = `You are an expert candidate profile analyzer. I need you to analyze and normalize candidate data extracted from a CV or profile.
 
@@ -1366,7 +1374,7 @@ export async function calculateMatchingScore(
     try {
       console.log(`🤖 Calculating matching score with Gemini AI (attempt ${attempt + 1})`)
 
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+      const model = genAI.getGenerativeModel({ model: GEMINI_MODEL_PRIMARY })
 
       const prompt = `You are an expert recruiting AI. Analyze the match between this job and candidate to calculate a comprehensive matching score.
 
