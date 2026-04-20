@@ -332,7 +332,7 @@ export function JobDescriptionUploader() {
 
       const jobId = result.job?.id || result.id
       setTimeout(() => {
-        router.push(jobId ? `/dashboard/jobs/${jobId}/workspace` : "/dashboard/jobs")
+        router.push("/dashboard")
       }, 1500)
 
     } catch (error) {

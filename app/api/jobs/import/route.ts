@@ -1,8 +1,42 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { parseDocumentServerSide } from '@/lib/server-pdf-parser'
 
-const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
-const IMPORT_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash']
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
+
+const PROMPT = `Du bist ein Expert Recruiting Scraper. Analysiere den folgenden Text einer Stellenanzeige.
+Extrahiere die Daten und antworte AUSSCHLIESSLICH im folgenden JSON-Format ohne Markdown-Codeblöcke:
+{
+  "title": "String",
+  "company": "String",
+  "location": "String",
+  "employment_type": "full-time | part-time | contract | freelance | internship",
+  "salary_range": "String",
+  "hard_skills": ["Array of Strings"],
+  "soft_skills": ["Array of Strings"],
+  "experience_level": "junior | mid | senior | lead | executive",
+  "benefits": ["Array of Strings"],
+  "requirements": ["Array of Strings"],
+  "description": "2-3 Sätze Zusammenfassung als Plaintext",
+  "description_html": "HTML String: Nutze <h3> für Sektionen, <ul> und <li> für Listen. Keine Markdowns wie ** oder #!"
+}
+
+Job-Inhalt:
+`
+
+async function distill(rawText: string): Promise<Record<string, any>> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  const result = await model.generateContent(PROMPT + rawText.slice(0, 6000))
+  const text = result.response.text().trim()
+
+  // Strip optional markdown code fences
+  const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+
+  // Extract first JSON object
+  const match = clean.match(/\{[\s\S]*\}/)
+  if (!match) throw new Error('Gemini returned no valid JSON')
+  return JSON.parse(match[0])
+}
 
 async function fetchJobUrl(url: string): Promise<{ text: string; siteType: string; blocked: boolean }> {
   const hostname = new URL(url).hostname.toLowerCase()
@@ -24,7 +58,6 @@ async function fetchJobUrl(url: string): Promise<{ text: string; siteType: strin
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'de-AT,de;q=0.9,en;q=0.8',
         'Referer': 'https://www.google.com/',
-        'Cache-Control': 'no-cache',
         'DNT': '1',
       },
       signal: controller.signal,
@@ -37,10 +70,10 @@ async function fetchJobUrl(url: string): Promise<{ text: string; siteType: strin
 
     const html = await res.text()
 
-    // Prepend JSON-LD structured data if available (gives Gemini richer context)
+    // Try JSON-LD first for cleaner structured content
     const jsonLd = extractJsonLd(html)
 
-    const text = html
+    const stripped = html
       .replace(/<script[\s\S]*?<\/script>/gi, '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<!--[\s\S]*?-->/gi, '')
@@ -49,7 +82,7 @@ async function fetchJobUrl(url: string): Promise<{ text: string; siteType: strin
       .replace(/\s{2,}/g, ' ')
       .trim()
 
-    const combined = jsonLd ? `${jsonLd}\n\n${text}` : text
+    const combined = jsonLd ? `${jsonLd}\n\n${stripped}` : stripped
     return { text: combined.slice(0, 8000), siteType, blocked: false }
   } catch {
     return { text: '', siteType, blocked: true }
@@ -71,66 +104,9 @@ function extractJsonLd(html: string): string | null {
         const desc = (data.description || '').replace(/<[^>]+>/g, ' ').slice(0, 2000)
         return `Title: ${data.title || ''}\nCompany: ${data.hiringOrganization?.name || ''}\nLocation: ${loc}\nDescription: ${desc}`
       }
-    } catch { /* invalid JSON, continue */ }
+    } catch { /* invalid JSON */ }
   }
   return null
-}
-
-async function distillWithGemini(rawText: string): Promise<Record<string, any>> {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('No Gemini API key configured')
-
-  const prompt = `You are a job posting parser. Extract all relevant data from this job ad and return ONLY valid JSON (no markdown, no code fences).
-
-For "description_html": format the full job description as attractive HTML using <h3> for section headings, <ul><li> for bullet lists, and <p> for paragraphs. Common sections: Aufgaben/Responsibilities, Anforderungen/Requirements, Vorteile/Benefits. Keep the original language. Make it look great in a dashboard UI.
-
-Return ONLY this JSON shape (null for missing fields, empty array for missing lists):
-{
-  "title": "string",
-  "company": "string",
-  "location": "string",
-  "employment_type": "full-time|part-time|contract|freelance|internship",
-  "salary_range": "string",
-  "hard_skills": ["string"],
-  "soft_skills": ["string"],
-  "benefits": ["string"],
-  "requirements": ["string"],
-  "experience_level": "junior|mid|senior|lead|executive",
-  "description": "string (2-3 sentence plain text summary)",
-  "description_html": "string (formatted HTML with h3/ul/li/p tags)"
-}
-
-JOB AD TEXT:
-${rawText.slice(0, 6000)}`
-
-  for (const model of IMPORT_MODELS) {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 22000)
-    try {
-      const res = await fetch(`${GEMINI_BASE}/models/${model}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 2048, temperature: 0.1, responseMimeType: 'application/json' },
-        }),
-        signal: controller.signal,
-      })
-      if (!res.ok) { console.warn(`⚠️ Gemini import ${res.status} on ${model}`); continue }
-      const data = await res.json() as any
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-      if (!text) { console.warn(`⚠️ No text from ${model}`); continue }
-      const clean = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
-      const parsed = JSON.parse(clean)
-      console.log(`✅ Distilled with ${model}: "${parsed.title}"`)
-      return parsed
-    } catch (err: any) {
-      console.warn(`⚠️ Import error on ${model}:`, err.message)
-    } finally {
-      clearTimeout(timer)
-    }
-  }
-  throw new Error('Gemini distillation failed on all models')
 }
 
 export async function POST(request: NextRequest) {
@@ -142,6 +118,7 @@ export async function POST(request: NextRequest) {
     let siteType = 'unknown'
 
     if (contentType.includes('multipart/form-data')) {
+      // ── File upload ────────────────────────────────────────────────────────
       inputType = 'file'
       const formData = await request.formData()
       const file = formData.get('file') as File | null
@@ -158,11 +135,12 @@ export async function POST(request: NextRequest) {
       const body = await request.json()
 
       if (body.url) {
+        // ── URL fetch ──────────────────────────────────────────────────────
         inputType = 'url'
-        const result = await fetchJobUrl(body.url)
-        siteType = result.siteType
+        const fetched = await fetchJobUrl(body.url)
+        siteType = fetched.siteType
 
-        if (result.blocked || !result.text) {
+        if (fetched.blocked || !fetched.text) {
           return NextResponse.json({
             success: false,
             blocked: true,
@@ -170,10 +148,11 @@ export async function POST(request: NextRequest) {
             error: 'Link konnte nicht automatisch gelesen werden. Bitte kopiere den Text der Anzeige manuell hier hinein.',
           }, { status: 422 })
         }
-        rawText = result.text
-        console.log(`🌐 URL fetched: ${rawText.length} chars, type: ${siteType}`)
+        rawText = fetched.text
+        console.log(`🌐 URL fetched: ${rawText.length} chars (${siteType})`)
 
       } else if (body.text) {
+        // ── Raw text ───────────────────────────────────────────────────────
         inputType = 'text'
         rawText = body.text
 
@@ -186,8 +165,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Insufficient content to parse' }, { status: 422 })
     }
 
-    const parsed = await distillWithGemini(rawText)
-    return NextResponse.json({ success: true, inputType, siteType, method: 'gemini', ...parsed })
+    console.log('🤖 Running Gemini distillation...')
+    const data = await distill(rawText)
+    console.log(`✅ Distilled: "${data.title}"`)
+
+    return NextResponse.json({ success: true, inputType, siteType, method: 'gemini', ...data })
 
   } catch (err: any) {
     console.error('❌ /api/jobs/import error:', err)
