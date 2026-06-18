@@ -1,0 +1,45 @@
+name: Deploy REVETLY landing page to GitHub Pages
+
+# Deployt den statischen Ordner revetly-landing/ auf GitHub Pages.
+on:
+  push:
+    branches:
+      - claude/revetly-landing-page-1qgp35
+      - main
+    paths:
+      - "revetly-landing/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+
+# Rechte, die der GITHUB_TOKEN fuer das Pages-Deployment braucht.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nur ein gleichzeitiges Deployment, laufende werden nicht abgebrochen.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload landing page artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: revetly-landing
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
