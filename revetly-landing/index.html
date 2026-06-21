@@ -3,45 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>REVETLY — Recruiting neu gedacht mit KI-Matching</title>
-  <meta name="description" content="REVETLY automatisiert dein Kandidaten-Matching, Absagen-Mails und Bewerberprofil-Verwaltung. AI-Powered Recruiting für den DACH-Markt – DSGVO-konform & EU AI Act ready." />
+  <title>REVETLY — Die besten Kandidaten, sofort sichtbar</title>
+  <meta name="description" content="REVETLY ist KI-gestütztes Recruiting für den DACH-Markt. Matching, Absagen-Mails und Bewerberverwaltung – automatisiert, erklärbar, DSGVO-konform." />
 
-  <!-- Familjen Grotesk -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
   <style>
     /* =========================================================
-       DESIGN TOKENS
+       DESIGN TOKENS  —  airy aurora (cyan + green) on white
        ========================================================= */
     :root {
-      --dark-teal:   #0C2626;
-      --ocean-blue:  #174A4D;
-      --turquoise:   #41999D;
-      --steel-blue:  #71BAB8;
-      --charcoal:    #323232;
-      --near-black:  #141414;
-      --off-white:   #F5F5F5;
-      --mid-grey:    #969696;
+      /* the two reference colors (decorative / gradient only) */
+      --cyan:        #22C1EE;
+      --green:       #16C77C;
+      /* text-safe deep variants of the same two hues */
+      --cyan-deep:   #0E96C4;
+      --green-deep:  #0E9F62;
 
-      --turquoise-20: rgba(65, 153, 157, 0.20);
-      --turquoise-10: rgba(65, 153, 157, 0.10);
-      --steel-12: rgba(113, 186, 184, 0.12);
-      --white-08: rgba(255, 255, 255, 0.08);
-      --white-12: rgba(255, 255, 255, 0.12);
+      --ink:         #0C1A16;   /* near-black, cool — dark pills, headings */
+      --ink-soft:    #2C3D38;   /* body text */
+      --muted:       #5E7A73;   /* secondary text, desaturated teal-grey */
+      --mist:        #F4F7F6;   /* airy off-white sections */
+      --white:       #FFFFFF;
+      --line:        rgba(12, 26, 22, 0.10);
+      --line-strong: rgba(12, 26, 22, 0.16);
 
-      --radius-sm: 12px;
-      --radius:    20px;
-      --radius-lg: 28px;
+      --cyan-wash:   rgba(34, 193, 238, 0.10);
+      --green-wash:  rgba(22, 199, 124, 0.10);
 
-      --maxw: 1200px;
-      --gutter: clamp(22px, 5vw, 72px);
+      --radius:      22px;
+      --radius-lg:   30px;
+      --pill:        999px;
 
-      /* gradient used as image fallback so nothing ever looks broken */
-      --photo-fallback: linear-gradient(150deg, var(--ocean-blue), var(--turquoise) 70%, var(--steel-blue));
+      --shadow-sm:   0 14px 34px -22px rgba(12, 26, 22, 0.30);
+      --shadow:      0 30px 70px -38px rgba(12, 26, 22, 0.32);
+      --shadow-lg:   0 50px 110px -50px rgba(12, 26, 22, 0.40);
 
-      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --maxw:        1180px;
+      --gutter:      clamp(22px, 5vw, 76px);
+      --ease:        cubic-bezier(0.16, 1, 0.3, 1);
+
+      --photo-fallback: linear-gradient(150deg, var(--cyan), var(--green));
     }
 
     /* =========================================================
@@ -51,10 +55,9 @@
     html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
     body {
       font-family: "Familjen Grotesk", system-ui, -apple-system, sans-serif;
-      background: var(--dark-teal);
-      color: var(--off-white);
+      background: var(--white);
+      color: var(--ink-soft);
       line-height: 1.65;
-      font-weight: 400;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
       overflow-x: hidden;
@@ -67,349 +70,347 @@
     /* =========================================================
        TYPOGRAPHY
        ========================================================= */
-    h1, h2, h3 { font-weight: 700; line-height: 1.08; letter-spacing: -0.02em; }
-    .h1 { font-size: clamp(2.7rem, 6vw, 4.6rem); line-height: 1.04; }
-    .h2 { font-size: clamp(2rem, 4vw, 2.9rem); line-height: 1.1; }
-    .h3 { font-size: clamp(1.3rem, 2vw, 1.55rem); font-weight: 600; letter-spacing: -0.01em; }
+    h1, h2, h3 { color: var(--ink); font-weight: 700; line-height: 1.06; letter-spacing: -0.03em; }
+    .h1 { font-size: clamp(2.9rem, 7vw, 5.2rem); letter-spacing: -0.04em; line-height: 1.0; }
+    .h2 { font-size: clamp(2rem, 4.2vw, 3rem); letter-spacing: -0.03em; }
+    .h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); font-weight: 600; letter-spacing: -0.02em; }
+
+    .gradient-text {
+      background: linear-gradient(100deg, var(--cyan-deep) 0%, var(--green-deep) 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+    }
 
     .eyebrow {
-      font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.12em; color: var(--turquoise);
-      display: inline-flex; align-items: center; gap: 9px; margin-bottom: 22px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.72rem; font-weight: 500; text-transform: uppercase;
+      letter-spacing: 0.22em; color: var(--muted);
+      display: inline-flex; align-items: center; gap: 10px;
     }
-    .eyebrow::before { content: ""; width: 26px; height: 1.5px; background: currentColor; opacity: .6; }
-    .eyebrow.on-dark { color: var(--steel-blue); }
+    .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: linear-gradient(120deg, var(--cyan), var(--green)); }
 
-    .lead { font-size: clamp(1.05rem, 1.4vw, 1.2rem); color: var(--mid-grey); }
+    .lead { font-size: clamp(1.05rem, 1.4vw, 1.2rem); color: var(--muted); line-height: 1.6; }
 
     /* =========================================================
-       LAYOUT HELPERS
+       LAYOUT
        ========================================================= */
     .container { width: 100%; max-width: var(--maxw); margin-inline: auto; padding-inline: var(--gutter); position: relative; z-index: 1; }
-    section { padding-block: clamp(80px, 11vw, 150px); position: relative; overflow: hidden; }
-    .section-head { max-width: 660px; margin-bottom: 64px; }
+    section { padding-block: clamp(84px, 11vw, 150px); position: relative; }
+    .section-head { max-width: 680px; margin-bottom: 64px; }
     .section-head.center { margin-inline: auto; text-align: center; }
-    .section-head .lead { margin-top: 18px; }
+    .section-head .eyebrow { margin-bottom: 22px; }
+    .section-head .lead { margin-top: 20px; }
 
     /* =========================================================
-       DECORATIVE BACKGROUND FORMS
-       ========================================================= */
-    .form-blob, .form-ring, .form-dots, .form-arc {
-      position: absolute; pointer-events: none; z-index: 0;
-    }
-    .form-blob {
-      border-radius: 50%;
-      filter: blur(40px);
-      opacity: .55;
-    }
-    .blob-tq  { background: radial-gradient(circle, var(--turquoise-20) 0%, transparent 70%); }
-    .blob-steel { background: radial-gradient(circle, rgba(113,186,184,.18) 0%, transparent 70%); }
-    .blob-ocean { background: radial-gradient(circle, rgba(23,74,77,.6) 0%, transparent 70%); }
-
-    .form-ring {
-      border-radius: 50%;
-      border: 1.5px solid currentColor;
-      opacity: .14;
-    }
-    .form-arc {
-      border-radius: 50%;
-      border: 2px solid transparent;
-      border-top-color: currentColor;
-      border-right-color: currentColor;
-      opacity: .25;
-    }
-    .form-dots {
-      background-image: radial-gradient(currentColor 1.4px, transparent 1.4px);
-      background-size: 18px 18px;
-      opacity: .15;
-    }
-    .on-dark-form { color: var(--steel-blue); }
-    .on-light-form { color: var(--turquoise); }
-
-    /* =========================================================
-       BUTTONS
+       BUTTONS  (pill, dark-ink primary like the reference)
        ========================================================= */
     .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      padding: 14px 26px; border-radius: var(--radius-sm);
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      padding: 15px 28px; border-radius: var(--pill);
       font-size: 0.97rem; font-weight: 600; letter-spacing: -0.01em;
       transition: transform .25s var(--ease), background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease), box-shadow .25s var(--ease);
       white-space: nowrap;
     }
-    .btn-primary { background: var(--turquoise); color: var(--dark-teal); box-shadow: 0 10px 30px -12px var(--turquoise); }
-    .btn-primary:hover { background: var(--steel-blue); transform: translateY(-2px); box-shadow: 0 16px 36px -12px var(--steel-blue); }
-    .btn-ghost { background: transparent; color: var(--steel-blue); border: 1px solid rgba(113,186,184,.45); }
-    .btn-ghost:hover { border-color: var(--steel-blue); background: var(--turquoise-10); transform: translateY(-2px); }
-    .btn-light { background: var(--off-white); color: var(--dark-teal); }
-    .btn-light:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 16px 36px -14px rgba(0,0,0,.4); }
-    .btn-lg { padding: 17px 32px; font-size: 1.04rem; }
+    .btn-primary { background: var(--ink); color: var(--white); }
+    .btn-primary:hover { background: #15322B; transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+    .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line-strong); }
+    .btn-ghost:hover { border-color: var(--ink); background: var(--mist); transform: translateY(-2px); }
+    .btn-light { background: var(--white); color: var(--ink); }
+    .btn-light:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .btn-lg { padding: 17px 32px; font-size: 1.03rem; }
+    .btn .arrow { transition: transform .25s var(--ease); }
+    .btn:hover .arrow { transform: translateX(4px); }
 
     /* =========================================================
-       PHOTO WRAPPER (gradient fallback if image fails)
+       PHOTO (gradient fallback)
        ========================================================= */
     .photo { position: relative; overflow: hidden; background: var(--photo-fallback); }
-    .photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s var(--ease), opacity .4s; }
+    .photo img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease), opacity .4s; }
     .photo img.failed { opacity: 0; }
+
+    /* =========================================================
+       AURORA ENGINE  (signature)
+       ========================================================= */
+    .aurora-wrap { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+    .aurora {
+      position: absolute; border-radius: 50%;
+      filter: blur(70px); opacity: .9; mix-blend-mode: normal;
+      will-change: transform;
+    }
+    .aurora.a-cyan  { background: radial-gradient(circle, rgba(34,193,238,.85), transparent 62%); animation: drift1 19s var(--ease) infinite alternate; }
+    .aurora.a-green { background: radial-gradient(circle, rgba(22,199,124,.85), transparent 62%); animation: drift2 23s var(--ease) infinite alternate; }
+    .aurora.a-soft-cyan  { background: radial-gradient(circle, rgba(34,193,238,.38), transparent 65%); animation: drift1 26s var(--ease) infinite alternate; }
+    .aurora.a-soft-green { background: radial-gradient(circle, rgba(22,199,124,.38), transparent 65%); animation: drift2 30s var(--ease) infinite alternate; }
+    @keyframes drift1 { from { transform: translate3d(-4%, -3%, 0) scale(1); } to { transform: translate3d(5%, 4%, 0) scale(1.18); } }
+    @keyframes drift2 { from { transform: translate3d(4%, 2%, 0) scale(1.1); } to { transform: translate3d(-5%, -3%, 0) scale(1); } }
+
+    /* crossing light beam = the "reveal" star */
+    .beam { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 0; }
+    .beam i {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      background: linear-gradient(var(--ang, 0deg), transparent, rgba(255,255,255,.95), transparent);
+      filter: blur(2px); border-radius: 999px; animation: pulse 6s ease-in-out infinite;
+    }
+    .beam .v { width: 3px; height: 460px; --ang: 0deg; }
+    .beam .h { width: 460px; height: 3px; --ang: 90deg; }
+    @keyframes pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
 
     /* =========================================================
        NAV
        ========================================================= */
     .nav { position: fixed; inset: 0 0 auto 0; z-index: 100; transition: background .35s var(--ease), backdrop-filter .35s var(--ease), border-color .35s var(--ease); border-bottom: 1px solid transparent; }
-    .nav.scrolled { background: rgba(12,38,38,.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--white-08); }
-    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 76px; }
-    .logo { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; color: var(--turquoise); }
+    .nav.scrolled { background: rgba(255,255,255,.72); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); border-bottom: 1px solid var(--line); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 78px; }
+    .logo { display: inline-flex; align-items: center; gap: 9px; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.04em; color: var(--ink); }
+    .logo .spark { width: 16px; height: 16px; display: inline-block; background: linear-gradient(120deg, var(--cyan), var(--green)); -webkit-mask: var(--spark-mask); mask: var(--spark-mask); }
     .nav-links { display: flex; gap: 34px; align-items: center; }
-    .nav-links a { font-size: 0.96rem; font-weight: 500; color: var(--off-white); opacity: .82; transition: opacity .2s, color .2s; }
-    .nav-links a:hover { opacity: 1; color: var(--steel-blue); }
+    .nav-links a { font-size: 0.95rem; font-weight: 500; color: var(--ink-soft); transition: color .2s; }
+    .nav-links a:hover { color: var(--cyan-deep); }
     .nav-actions { display: flex; gap: 12px; align-items: center; }
     .nav-actions .btn-ghost { padding: 10px 18px; }
     .nav-actions .btn-primary { padding: 10px 20px; }
     .nav-toggle { display: none; flex-direction: column; gap: 5px; padding: 8px; }
-    .nav-toggle span { width: 24px; height: 2px; background: var(--off-white); border-radius: 2px; transition: .3s; }
+    .nav-toggle span { width: 24px; height: 2px; background: var(--ink); border-radius: 2px; transition: .3s; }
 
     /* =========================================================
-       HERO
+       HERO  (centered, aurora-led — like the reference)
        ========================================================= */
-    .hero { background: var(--dark-teal); padding-top: 170px; padding-bottom: clamp(80px, 10vw, 130px); }
-    .hero .blob-1 { top: -12%; right: -8%; width: 46vw; height: 46vw; max-width: 640px; max-height: 640px; }
-    .hero .blob-2 { bottom: -20%; left: -12%; width: 38vw; height: 38vw; max-width: 520px; max-height: 520px; }
-    .hero .ring-1 { top: 12%; left: 4%; width: 130px; height: 130px; color: var(--steel-blue); }
-    .hero .dots-1 { bottom: 8%; right: 6%; width: 150px; height: 110px; color: var(--steel-blue); }
+    .hero { padding-top: 150px; padding-bottom: clamp(70px, 9vw, 120px); text-align: center; overflow: hidden; }
+    .hero .aurora-wrap { background:
+        radial-gradient(120% 80% at 50% -10%, #ffffff 38%, transparent 75%); }
+    .hero .a1 { width: 52vw; height: 52vw; max-width: 720px; max-height: 720px; left: 8%;  top: -16%; }
+    .hero .a2 { width: 50vw; height: 50vw; max-width: 680px; max-height: 680px; right: 6%; top: -10%; }
+    .hero .a3 { width: 40vw; height: 40vw; max-width: 520px; max-height: 520px; left: 50%; top: 18%; transform: translateX(-50%); }
+    .hero .aurora-wrap::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 52%, var(--white) 92%); }
 
-    .hero-grid { display: grid; grid-template-columns: 1.02fr 0.98fr; gap: clamp(40px, 5vw, 80px); align-items: center; }
-
-    .badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--turquoise-20); color: var(--steel-blue);
-      border: 1px solid rgba(113,186,184,.25);
-      padding: 8px 16px; border-radius: 999px; font-size: 0.84rem; font-weight: 500; margin-bottom: 28px;
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 9px; margin-bottom: 30px;
+      background: rgba(255,255,255,.7); backdrop-filter: blur(8px);
+      border: 1px solid var(--line); border-radius: var(--pill);
+      padding: 8px 16px; font-family: "JetBrains Mono", monospace;
+      font-size: 0.74rem; letter-spacing: 0.06em; color: var(--ink-soft);
     }
-    .hero h1 { color: #fff; margin-bottom: 24px; }
-    .hero .lead { max-width: 530px; margin-bottom: 38px; }
-    .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 60px; }
+    .hero-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px var(--green-wash); }
+    .hero h1 { margin-bottom: 26px; }
+    .hero .lead { max-width: 600px; margin: 0 auto 38px; font-size: clamp(1.1rem, 1.5vw, 1.28rem); }
+    .hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; }
+    .hero-note { font-family: "JetBrains Mono", monospace; font-size: 0.74rem; letter-spacing: 0.04em; color: var(--muted); }
 
-    .stats { display: flex; gap: clamp(24px, 4vw, 56px); flex-wrap: wrap; }
-    .stat .num { font-size: clamp(1.7rem, 2.6vw, 2.2rem); font-weight: 700; color: var(--steel-blue); letter-spacing: -0.02em; line-height: 1; }
-    .stat .lbl { font-size: 0.86rem; color: var(--mid-grey); margin-top: 9px; max-width: 150px; }
-
-    /* HERO VISUAL: person photo + floating score card + floating pill */
-    .hero-visual { position: relative; }
-    .hero-photo {
-      aspect-ratio: 4 / 5;
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--white-12);
-      box-shadow: 0 40px 90px -40px rgba(0,0,0,.7);
-    }
-    .hero-photo::after {
-      content: ""; position: absolute; inset: 0;
-      background: linear-gradient(180deg, transparent 40%, rgba(12,38,38,.55));
-    }
+    /* hero score card sits inside the aurora, with the beam behind */
+    .hero-stage { position: relative; margin-top: clamp(48px, 7vw, 86px); display: flex; justify-content: center; }
+    .hero-stage .beam { top: 42%; }
     .score-card {
-      position: absolute; left: -7%; bottom: 7%; width: min(310px, 82%);
-      background: linear-gradient(160deg, rgba(23,74,77,.92), rgba(18,58,61,.92));
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--white-12); border-radius: var(--radius);
-      padding: 22px; box-shadow: 0 30px 70px -30px rgba(0,0,0,.7); z-index: 2;
+      position: relative; z-index: 2; width: min(430px, 100%);
+      background: rgba(255,255,255,.78);
+      backdrop-filter: blur(20px) saturate(1.3); -webkit-backdrop-filter: blur(20px) saturate(1.3);
+      border: 1px solid rgba(255,255,255,.9);
+      border-radius: var(--radius-lg); padding: 26px;
+      box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.6);
+      text-align: left;
     }
-    .sc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-    .sc-person { display: flex; align-items: center; gap: 11px; }
-    .sc-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--turquoise), var(--steel-blue)); display: grid; place-items: center; font-weight: 700; color: var(--dark-teal); font-size: .95rem; }
-    .sc-name { font-weight: 600; font-size: .95rem; color: #fff; }
-    .sc-role { font-size: .78rem; color: var(--steel-blue); }
-    .sc-score { text-align: center; background: var(--turquoise); color: var(--dark-teal); border-radius: 13px; padding: 7px 13px; line-height: 1; }
-    .sc-score b { font-size: 1.4rem; font-weight: 700; }
-    .sc-score span { font-size: .68rem; display: block; margin-top: 3px; opacity: .8; }
-    .sc-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--mid-grey); margin-bottom: 14px; }
-    .bar-row { margin-bottom: 12px; }
+    .sc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+    .sc-person { display: flex; align-items: center; gap: 13px; }
+    .sc-avatar { width: 46px; height: 46px; border-radius: 50%; position: relative; overflow: hidden; background: linear-gradient(135deg, var(--cyan), var(--green)); display: grid; place-items: center; color: #fff; font-weight: 700; }
+    .sc-avatar .photo { position: absolute; inset: 0; border-radius: 50%; }
+    .sc-name { font-weight: 600; font-size: 1rem; color: var(--ink); }
+    .sc-role { font-size: 0.82rem; color: var(--muted); }
+    .sc-score { text-align: center; line-height: 1; padding-left: 14px; }
+    .sc-score b { font-family: "JetBrains Mono", monospace; font-size: 2rem; font-weight: 600; letter-spacing: -0.02em; }
+    .sc-score span { display: block; font-family: "JetBrains Mono", monospace; font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+    .sc-label { font-family: "JetBrains Mono", monospace; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); margin-bottom: 16px; }
+    .bar-row { margin-bottom: 14px; }
     .bar-row:last-child { margin-bottom: 0; }
-    .bar-top { display: flex; justify-content: space-between; font-size: .8rem; margin-bottom: 6px; }
-    .bar-top span:first-child { color: #d8e6e6; }
-    .bar-top span:last-child { color: var(--steel-blue); font-weight: 600; }
-    .bar-track { height: 6px; background: rgba(255,255,255,.1); border-radius: 999px; overflow: hidden; }
-    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--turquoise), var(--steel-blue)); border-radius: 999px; width: 0; transition: width 1.1s var(--ease); }
+    .bar-top { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 7px; color: var(--ink-soft); }
+    .bar-top b { font-family: "JetBrains Mono", monospace; font-weight: 500; color: var(--green-deep); }
+    .bar-track { height: 7px; background: rgba(12,26,22,.07); border-radius: var(--pill); overflow: hidden; }
+    .bar-fill { height: 100%; width: 0; border-radius: var(--pill); background: linear-gradient(90deg, var(--cyan), var(--green)); transition: width 1.1s var(--ease); }
 
-    .float-pill {
-      position: absolute; top: 6%; right: -5%; z-index: 2;
-      display: flex; align-items: center; gap: 11px;
-      background: rgba(12,38,38,.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      border: 1px solid var(--white-12); border-radius: 16px; padding: 12px 16px;
-      box-shadow: 0 24px 50px -26px rgba(0,0,0,.7);
+    /* floating mini chips on the card */
+    .chip {
+      position: absolute; z-index: 3; display: flex; align-items: center; gap: 9px;
+      background: rgba(255,255,255,.9); backdrop-filter: blur(10px);
+      border: 1px solid var(--line); border-radius: var(--pill);
+      padding: 9px 14px; box-shadow: var(--shadow-sm); font-size: 0.82rem; color: var(--ink);
     }
-    .float-pill .fp-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--turquoise-20); display: grid; place-items: center; font-size: 1.1rem; }
-    .float-pill b { display: block; color: #fff; font-size: .92rem; }
-    .float-pill span { font-size: .74rem; color: var(--mid-grey); }
+    .chip .ic { width: 18px; height: 18px; color: var(--green-deep); }
+    .chip-1 { top: -18px; right: -14px; }
+    .chip-2 { bottom: 26px; left: -22px; }
 
     /* =========================================================
        LOGO BAR
        ========================================================= */
-    .logobar { background: var(--off-white); color: var(--charcoal); padding-block: 64px; }
-    .logobar-text { text-align: center; font-size: .82rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 600; color: var(--mid-grey); margin-bottom: 40px; }
-    .logos { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: clamp(32px, 5vw, 72px); }
-    .logos .logo-item { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; color: var(--charcoal); opacity: .42; transition: opacity .25s; }
-    .logos .logo-item:hover { opacity: .85; }
+    .logobar { padding-block: 56px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .logobar-text { text-align: center; font-family: "JetBrains Mono", monospace; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); margin-bottom: 34px; }
+    .logos { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: clamp(30px, 5vw, 68px); }
+    .logos .logo-item { font-size: 1.22rem; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); opacity: .32; transition: opacity .25s; }
+    .logos .logo-item:hover { opacity: .7; }
+
+    /* =========================================================
+       STATS STRIP
+       ========================================================= */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .stat { text-align: center; padding: 14px; }
+    .stat .num { font-family: "JetBrains Mono", monospace; font-size: clamp(2.2rem, 4vw, 3.1rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
+    .stat .lbl { color: var(--muted); margin-top: 12px; font-size: 0.95rem; }
 
     /* =========================================================
        PLATFORM (feature grid)
        ========================================================= */
-    .platform { background: var(--off-white); color: var(--charcoal); }
-    .platform .blob-1 { top: -10%; right: -10%; width: 30vw; height: 30vw; max-width: 460px; max-height: 460px; opacity: .4; }
-    .platform .dots-1 { top: 16%; left: 2%; width: 120px; height: 120px; }
-    .platform .eyebrow { color: var(--turquoise); }
-    .platform .h2 { color: var(--near-black); }
-    .platform .lead { color: #5a5a5a; }
-
-    .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px; }
-    .feature-card { background: #fff; border: 1px solid #e7e7e7; border-radius: var(--radius); padding: 38px; transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease); }
-    .feature-card:hover { transform: translateY(-6px); box-shadow: 0 30px 60px -32px rgba(12,38,38,.45); border-color: var(--steel-blue); }
-    .feature-icon { width: 56px; height: 56px; border-radius: 15px; background: var(--turquoise-10); display: grid; place-items: center; font-size: 1.6rem; margin-bottom: 26px; }
-    .feature-card h3 { color: var(--near-black); margin-bottom: 12px; }
-    .feature-card p { color: #5a5a5a; font-size: .98rem; }
+    .platform { background: var(--mist); }
+    .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+    .feature-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 36px; transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
+    .feature-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+    .feature-ic { width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center; margin-bottom: 24px; background: linear-gradient(140deg, var(--cyan-wash), var(--green-wash)); color: var(--green-deep); }
+    .feature-ic svg { width: 26px; height: 26px; }
+    .feature-card h3 { margin-bottom: 11px; }
+    .feature-card p { color: var(--muted); font-size: 0.98rem; }
 
     /* =========================================================
-       SPLIT / SHOWCASE SECTION (image-led)
+       SHOWCASE (image-led split)
        ========================================================= */
-    .showcase { background: var(--off-white); color: var(--charcoal); padding-top: 0; }
-    .showcase-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(40px, 6vw, 90px); align-items: center; }
-    .showcase .eyebrow { color: var(--turquoise); }
-    .showcase h2 { color: var(--near-black); margin-bottom: 22px; }
-    .showcase p { color: #5a5a5a; margin-bottom: 30px; max-width: 480px; }
-    .showcase-points { display: grid; gap: 18px; }
-    .showcase-points li { display: flex; gap: 14px; align-items: flex-start; }
-    .showcase-points .ck { flex: none; width: 28px; height: 28px; border-radius: 9px; background: var(--turquoise-10); color: var(--turquoise); display: grid; place-items: center; font-weight: 700; }
-    .showcase-points b { color: var(--near-black); display: block; }
-    .showcase-points span { color: #5a5a5a; font-size: .95rem; }
+    .showcase-grid { display: grid; grid-template-columns: 1.02fr 0.98fr; gap: clamp(40px, 6vw, 88px); align-items: center; }
+    .showcase h2 { margin-bottom: 22px; }
+    .showcase p { color: var(--muted); margin-bottom: 30px; max-width: 480px; }
+    .points { display: grid; gap: 18px; }
+    .points li { display: flex; gap: 14px; align-items: flex-start; }
+    .points .ck { flex: none; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: linear-gradient(140deg, var(--cyan-wash), var(--green-wash)); color: var(--green-deep); }
+    .points .ck svg { width: 16px; height: 16px; }
+    .points b { color: var(--ink); display: block; }
+    .points span { color: var(--muted); font-size: 0.95rem; }
     .showcase-visual { position: relative; }
-    .showcase-img { aspect-ratio: 5 / 4; border-radius: var(--radius-lg); box-shadow: 0 40px 80px -40px rgba(12,38,38,.5); border: 6px solid #fff; }
-    .showcase .ring-1 { bottom: -6%; right: -4%; width: 110px; height: 110px; color: var(--turquoise); }
+    .showcase-visual .aurora-wrap { inset: -12%; }
+    .showcase-visual .a1 { width: 70%; height: 70%; left: -8%; bottom: -8%; }
+    .showcase-img { position: relative; aspect-ratio: 5/4; border-radius: var(--radius-lg); border: 8px solid var(--white); box-shadow: var(--shadow-lg); }
 
     /* =========================================================
        SERVICES / TABS
        ========================================================= */
-    .services { background: var(--dark-teal); }
-    .services .blob-1 { top: -8%; left: -10%; width: 36vw; height: 36vw; max-width: 520px; max-height: 520px; }
-    .services .arc-1 { top: 14%; right: 5%; width: 140px; height: 140px; color: var(--steel-blue); transform: rotate(25deg); }
-    .services .h2 { color: #fff; }
-    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 48px 0 44px; border-bottom: 1px solid var(--white-08); }
-    .tab-btn { position: relative; padding: 15px 4px; margin-right: 30px; font-size: 1.02rem; font-weight: 600; color: var(--mid-grey); transition: color .25s; }
-    .tab-btn::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--turquoise); transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ease); }
-    .tab-btn:hover { color: var(--steel-blue); }
-    .tab-btn.active { color: #fff; }
+    .services .aurora-wrap { background: none; }
+    .services .a1 { width: 34vw; height: 34vw; max-width: 460px; max-height: 460px; right: -8%; top: -6%; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 46px 0 42px; border-bottom: 1px solid var(--line); }
+    .tab-btn { position: relative; padding: 15px 4px; margin-right: 30px; font-size: 1.02rem; font-weight: 600; color: var(--muted); transition: color .25s; }
+    .tab-btn::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, var(--cyan), var(--green)); transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ease); }
+    .tab-btn:hover { color: var(--ink); }
+    .tab-btn.active { color: var(--ink); }
     .tab-btn.active::after { transform: scaleX(1); }
     .tab-panel { display: none; }
     .tab-panel.active { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(40px, 5vw, 72px); align-items: center; animation: fade .45s var(--ease); }
     @keyframes fade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-    .tab-content h3 { color: #fff; margin-bottom: 22px; }
-    .checks { margin-bottom: 32px; }
-    .checks li { display: flex; align-items: flex-start; gap: 13px; color: #cddada; font-size: 1.02rem; margin-bottom: 16px; }
-    .checks .ck { flex: none; width: 23px; height: 23px; border-radius: 50%; background: var(--turquoise-20); color: var(--steel-blue); display: grid; place-items: center; font-size: .82rem; margin-top: 2px; }
-    .details-link { color: var(--steel-blue); font-weight: 600; font-size: .97rem; display: inline-flex; gap: 6px; transition: gap .2s; }
-    .details-link:hover { gap: 12px; }
-    .mock { background: var(--ocean-blue); border: 1px solid var(--white-12); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 36px 80px -38px rgba(0,0,0,.7); }
+    .tab-content h3 { margin-bottom: 22px; }
+    .checks { margin-bottom: 30px; }
+    .checks li { display: flex; align-items: flex-start; gap: 13px; color: var(--ink-soft); font-size: 1.02rem; margin-bottom: 15px; }
+    .checks .ck { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(140deg, var(--cyan), var(--green)); color: #fff; }
+    .checks .ck svg { width: 13px; height: 13px; }
+    .details-link { color: var(--green-deep); font-weight: 600; font-size: 0.97rem; display: inline-flex; gap: 7px; align-items: center; }
+    .details-link .arrow { transition: transform .25s var(--ease); }
+    .details-link:hover .arrow { transform: translateX(5px); }
+
+    .mock { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow); }
     .mock-bar { display: flex; gap: 6px; margin-bottom: 20px; }
-    .mock-bar i { width: 11px; height: 11px; border-radius: 50%; background: rgba(255,255,255,.18); display: block; }
-    .mock-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,.05); border: 1px solid var(--white-08); border-radius: 13px; padding: 15px 17px; margin-bottom: 13px; }
+    .mock-bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--line-strong); display: block; }
+    .mock-row { display: flex; align-items: center; justify-content: space-between; background: var(--mist); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
     .mock-row:last-child { margin-bottom: 0; }
-    .mock-row .mr-left { display: flex; align-items: center; gap: 13px; }
-    .mock-row .mr-dot { width: 36px; height: 36px; border-radius: 10px; background: var(--turquoise-20); display: grid; place-items: center; color: var(--steel-blue); font-size: .9rem; font-weight: 700; overflow: hidden; }
-    .mock-row .mr-dot .photo { width: 100%; height: 100%; border-radius: 10px; }
-    .mock-row .mr-name { color: #fff; font-size: .93rem; font-weight: 500; }
-    .mock-row .mr-sub { color: var(--mid-grey); font-size: .79rem; }
-    .mock-pill { font-size: .79rem; font-weight: 700; padding: 5px 12px; border-radius: 999px; background: var(--turquoise); color: var(--dark-teal); }
-    .mock-pill.amber { background: var(--steel-blue); }
-    .mock-pill.ghost { background: rgba(255,255,255,.1); color: var(--steel-blue); }
+    .mr-left { display: flex; align-items: center; gap: 13px; }
+    .mr-dot { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; overflow: hidden; background: linear-gradient(140deg, var(--cyan-wash), var(--green-wash)); color: var(--green-deep); font-weight: 700; }
+    .mr-dot .photo { width: 100%; height: 100%; border-radius: 11px; }
+    .mr-dot svg { width: 18px; height: 18px; }
+    .mr-name { color: var(--ink); font-size: 0.93rem; font-weight: 600; }
+    .mr-sub { color: var(--muted); font-size: 0.79rem; }
+    .mock-pill { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; font-weight: 600; padding: 5px 12px; border-radius: var(--pill); color: #fff; background: linear-gradient(120deg, var(--cyan), var(--green)); }
+    .mock-pill.mid { background: var(--cyan-wash); color: var(--cyan-deep); }
+    .mock-pill.low { background: var(--mist); color: var(--muted); border: 1px solid var(--line); }
 
     /* =========================================================
        HOW IT WORKS
        ========================================================= */
-    .how { background: var(--off-white); color: var(--charcoal); }
-    .how .dots-1 { top: 10%; right: 3%; width: 130px; height: 130px; }
-    .how .blob-1 { bottom: -12%; left: -8%; width: 28vw; height: 28vw; max-width: 420px; max-height: 420px; opacity: .35; }
-    .how .eyebrow { color: var(--turquoise); }
-    .how .h2 { color: var(--near-black); }
-    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
-    .step { background: #fff; border: 1px solid #e7e7e7; border-radius: var(--radius); padding: 40px 34px; position: relative; transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
-    .step:hover { transform: translateY(-6px); box-shadow: 0 30px 60px -32px rgba(12,38,38,.4); }
-    .step .num { font-size: 2.6rem; font-weight: 700; color: var(--steel-blue); letter-spacing: -0.03em; line-height: 1; margin-bottom: 20px; display: block; }
-    .step h3 { color: var(--near-black); margin-bottom: 14px; }
-    .step p { color: #5a5a5a; font-size: .98rem; }
+    .how { background: var(--mist); }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .step { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 38px 32px; position: relative; transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
+    .step:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+    .step .num { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; letter-spacing: 0.1em; color: var(--green-deep); display: inline-block; margin-bottom: 22px; padding: 5px 11px; border-radius: var(--pill); background: linear-gradient(140deg, var(--cyan-wash), var(--green-wash)); }
+    .step h3 { margin-bottom: 12px; }
+    .step p { color: var(--muted); font-size: 0.98rem; }
 
     /* =========================================================
-       TESTIMONIALS
+       TESTIMONIALS  (soft aurora wash)
        ========================================================= */
-    .trust { background: var(--ocean-blue); }
-    .trust .blob-1 { top: -10%; right: -8%; width: 32vw; height: 32vw; max-width: 480px; max-height: 480px; }
-    .trust .ring-1 { bottom: 8%; left: 4%; width: 120px; height: 120px; color: var(--steel-blue); }
-    .trust .h2 { color: #fff; text-align: center; margin-bottom: 64px; }
-    .t-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
-    .t-card { background: var(--dark-teal); border: 1px solid var(--white-08); border-radius: var(--radius); padding: 34px; display: flex; flex-direction: column; transition: transform .3s var(--ease), border-color .3s var(--ease); }
-    .t-card:hover { transform: translateY(-6px); border-color: var(--steel-blue); }
-    .t-stars { color: var(--steel-blue); margin-bottom: 18px; font-size: .95rem; letter-spacing: 2px; }
-    .t-quote { color: #e3eded; font-size: 1.1rem; font-weight: 500; line-height: 1.5; margin-bottom: 28px; flex: 1; }
+    .trust { position: relative; overflow: hidden; }
+    .trust .aurora-wrap { background: linear-gradient(180deg, var(--white), var(--mist)); }
+    .trust .a1 { width: 40vw; height: 40vw; max-width: 520px; max-height: 520px; left: -8%; top: 10%; }
+    .trust .a2 { width: 36vw; height: 36vw; max-width: 460px; max-height: 460px; right: -6%; bottom: 0; }
+    .trust .h2 { text-align: center; margin-bottom: 60px; }
+    .t-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .t-card { background: rgba(255,255,255,.8); backdrop-filter: blur(10px); border: 1px solid var(--white); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); display: flex; flex-direction: column; transition: transform .3s var(--ease); }
+    .t-card:hover { transform: translateY(-5px); }
+    .t-stars { display: flex; gap: 3px; color: var(--green); margin-bottom: 18px; }
+    .t-stars svg { width: 17px; height: 17px; }
+    .t-quote { color: var(--ink); font-size: 1.1rem; font-weight: 500; line-height: 1.5; margin-bottom: 26px; flex: 1; }
     .t-author { display: flex; align-items: center; gap: 13px; }
-    .t-av { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--turquoise), var(--steel-blue)); display: grid; place-items: center; color: var(--dark-teal); font-weight: 700; position: relative; overflow: hidden; flex: none; }
-    .t-av .photo { position: absolute; inset: 0; border-radius: 50%; background: transparent; }
-    .t-meta b { display: block; color: #fff; font-size: .96rem; font-weight: 600; }
-    .t-meta span { color: var(--mid-grey); font-size: .83rem; }
+    .t-av { width: 46px; height: 46px; border-radius: 50%; position: relative; overflow: hidden; background: linear-gradient(135deg, var(--cyan), var(--green)); display: grid; place-items: center; color: #fff; font-weight: 700; flex: none; }
+    .t-av .photo { position: absolute; inset: 0; border-radius: 50%; }
+    .t-meta b { display: block; color: var(--ink); font-size: 0.96rem; font-weight: 600; }
+    .t-meta span { color: var(--muted); font-size: 0.83rem; }
 
     /* =========================================================
        PRICING
        ========================================================= */
-    .pricing { background: var(--off-white); color: var(--charcoal); }
-    .pricing .dots-1 { top: 8%; left: 3%; width: 120px; height: 120px; }
-    .pricing .blob-1 { bottom: -10%; right: -8%; width: 30vw; height: 30vw; max-width: 440px; max-height: 440px; opacity: .35; }
-    .pricing .eyebrow { color: var(--turquoise); }
-    .pricing .h2 { color: var(--near-black); }
-    .price-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; align-items: stretch; }
-    .price-card { background: #fff; border: 1px solid #e7e7e7; border-radius: var(--radius); padding: 36px 28px; display: flex; flex-direction: column; transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
-    .price-card:hover { transform: translateY(-6px); box-shadow: 0 30px 60px -32px rgba(12,38,38,.35); }
-    .price-card.featured { background: var(--dark-teal); border-color: var(--turquoise); color: var(--off-white); position: relative; box-shadow: 0 36px 70px -32px rgba(12,38,38,.6); }
-    .pc-tag { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--turquoise); color: var(--dark-teal); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 6px 15px; border-radius: 999px; white-space: nowrap; }
-    .pc-name { font-size: 1.18rem; font-weight: 700; margin-bottom: 5px; }
-    .pc-desc { font-size: .87rem; color: var(--mid-grey); margin-bottom: 22px; }
-    .price-card:not(.featured) .pc-desc { color: #6a6a6a; }
-    .pc-price { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; margin-bottom: 4px; }
-    .pc-price span { font-size: .95rem; font-weight: 500; color: var(--mid-grey); }
-    .pc-list { margin: 26px 0 30px; flex: 1; }
-    .pc-list li { display: flex; align-items: flex-start; gap: 10px; font-size: .93rem; margin-bottom: 13px; }
-    .price-card:not(.featured) .pc-list li { color: #4a4a4a; }
-    .price-card.featured .pc-list li { color: #cddada; }
-    .pc-list .ck { flex: none; color: var(--turquoise); font-weight: 700; width: 18px; }
-    .price-card.featured .pc-list .ck { color: var(--steel-blue); }
+    .price-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; align-items: stretch; }
+    .price-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 34px 26px; display: flex; flex-direction: column; transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
+    .price-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+    .price-card.featured { background: var(--ink); border-color: var(--ink); color: #cfe5de; position: relative; box-shadow: var(--shadow-lg); }
+    .price-card.featured .pc-name, .price-card.featured .pc-price { color: #fff; }
+    .pc-tag { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: linear-gradient(120deg, var(--cyan), var(--green)); color: var(--ink); font-family: "JetBrains Mono", monospace; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 15px; border-radius: var(--pill); white-space: nowrap; }
+    .pc-name { font-size: 1.15rem; font-weight: 700; color: var(--ink); margin-bottom: 5px; }
+    .pc-desc { font-size: 0.86rem; color: var(--muted); margin-bottom: 22px; }
+    .pc-price { font-family: "JetBrains Mono", monospace; font-size: 2.5rem; font-weight: 600; color: var(--ink); letter-spacing: -0.03em; line-height: 1; margin-bottom: 2px; }
+    .pc-price span { font-family: "Familjen Grotesk", sans-serif; font-size: 0.92rem; font-weight: 500; color: var(--muted); }
+    .pc-list { margin: 24px 0 28px; flex: 1; }
+    .pc-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.93rem; margin-bottom: 13px; color: var(--ink-soft); }
+    .price-card.featured .pc-list li { color: #b9d4cc; }
+    .pc-list .ck { flex: none; width: 17px; height: 17px; color: var(--green-deep); margin-top: 3px; }
+    .price-card.featured .pc-list .ck { color: var(--green); }
     .price-card .btn { width: 100%; }
-    .price-card:not(.featured) .btn-outline { border: 1px solid var(--charcoal); color: var(--charcoal); background: transparent; }
-    .price-card:not(.featured) .btn-outline:hover { background: var(--charcoal); color: #fff; transform: translateY(-2px); }
-    .enterprise-line { text-align: center; margin-top: 44px; font-size: 1.02rem; color: #4a4a4a; }
-    .enterprise-line a { color: var(--turquoise); font-weight: 600; }
-    .enterprise-line a:hover { color: var(--ocean-blue); }
+    .enterprise-line { text-align: center; margin-top: 42px; font-size: 1.02rem; color: var(--muted); }
+    .enterprise-line a { color: var(--green-deep); font-weight: 600; }
 
     /* =========================================================
-       CTA BANNER
+       CTA  (the vibrant aurora moment — like the reference)
        ========================================================= */
-    .cta { background: var(--turquoise); color: var(--dark-teal); text-align: center; }
-    .cta .form-ring { color: var(--dark-teal); opacity: .14; }
-    .cta .ring-1 { top: -80px; left: -40px; width: 280px; height: 280px; }
-    .cta .ring-2 { bottom: -120px; right: -60px; width: 340px; height: 340px; }
-    .cta .dots-1 { top: 20%; right: 8%; width: 120px; height: 90px; color: var(--dark-teal); opacity: .12; }
-    .cta .inner { max-width: 740px; margin-inline: auto; }
-    .cta .h2 { color: var(--dark-teal); font-size: clamp(2.2rem, 4.5vw, 3.3rem); margin-bottom: 20px; }
-    .cta p { color: rgba(12,38,38,.78); font-size: 1.12rem; margin-bottom: 38px; }
+    .cta { position: relative; overflow: hidden; }
+    .cta-card {
+      position: relative; border-radius: var(--radius-lg); overflow: hidden;
+      padding: clamp(56px, 8vw, 96px) clamp(24px, 5vw, 64px); text-align: center;
+      background: var(--mist); box-shadow: var(--shadow-lg);
+    }
+    .cta-card .aurora-wrap { background: radial-gradient(120% 120% at 50% 30%, #fff 6%, transparent 60%); }
+    .cta-card .a1 { width: 60%; height: 120%; left: -6%; top: -30%; }
+    .cta-card .a2 { width: 60%; height: 120%; right: -6%; top: -30%; }
+    .cta-card .beam { top: 38%; }
+    .cta-card .inner { position: relative; z-index: 2; max-width: 680px; margin-inline: auto; }
+    .cta-card .h2 { font-size: clamp(2.2rem, 5vw, 3.4rem); margin-bottom: 18px; }
+    .cta-card p { color: var(--ink-soft); font-size: 1.12rem; margin-bottom: 36px; }
+    /* email-capture pill (echoes the reference) */
+    .capture { display: flex; gap: 8px; max-width: 460px; margin: 0 auto; background: rgba(255,255,255,.85); backdrop-filter: blur(10px); border: 1px solid var(--white); border-radius: var(--pill); padding: 7px 7px 7px 8px; box-shadow: var(--shadow); }
+    .capture input { flex: 1; border: none; background: transparent; outline: none; padding: 0 16px; font-family: inherit; font-size: 0.98rem; color: var(--ink); }
+    .capture input::placeholder { color: var(--muted); }
+    .capture .btn { flex: none; }
 
     /* =========================================================
        FOOTER
        ========================================================= */
-    .footer { background: var(--near-black); color: var(--mid-grey); padding-block: 80px 38px; }
-    .footer-grid { display: grid; grid-template-columns: 1.6fr repeat(4, 1fr); gap: 44px; margin-bottom: 60px; }
-    .footer .logo { display: block; margin-bottom: 16px; }
-    .footer .f-tag { font-size: .94rem; max-width: 270px; line-height: 1.65; }
-    .footer h4 { color: #fff; font-size: .82rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 20px; }
-    .footer-col a { display: block; font-size: .93rem; margin-bottom: 13px; transition: color .2s; }
-    .footer-col a:hover { color: var(--steel-blue); }
-    .footer-bottom { border-top: 1px solid rgba(255,255,255,.08); padding-top: 30px; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; font-size: .86rem; }
+    .footer { background: var(--ink); color: #8fa9a1; padding-block: 80px 38px; }
+    .footer .logo { color: #fff; }
+    .footer-grid { display: grid; grid-template-columns: 1.6fr repeat(4, 1fr); gap: 44px; margin-bottom: 56px; }
+    .footer .f-tag { margin-top: 16px; font-size: 0.94rem; max-width: 270px; line-height: 1.65; }
+    .footer h4 { color: #fff; font-family: "JetBrains Mono", monospace; font-size: 0.72rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 20px; }
+    .footer-col a { display: block; font-size: 0.93rem; margin-bottom: 13px; transition: color .2s; }
+    .footer-col a:hover { color: var(--green); }
+    .footer-bottom { border-top: 1px solid rgba(255,255,255,.1); padding-top: 30px; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; font-size: 0.86rem; }
     .footer-bottom .links { display: flex; gap: 20px; }
-    .footer-bottom a:hover { color: var(--steel-blue); }
+    .footer-bottom a:hover { color: var(--green); }
 
     /* =========================================================
-       REVEAL ANIMATION
+       REVEAL
        ========================================================= */
     .reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
     .reveal.in { opacity: 1; transform: none; }
@@ -417,13 +418,11 @@
     /* =========================================================
        RESPONSIVE
        ========================================================= */
-    @media (max-width: 1200px) {
+    @media (max-width: 1100px) {
       .footer-grid { grid-template-columns: 1fr 1fr 1fr; }
       .footer .f-brand { grid-column: 1 / -1; }
     }
-    @media (max-width: 980px) {
-      .hero-grid { grid-template-columns: 1fr; }
-      .hero-visual { max-width: 460px; margin-top: 24px; }
+    @media (max-width: 920px) {
       .showcase-grid { grid-template-columns: 1fr; }
       .price-grid { grid-template-columns: repeat(2, 1fr); }
       .feature-grid { grid-template-columns: 1fr 1fr; }
@@ -431,31 +430,36 @@
     @media (max-width: 768px) {
       .nav-links, .nav-actions { display: none; }
       .nav-toggle { display: flex; }
-      .nav.mobile-open .nav-links { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; position: absolute; top: 76px; left: 0; right: 0; background: rgba(12,38,38,.97); backdrop-filter: blur(14px); padding: 24px var(--gutter) 28px; border-bottom: 1px solid var(--white-08); }
+      .nav.mobile-open .nav-links { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; position: absolute; top: 78px; left: 0; right: 0; background: rgba(255,255,255,.97); backdrop-filter: blur(14px); padding: 24px var(--gutter) 28px; border-bottom: 1px solid var(--line); }
       .nav.mobile-open .nav-actions { display: flex; flex-direction: column; align-items: stretch; gap: 12px; position: absolute; top: 100%; left: 0; right: 0; }
       .tab-panel.active { grid-template-columns: 1fr; }
-      .steps { grid-template-columns: 1fr; }
-      .t-grid { grid-template-columns: 1fr; }
-      .feature-grid { grid-template-columns: 1fr; }
-      .price-grid { grid-template-columns: 1fr; }
+      .steps, .t-grid, .feature-grid, .price-grid, .stats { grid-template-columns: 1fr; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
       .footer-bottom { flex-direction: column; align-items: flex-start; }
-      .stat .lbl { max-width: none; }
-      .score-card { left: 0; }
-      .float-pill { right: 0; }
+      .chip-1 { right: -4px; } .chip-2 { left: -6px; }
     }
+
     @media (prefers-reduced-motion: reduce) {
       * { animation: none !important; transition: none !important; scroll-behavior: auto; }
       .reveal { opacity: 1; transform: none; }
+      .bar-fill { transition: none; }
     }
   </style>
 </head>
 <body>
 
+  <!-- spark icon mask used by the logo -->
+  <svg width="0" height="0" style="position:absolute"><defs>
+    <clipPath id="x"></clipPath>
+  </defs></svg>
+
   <!-- ====================== NAV ====================== -->
   <header class="nav" id="nav">
     <div class="container nav-inner">
-      <a href="#top" class="logo">REVETLY</a>
+      <a href="#top" class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2c.6 5 2.4 7.8 8 8-5.6.2-7.4 3-8 8-.6-5-2.4-7.8-8-8 5.6-.2 7.4-3 8-8z" fill="url(#g)"/><defs><linearGradient id="g" x1="4" y1="4" x2="20" y2="20"><stop stop-color="#22C1EE"/><stop offset="1" stop-color="#16C77C"/></linearGradient></defs></svg>
+        REVETLY
+      </a>
       <nav class="nav-links">
         <a href="#platform">Features</a>
         <a href="#pricing">Preise</a>
@@ -474,62 +478,51 @@
 
     <!-- ====================== HERO ====================== -->
     <section class="hero">
-      <div class="form-blob blob-tq blob-1"></div>
-      <div class="form-blob blob-ocean blob-2"></div>
-      <div class="form-ring ring-1"></div>
-      <div class="form-dots dots-1"></div>
-      <div class="container hero-grid">
-        <div class="hero-copy reveal">
-          <span class="badge">🤖 AI-Powered Recruiting</span>
-          <h1 class="h1">Recruiting neu gedacht –<br />mit KI-Matching.</h1>
-          <p class="lead">REVETLY automatisiert dein Kandidaten-Matching, Absagen-Mails und Bewerberprofil-Verwaltung – damit du dich auf das Wesentliche konzentrierst.</p>
-          <div class="hero-ctas">
-            <a href="#" class="btn btn-primary btn-lg">Kostenlos starten</a>
-            <a href="#services" class="btn btn-ghost btn-lg">Demo ansehen →</a>
-          </div>
-          <div class="stats">
-            <div class="stat"><span class="num">500+</span><span class="lbl">Kandidaten gematcht</span></div>
-            <div class="stat"><span class="num">3×</span><span class="lbl">schnellere Entscheidungen</span></div>
-            <div class="stat"><span class="num">DSGVO</span><span class="lbl">konform &amp; EU AI Act ready</span></div>
-          </div>
+      <div class="aurora-wrap">
+        <div class="aurora a-cyan a1"></div>
+        <div class="aurora a-green a2"></div>
+        <div class="aurora a-soft-cyan a3"></div>
+      </div>
+      <div class="container">
+        <span class="hero-badge"><span class="dot"></span>KI-MATCHING · LIVE 2026</span>
+        <h1 class="h1">Die besten Kandidaten.<br /><span class="gradient-text">Sofort sichtbar.</span></h1>
+        <p class="lead">REVETLY analysiert CV und Anschreiben gemeinsam, bewertet jeden Bewerber objektiv und übernimmt Absagen wie Einladungen automatisch. Du entscheidest – die KI macht den Rest sichtbar.</p>
+        <div class="hero-ctas">
+          <a href="#" class="btn btn-primary btn-lg">Kostenlos starten <span class="arrow">→</span></a>
+          <a href="#services" class="btn btn-ghost btn-lg">Demo ansehen</a>
         </div>
+        <p class="hero-note">Keine Kreditkarte · DSGVO-konform · EU-Server</p>
 
-        <!-- Hero visual: photo + floating score card + floating pill -->
-        <div class="hero-visual reveal">
-          <div class="photo hero-photo">
-            <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=900&q=80" alt="HR-Managerin bei der Arbeit mit REVETLY" loading="lazy" />
-          </div>
-
-          <div class="float-pill">
-            <span class="fp-icon">⚡</span>
-            <div><b>9 Kategorien</b><span>objektiv bewertet</span></div>
-          </div>
-
+        <!-- signature: aurora reveal + score card -->
+        <div class="hero-stage">
+          <div class="beam" aria-hidden="true"><i class="v"></i><i class="h"></i></div>
           <div class="score-card" id="scoreCard">
+            <div class="chip chip-1"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> Top-Match gefunden</div>
+            <div class="chip chip-2"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg> in 0,8 Sek.</div>
             <div class="sc-head">
               <div class="sc-person">
-                <div class="sc-avatar">LM</div>
+                <div class="sc-avatar">LM<div class="photo"><img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=120&q=80" alt="" loading="lazy"></div></div>
                 <div><div class="sc-name">Lena Maier</div><div class="sc-role">Senior Frontend Dev</div></div>
               </div>
-              <div class="sc-score"><b>94</b><span>/ 100</span></div>
+              <div class="sc-score"><b class="gradient-text">94</b><span>/ 100</span></div>
             </div>
-            <div class="sc-label">REVETLY AI Matching Score</div>
-            <div class="bar-row"><div class="bar-top"><span>Hard Skills</span><span>96%</span></div><div class="bar-track"><div class="bar-fill" data-w="96%"></div></div></div>
-            <div class="bar-row"><div class="bar-top"><span>Experience</span><span>91%</span></div><div class="bar-track"><div class="bar-fill" data-w="91%"></div></div></div>
-            <div class="bar-row"><div class="bar-top"><span>Culture Fit</span><span>97%</span></div><div class="bar-track"><div class="bar-fill" data-w="97%"></div></div></div>
+            <div class="sc-label">REVETLY Matching Score</div>
+            <div class="bar-row"><div class="bar-top"><span>Hard Skills</span><b>96</b></div><div class="bar-track"><div class="bar-fill" data-w="96%"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>Erfahrung</span><b>91</b></div><div class="bar-track"><div class="bar-fill" data-w="91%"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>Culture Fit</span><b>97</b></div><div class="bar-track"><div class="bar-fill" data-w="97%"></div></div></div>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ====================== LOGO BAR ====================== -->
-    <section class="logobar">
+    <section class="logobar" style="padding-block:56px;">
       <div class="container">
-        <p class="logobar-text">Vertrauen von HR-Teams in der DACH-Region</p>
+        <p class="logobar-text">Vertraut von HR-Teams in der DACH-Region</p>
         <div class="logos">
           <span class="logo-item">PersonalX</span>
           <span class="logo-item">TalentGroup</span>
-          <span class="logo-item">HR Solutions GmbH</span>
+          <span class="logo-item">HR Solutions</span>
           <span class="logo-item">StaffingPro</span>
           <span class="logo-item">RecrutePLUS</span>
         </div>
@@ -538,38 +531,52 @@
 
     <!-- ====================== PLATFORM ====================== -->
     <section class="platform" id="platform">
-      <div class="form-blob blob-tq blob-1"></div>
-      <div class="form-dots dots-1 on-light-form"></div>
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow">Die Plattform</span>
-          <h2 class="h2">Designed, um deinen Recruiting-Prozess zu vereinfachen.</h2>
-          <p class="lead">Eine zentrale Plattform für Matching, Kommunikation und Verwaltung. Weniger manuelle Arbeit, schnellere und objektivere Entscheidungen.</p>
+          <h2 class="h2">Ein Werkzeug, das deinen<br />Recruiting-Prozess vereinfacht.</h2>
+          <p class="lead">Matching, Kommunikation und Verwaltung an einem Ort. Weniger Handarbeit, schnellere und objektivere Entscheidungen.</p>
         </div>
         <div class="feature-grid">
-          <div class="feature-card reveal"><div class="feature-icon">🎯</div><h3 class="h3">KI-Matching</h3><p>REVETLY AI Matching Score bewertet Kandidaten in 9 Kategorien.</p></div>
-          <div class="feature-card reveal"><div class="feature-icon">✉️</div><h3 class="h3">Auto-Mails</h3><p>Interview- &amp; Absagen-Mails werden automatisch per Resend versendet.</p></div>
-          <div class="feature-card reveal"><div class="feature-icon">📋</div><h3 class="h3">Job-Management</h3><p>Erstelle Jobs, aktiviere sie mit einem Klick, teile den Apply-Link.</p></div>
-          <div class="feature-card reveal"><div class="feature-icon">👤</div><h3 class="h3">Kandidaten-DB</h3><p>Alle Profile zentral, durchsuchbar, DSGVO-konform gespeichert.</p></div>
+          <div class="feature-card reveal">
+            <div class="feature-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg></div>
+            <h3 class="h3">KI-Matching</h3>
+            <p>Der Matching Score bewertet jeden Kandidaten objektiv in 9 Kategorien – mit Begründung.</p>
+          </div>
+          <div class="feature-card reveal">
+            <div class="feature-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg></div>
+            <h3 class="h3">Auto-Mails</h3>
+            <p>Interview- und Absagen-Mails gehen automatisch und personalisiert raus – per Resend.</p>
+          </div>
+          <div class="feature-card reveal">
+            <div class="feature-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
+            <h3 class="h3">Job-Management</h3>
+            <p>Jobs erstellen, mit einem Klick aktivieren und den öffentlichen Apply-Link teilen.</p>
+          </div>
+          <div class="feature-card reveal">
+            <div class="feature-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+            <h3 class="h3">Kandidaten-DB</h3>
+            <p>Alle Profile zentral, durchsuchbar und DSGVO-konform auf EU-Servern gespeichert.</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ====================== SHOWCASE (image-led) ====================== -->
+    <!-- ====================== SHOWCASE ====================== -->
     <section class="showcase">
       <div class="container showcase-grid">
         <div class="reveal">
-          <span class="eyebrow">Gebaut für den DACH-Mittelstand</span>
-          <h2 class="h2">Dein digitaler Senior Recruiter – rund um die Uhr.</h2>
-          <p>REVETLY analysiert CV und Anschreiben gemeinsam, erklärt jede Entscheidung und hält dir den Rücken frei. Schnell, transparent und voll DSGVO-konform auf EU-Servern.</p>
-          <ul class="showcase-points">
-            <li><span class="ck">✓</span><div><b>Erklärbare KI</b><span>Jeder Score ist nachvollziehbar begründet – kein Black-Box-Matching.</span></div></li>
-            <li><span class="ck">✓</span><div><b>EU-Server &amp; AI Act ready</b><span>Daten bleiben in der EU, Compliance von Anfang an mitgedacht.</span></div></li>
-            <li><span class="ck">✓</span><div><b>In Minuten startklar</b><span>Job anlegen, CVs hochladen, Top-Kandidaten sehen – ohne Setup-Aufwand.</span></div></li>
+          <span class="eyebrow">Für den DACH-Mittelstand</span>
+          <h2 class="h2" style="margin-top:22px;">Dein digitaler Senior Recruiter – rund um die Uhr.</h2>
+          <p>Nicht Keyword-Matching, nicht Black-Box. REVETLY liest CV und Anschreiben gemeinsam, begründet jeden Score und hält dir den Rücken frei.</p>
+          <ul class="points">
+            <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Erklärbare KI</b><span>Jeder Score ist nachvollziehbar begründet.</span></div></li>
+            <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>EU-Server &amp; AI Act ready</b><span>Daten bleiben in der EU, Compliance von Anfang an.</span></div></li>
+            <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>In Minuten startklar</b><span>Job anlegen, CVs hochladen, Top-Kandidaten sehen.</span></div></li>
           </ul>
         </div>
         <div class="showcase-visual reveal">
-          <div class="form-ring ring-1"></div>
+          <div class="aurora-wrap"><div class="aurora a-soft-cyan a1"></div></div>
           <div class="photo showcase-img">
             <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1000&q=80" alt="HR-Team arbeitet gemeinsam mit REVETLY" loading="lazy" />
           </div>
@@ -579,12 +586,11 @@
 
     <!-- ====================== SERVICES / TABS ====================== -->
     <section class="services" id="services">
-      <div class="form-blob blob-steel blob-1"></div>
-      <div class="form-arc arc-1"></div>
+      <div class="aurora-wrap"><div class="aurora a-soft-green a1"></div></div>
       <div class="container">
         <div class="section-head reveal">
-          <span class="eyebrow on-dark">Unsere Features</span>
-          <h2 class="h2">Eine Plattform, die dein Business mit Top-Talenten verbindet.</h2>
+          <span class="eyebrow">Unsere Features</span>
+          <h2 class="h2">Eine Plattform, die dein Business<br />mit Top-Talenten verbindet.</h2>
         </div>
         <div class="tabs reveal" role="tablist">
           <button class="tab-btn active" data-tab="0" role="tab">KI-Matching</button>
@@ -596,17 +602,17 @@
           <div class="tab-content">
             <h3 class="h3">Objektives Matching in 9 Kategorien</h3>
             <ul class="checks">
-              <li><span class="ck">✓</span> Hard Skills, Erfahrung &amp; Sprachen automatisch bewertet</li>
-              <li><span class="ck">✓</span> Soft Skills &amp; Culture Fit aus CV und Anschreiben abgeleitet</li>
-              <li><span class="ck">✓</span> Erklärbarer Score – jede Entscheidung wird begründet</li>
+              <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Hard Skills, Erfahrung &amp; Sprachen automatisch bewertet</li>
+              <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Soft Skills &amp; Culture Fit aus CV und Anschreiben abgeleitet</li>
+              <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Erklärbarer Score – jede Entscheidung wird begründet</li>
             </ul>
-            <a href="#" class="details-link">Details <span>→</span></a>
+            <a href="#" class="details-link">Details <span class="arrow">→</span></a>
           </div>
           <div class="mock">
             <div class="mock-bar"><i></i><i></i><i></i></div>
             <div class="mock-row"><div class="mr-left"><div class="mr-dot"><div class="photo"><img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=120&q=80" alt="" loading="lazy"></div></div><div><div class="mr-name">Lena Maier</div><div class="mr-sub">Frontend Developer</div></div></div><span class="mock-pill">94</span></div>
-            <div class="mock-row"><div class="mr-left"><div class="mr-dot"><div class="photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" alt="" loading="lazy"></div></div><div><div class="mr-name">Jonas Klein</div><div class="mr-sub">Fullstack Engineer</div></div></div><span class="mock-pill amber">81</span></div>
-            <div class="mock-row"><div class="mr-left"><div class="mr-dot"><div class="photo"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="" loading="lazy"></div></div><div><div class="mr-name">Sara Weber</div><div class="mr-sub">UX Designer</div></div></div><span class="mock-pill ghost">67</span></div>
+            <div class="mock-row"><div class="mr-left"><div class="mr-dot"><div class="photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" alt="" loading="lazy"></div></div><div><div class="mr-name">Jonas Klein</div><div class="mr-sub">Fullstack Engineer</div></div></div><span class="mock-pill mid">81</span></div>
+            <div class="mock-row"><div class="mr-left"><div class="mr-dot"><div class="photo"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="" loading="lazy"></div></div><div><div class="mr-name">Sara Weber</div><div class="mr-sub">UX Designer</div></div></div><span class="mock-pill low">67</span></div>
           </div>
         </div>
 
@@ -614,17 +620,17 @@
           <div class="tab-content">
             <h3 class="h3">Alle Bewerber an einem Ort</h3>
             <ul class="checks">
-              <li><span class="ck">✓</span> Zentrale, durchsuchbare Kandidaten-Datenbank</li>
-              <li><span class="ck">✓</span> Status-Tracking von Eingang bis Einstellung</li>
-              <li><span class="ck">✓</span> DSGVO-konforme Speicherung auf EU-Servern</li>
+              <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Zentrale, durchsuchbare Kandidaten-Datenbank</li>
+              <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Status-Tracking von Eingang bis Einstellung</li>
+              <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> DSGVO-konforme Speicherung auf EU-Servern</li>
             </ul>
-            <a href="#" class="details-link">Details <span>→</span></a>
+            <a href="#" class="details-link">Details <span class="arrow">→</span></a>
           </div>
           <div class="mock">
             <div class="mock-bar"><i></i><i></i><i></i></div>
-            <div class="mock-row"><div class="mr-left"><div class="mr-dot">📥</div><div><div class="mr-name">Neue Bewerbung</div><div class="mr-sub">vor 2 Min.</div></div></div><span class="mock-pill ghost">Neu</span></div>
-            <div class="mock-row"><div class="mr-left"><div class="mr-dot">⭐</div><div><div class="mr-name">Shortlist</div><div class="mr-sub">12 Kandidaten</div></div></div><span class="mock-pill">Aktiv</span></div>
-            <div class="mock-row"><div class="mr-left"><div class="mr-dot">🤝</div><div><div class="mr-name">Interview</div><div class="mr-sub">3 geplant</div></div></div><span class="mock-pill amber">Heute</span></div>
+            <div class="mock-row"><div class="mr-left"><div class="mr-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H5.2L4 17.5z"/></svg></div><div><div class="mr-name">Neue Bewerbung</div><div class="mr-sub">vor 2 Min.</div></div></div><span class="mock-pill low">Neu</span></div>
+            <div class="mock-row"><div class="mr-left"><div class="mr-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div><div><div class="mr-name">Shortlist</div><div class="mr-sub">12 Kandidaten</div></div></div><span class="mock-pill">Aktiv</span></div>
+            <div class="mock-row"><div class="mr-left"><div class="mr-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="mr-name">Interview</div><div class="mr-sub">3 geplant</div></div></div><span class="mock-pill mid">Heute</span></div>
           </div>
         </div>
 
@@ -632,17 +638,17 @@
           <div class="tab-content">
             <h3 class="h3">Vom Job zum Apply-Link in Minuten</h3>
             <ul class="checks">
-              <li><span class="ck">✓</span> Job-Blueprint mit automatischer Anforderungs-Extraktion</li>
-              <li><span class="ck">✓</span> Mit einem Klick aktivieren und teilen</li>
-              <li><span class="ck">✓</span> Öffentlicher Apply-Link für jede Stelle</li>
+              <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Job-Blueprint mit automatischer Anforderungs-Extraktion</li>
+              <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Mit einem Klick aktivieren und teilen</li>
+              <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Öffentlicher Apply-Link für jede Stelle</li>
             </ul>
-            <a href="#" class="details-link">Details <span>→</span></a>
+            <a href="#" class="details-link">Details <span class="arrow">→</span></a>
           </div>
           <div class="mock">
             <div class="mock-bar"><i></i><i></i><i></i></div>
-            <div class="mock-row"><div class="mr-left"><div class="mr-dot">💼</div><div><div class="mr-name">Senior Frontend Dev</div><div class="mr-sub">Wien · Vollzeit</div></div></div><span class="mock-pill">Live</span></div>
-            <div class="mock-row"><div class="mr-left"><div class="mr-dot">💼</div><div><div class="mr-name">HR Manager:in</div><div class="mr-sub">München · Hybrid</div></div></div><span class="mock-pill">Live</span></div>
-            <div class="mock-row"><div class="mr-left"><div class="mr-dot">💼</div><div><div class="mr-name">Sales Lead DACH</div><div class="mr-sub">Remote</div></div></div><span class="mock-pill ghost">Entwurf</span></div>
+            <div class="mock-row"><div class="mr-left"><div class="mr-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div><div><div class="mr-name">Senior Frontend Dev</div><div class="mr-sub">Wien · Vollzeit</div></div></div><span class="mock-pill">Live</span></div>
+            <div class="mock-row"><div class="mr-left"><div class="mr-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div><div><div class="mr-name">HR Manager:in</div><div class="mr-sub">München · Hybrid</div></div></div><span class="mock-pill">Live</span></div>
+            <div class="mock-row"><div class="mr-left"><div class="mr-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div><div><div class="mr-name">Sales Lead DACH</div><div class="mr-sub">Remote</div></div></div><span class="mock-pill low">Entwurf</span></div>
           </div>
         </div>
       </div>
@@ -650,51 +656,39 @@
 
     <!-- ====================== HOW IT WORKS ====================== -->
     <section class="how">
-      <div class="form-dots dots-1 on-light-form"></div>
-      <div class="form-blob blob-tq blob-1"></div>
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow">So funktioniert's</span>
-          <h2 class="h2">Effizienter Prozess, um die besten Talente zu finden.</h2>
+          <h2 class="h2">Effizienter Prozess, um die<br />besten Talente zu finden.</h2>
         </div>
         <div class="steps">
-          <div class="step reveal"><span class="num">01</span><h3 class="h3">Job anlegen</h3><p>Erstelle deinen Job-Blueprint in Minuten – REVETLY extrahiert automatisch alle Anforderungen.</p></div>
-          <div class="step reveal"><span class="num">02</span><h3 class="h3">CV hochladen</h3><p>Lade Bewerbungen hoch. Der AI Matching Score bewertet jeden Kandidaten objektiv in 9 Kategorien.</p></div>
-          <div class="step reveal"><span class="num">03</span><h3 class="h3">Entscheiden &amp; kommunizieren</h3><p>Versende Interview-Einladungen oder Absagen mit einem Klick – automatisch personalisiert.</p></div>
+          <div class="step reveal"><span class="num">SCHRITT 01</span><h3 class="h3">Job anlegen</h3><p>Erstelle deinen Job-Blueprint in Minuten – REVETLY extrahiert automatisch alle Anforderungen.</p></div>
+          <div class="step reveal"><span class="num">SCHRITT 02</span><h3 class="h3">CV hochladen</h3><p>Lade Bewerbungen hoch. Der Matching Score bewertet jeden Kandidaten objektiv in 9 Kategorien.</p></div>
+          <div class="step reveal"><span class="num">SCHRITT 03</span><h3 class="h3">Entscheiden &amp; senden</h3><p>Versende Einladungen oder Absagen mit einem Klick – automatisch personalisiert.</p></div>
         </div>
       </div>
     </section>
 
     <!-- ====================== TESTIMONIALS ====================== -->
     <section class="trust">
-      <div class="form-blob blob-steel blob-1"></div>
-      <div class="form-ring ring-1"></div>
+      <div class="aurora-wrap"><div class="aurora a-soft-cyan a1"></div><div class="aurora a-soft-green a2"></div></div>
       <div class="container">
         <h2 class="h2 reveal">Du bist in guter Gesellschaft.</h2>
         <div class="t-grid">
           <div class="t-card reveal">
-            <div class="t-stars">★★★★★</div>
+            <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
             <p class="t-quote">„REVETLY hat unsere Time-to-Hire halbiert.“</p>
-            <div class="t-author">
-              <div class="t-av">SM<div class="photo"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Sarah M." loading="lazy"></div></div>
-              <div class="t-meta"><b>Sarah M.</b><span>Talent Acquisition Lead</span></div>
-            </div>
+            <div class="t-author"><div class="t-av">SM<div class="photo"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Sarah M." loading="lazy"></div></div><div class="t-meta"><b>Sarah M.</b><span>Talent Acquisition Lead</span></div></div>
           </div>
           <div class="t-card reveal">
-            <div class="t-stars">★★★★★</div>
-            <p class="t-quote">„Der AI Matching Score ist Game-Changer. Kein manuelles Screening mehr.“</p>
-            <div class="t-author">
-              <div class="t-av">TK<div class="photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" alt="Thomas K." loading="lazy"></div></div>
-              <div class="t-meta"><b>Thomas K.</b><span>Personalleasing GmbH</span></div>
-            </div>
+            <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+            <p class="t-quote">„Der Matching Score ist ein Game-Changer. Kein manuelles Screening mehr.“</p>
+            <div class="t-author"><div class="t-av">TK<div class="photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" alt="Thomas K." loading="lazy"></div></div><div class="t-meta"><b>Thomas K.</b><span>Personalleasing GmbH</span></div></div>
           </div>
           <div class="t-card reveal">
-            <div class="t-stars">★★★★★</div>
+            <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
             <p class="t-quote">„Endlich ein Tool, das DSGVO ernst nimmt und trotzdem schnell ist.“</p>
-            <div class="t-author">
-              <div class="t-av">JR<div class="photo"><img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=120&q=80" alt="Julia R." loading="lazy"></div></div>
-              <div class="t-meta"><b>Julia R.</b><span>HR Managerin</span></div>
-            </div>
+            <div class="t-author"><div class="t-av">JR<div class="photo"><img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=120&q=80" alt="Julia R." loading="lazy"></div></div><div class="t-meta"><b>Julia R.</b><span>HR Managerin</span></div></div>
           </div>
         </div>
       </div>
@@ -702,38 +696,52 @@
 
     <!-- ====================== PRICING ====================== -->
     <section class="pricing" id="pricing">
-      <div class="form-dots dots-1 on-light-form"></div>
-      <div class="form-blob blob-tq blob-1"></div>
       <div class="container">
         <div class="section-head center reveal">
-          <span class="eyebrow">Preise</span>
+          <span class="eyebrow" style="justify-content:center;">Preise</span>
           <h2 class="h2">Transparent. Fair. Skalierbar.</h2>
         </div>
         <div class="price-grid">
           <div class="price-card reveal">
             <div class="pc-name">Free</div><div class="pc-desc">Zum Reinschnuppern</div>
             <div class="pc-price">€0<span>/mo</span></div>
-            <ul class="pc-list"><li><span class="ck">✓</span> 1 aktiver Job</li><li><span class="ck">✓</span> 10 Kandidaten</li><li><span class="ck">✓</span> Basis-Matching</li></ul>
-            <a href="#" class="btn btn-outline">Loslegen</a>
+            <ul class="pc-list">
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> 1 aktiver Job</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> 10 Kandidaten</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Basis-Matching</li>
+            </ul>
+            <a href="#" class="btn btn-ghost">Loslegen</a>
           </div>
           <div class="price-card reveal">
             <div class="pc-name">Starter</div><div class="pc-desc">Für Einsteiger</div>
             <div class="pc-price">€49<span>/mo</span></div>
-            <ul class="pc-list"><li><span class="ck">✓</span> 5 Jobs</li><li><span class="ck">✓</span> 100 Kandidaten</li><li><span class="ck">✓</span> AI Matching + Auto-Mails</li></ul>
-            <a href="#" class="btn btn-outline">Starten</a>
+            <ul class="pc-list">
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> 5 Jobs</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> 100 Kandidaten</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Matching + Auto-Mails</li>
+            </ul>
+            <a href="#" class="btn btn-ghost">Starten</a>
           </div>
           <div class="price-card featured reveal">
             <span class="pc-tag">Am beliebtesten</span>
             <div class="pc-name">Growth</div><div class="pc-desc">Für wachsende Teams</div>
             <div class="pc-price">€149<span>/mo</span></div>
-            <ul class="pc-list"><li><span class="ck">✓</span> 20 Jobs</li><li><span class="ck">✓</span> Unbegrenzte Kandidaten</li><li><span class="ck">✓</span> Alle Features + Analytics</li></ul>
-            <a href="#" class="btn btn-primary">Growth wählen</a>
+            <ul class="pc-list">
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> 20 Jobs</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Unbegrenzte Kandidaten</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Alle Features + Analytics</li>
+            </ul>
+            <a href="#" class="btn btn-light">Growth wählen</a>
           </div>
           <div class="price-card reveal">
             <div class="pc-name">Pro</div><div class="pc-desc">Für Agenturen</div>
             <div class="pc-price">€299<span>/mo</span></div>
-            <ul class="pc-list"><li><span class="ck">✓</span> Unbegrenzte Jobs</li><li><span class="ck">✓</span> White-Label-Option</li><li><span class="ck">✓</span> Priority Support</li></ul>
-            <a href="#" class="btn btn-outline">Pro wählen</a>
+            <ul class="pc-list">
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Unbegrenzte Jobs</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> White-Label-Option</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Priority Support</li>
+            </ul>
+            <a href="#" class="btn btn-ghost">Pro wählen</a>
           </div>
         </div>
         <p class="enterprise-line">Enterprise? <a href="#">Kontakt aufnehmen →</a></p>
@@ -742,13 +750,23 @@
 
     <!-- ====================== CTA ====================== -->
     <section class="cta">
-      <div class="form-ring ring-1"></div>
-      <div class="form-ring ring-2"></div>
-      <div class="form-dots dots-1"></div>
-      <div class="container inner reveal">
-        <h2 class="h2">Starte heute – kostenlos.</h2>
-        <p>Keine Kreditkarte. Kein Risiko. Sofort loslegen.</p>
-        <a href="#" class="btn btn-light btn-lg">Kostenlos registrieren</a>
+      <div class="container">
+        <div class="cta-card reveal">
+          <div class="aurora-wrap">
+            <div class="aurora a-cyan a1"></div>
+            <div class="aurora a-green a2"></div>
+          </div>
+          <div class="beam" aria-hidden="true"><i class="v"></i><i class="h"></i></div>
+          <div class="inner">
+            <span class="eyebrow" style="justify-content:center;margin-bottom:18px;">Jetzt starten</span>
+            <h2 class="h2">Sieh, wer wirklich passt.</h2>
+            <p>Lade Job und CVs hoch – und finde in Minuten die besten Kandidaten. Keine Kreditkarte, kein Risiko.</p>
+            <form class="capture" onsubmit="return false;">
+              <input type="email" placeholder="Deine E-Mail-Adresse" aria-label="E-Mail-Adresse" />
+              <button class="btn btn-primary" type="submit">Kostenlos starten</button>
+            </form>
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -758,8 +776,11 @@
     <div class="container">
       <div class="footer-grid">
         <div class="f-brand">
-          <a href="#top" class="logo">REVETLY</a>
-          <p class="f-tag">AI-Powered Recruiting für den DACH-Markt. DSGVO-konform &amp; EU AI Act ready.</p>
+          <a href="#top" class="logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2c.6 5 2.4 7.8 8 8-5.6.2-7.4 3-8 8-.6-5-2.4-7.8-8-8 5.6-.2 7.4-3 8-8z" fill="url(#g2)"/><defs><linearGradient id="g2" x1="4" y1="4" x2="20" y2="20"><stop stop-color="#22C1EE"/><stop offset="1" stop-color="#16C77C"/></linearGradient></defs></svg>
+            REVETLY
+          </a>
+          <p class="f-tag">KI-gestütztes Recruiting für den DACH-Markt. Erklärbar, DSGVO-konform &amp; EU AI Act ready.</p>
         </div>
         <div class="footer-col"><h4>Produkt</h4><a href="#platform">Features</a><a href="#pricing">Preise</a><a href="#services">Für Agenturen</a><a href="#">Changelog</a></div>
         <div class="footer-col"><h4>Company</h4><a href="#">Über uns</a><a href="#">Blog</a><a href="#">Karriere</a><a href="#">Kontakt</a></div>
@@ -774,20 +795,18 @@
   </footer>
 
   <script>
-    // ---------- Sticky nav background on scroll ----------
+    // Sticky nav
     const nav = document.getElementById('nav');
     const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 20);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
 
-    // ---------- Mobile menu ----------
+    // Mobile menu
     const toggle = document.getElementById('navToggle');
     toggle.addEventListener('click', () => nav.classList.toggle('mobile-open'));
     nav.querySelectorAll('.nav-links a, .nav-actions a').forEach(a =>
-      a.addEventListener('click', () => nav.classList.remove('mobile-open'))
-    );
+      a.addEventListener('click', () => nav.classList.remove('mobile-open')));
 
-    // ---------- Tabs ----------
+    // Tabs
     const tabBtns = document.querySelectorAll('.tab-btn');
     const panels = document.querySelectorAll('.tab-panel');
     tabBtns.forEach(btn => btn.addEventListener('click', () => {
@@ -796,24 +815,23 @@
       panels.forEach(p => p.classList.toggle('active', p.dataset.panel === idx));
     }));
 
-    // ---------- Graceful image fallback (gradient shows if photo fails) ----------
-    document.querySelectorAll('.photo img').forEach(img => {
-      img.addEventListener('error', () => img.classList.add('failed'));
-    });
+    // Graceful image fallback
+    document.querySelectorAll('.photo img').forEach(img =>
+      img.addEventListener('error', () => img.classList.add('failed')));
 
-    // ---------- Reveal on scroll ----------
+    // Reveal on scroll
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
     }, { threshold: 0.12 });
     document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
-    // ---------- Animate hero score bars when visible ----------
+    // Animate score bars when in view
     const card = document.getElementById('scoreCard');
-    const fillBars = () => card.querySelectorAll('.bar-fill').forEach(b => b.style.width = b.dataset.w);
-    const cardIO = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if (e.isIntersecting) { setTimeout(fillBars, 250); cardIO.unobserve(e.target); } });
+    const fill = () => card.querySelectorAll('.bar-fill').forEach(b => b.style.width = b.dataset.w);
+    const cIO = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { setTimeout(fill, 250); cIO.unobserve(e.target); } });
     }, { threshold: 0.4 });
-    cardIO.observe(card);
+    cIO.observe(card);
   </script>
 </body>
 </html>
