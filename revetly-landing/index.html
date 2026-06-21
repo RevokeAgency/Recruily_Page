@@ -270,9 +270,17 @@
     .g-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow-sm); }
     .g-card h3 { margin-bottom: 8px; font-size: 1.15rem; }
     .g-card p { color: var(--muted); font-size: 0.92rem; margin-bottom: 20px; }
-    .g-faces { display: flex; }
-    .g-faces .av { width: 64px; height: 80px; border-radius: 14px; overflow: hidden; position: relative; background: var(--grad); margin-left: -10px; border: 3px solid var(--white); box-shadow: var(--shadow-sm); }
+    .g-faces { display: flex; padding: 6px 0 2px; }
+    .g-faces .av { width: 92px; height: 116px; border-radius: 20px; overflow: hidden; position: relative; background: var(--grad); margin-left: -38px; border: 4px solid var(--white); box-shadow: var(--shadow); transition: transform .4s var(--ease), margin-left .4s var(--ease), box-shadow .4s var(--ease); }
     .g-faces .av:first-child { margin-left: 0; }
+    .g-faces .av:nth-child(1) { z-index: 1; } .g-faces .av:nth-child(2) { z-index: 2; } .g-faces .av:nth-child(3) { z-index: 3; } .g-faces .av:nth-child(4) { z-index: 4; }
+    .g-faces:hover .av { margin-left: 8px; transform: translateY(-6px); }
+    .g-faces:hover .av:first-child { margin-left: 0; }
+    .g-faces .av:hover { transform: translateY(-14px) scale(1.07); z-index: 9; box-shadow: 0 26px 50px -22px rgba(12,26,22,.5); }
+    .in .g-faces .av { animation: dealin .55s var(--ease) backwards; }
+    .in .g-faces .av:nth-child(1) { animation-delay: .08s; } .in .g-faces .av:nth-child(2) { animation-delay: .18s; }
+    .in .g-faces .av:nth-child(3) { animation-delay: .28s; } .in .g-faces .av:nth-child(4) { animation-delay: .38s; }
+    @keyframes dealin { from { opacity: 0; transform: translateY(22px) scale(.8) rotate(-9deg); } to { opacity: 1; transform: none; } }
     .g-right { display: grid; gap: 20px; }
     .g-chips { display: grid; gap: 10px; }
     .g-chip { display: flex; align-items: center; gap: 11px; background: var(--mist); border: 1px solid var(--line); border-radius: 13px; padding: 12px 15px; font-size: 0.9rem; font-weight: 600; color: var(--ink); }
@@ -299,6 +307,19 @@
     .t-av { width: 44px; height: 44px; border-radius: 50%; position: relative; overflow: hidden; background: var(--grad); flex: none; }
     .t-meta b { display: block; color: var(--ink); font-size: 0.92rem; }
     .t-meta span { color: var(--muted); font-size: 0.8rem; }
+    /* carousel */
+    .t-viewport { overflow: hidden; padding: 8px 4px 16px; }
+    .t-track { display: flex; gap: 22px; transition: transform .65s var(--ease); will-change: transform; }
+    .t-track .t-card { flex: 0 0 calc((100% - 44px) / 3); }
+    .t-controls { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 30px; }
+    .t-arrow { width: 50px; height: 50px; border-radius: 50%; background: var(--white); border: 1px solid var(--line-strong); display: grid; place-items: center; color: var(--ink); box-shadow: var(--shadow-sm); transition: transform .25s var(--ease), background .25s var(--ease), color .25s var(--ease); }
+    .t-arrow svg { width: 20px; height: 20px; }
+    .t-arrow:hover { background: var(--ink); color: #fff; transform: translateY(-2px); }
+    .t-dots { display: flex; gap: 8px; }
+    .t-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); transition: width .3s var(--ease), background .3s var(--ease); }
+    .t-dot.active { width: 28px; border-radius: 999px; background: var(--grad); }
+    @media (max-width: 960px) { .t-track .t-card { flex-basis: calc((100% - 22px) / 2); } }
+    @media (max-width: 640px) { .t-track .t-card { flex-basis: 100%; } }
 
     /* =========================================================
        PRICING
@@ -590,10 +611,10 @@
             <h3>Optimierter Hiring-Prozess</h3>
             <p>Revetly automatisiert dein Screening und schlägt die passendsten Kandidaten zuerst vor.</p>
             <div class="g-faces">
-              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=160&q=80" alt="" loading="lazy"></div></div>
-              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&q=80" alt="" loading="lazy"></div></div>
-              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80" alt="" loading="lazy"></div></div>
-              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&q=80" alt="" loading="lazy"></div></div>
+              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=240&q=80" alt="" loading="lazy"></div></div>
+              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=240&q=80" alt="" loading="lazy"></div></div>
+              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80" alt="" loading="lazy"></div></div>
+              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80" alt="" loading="lazy"></div></div>
             </div>
           </div>
           <div class="g-right">
@@ -625,21 +646,45 @@
       <div class="container">
         <h2 class="h2 reveal">Du bist in guter Gesellschaft.</h2>
         <p class="lead ts-sub reveal">HR-Teams im DACH-Raum vertrauen auf Revetly.</p>
-        <div class="t-grid">
-          <div class="t-card reveal">
-            <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
-            <p class="t-quote">„Revetly hat unsere Time-to-Hire halbiert.“</p>
-            <div class="t-author"><div class="t-av"><div class="photo"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Sarah M." loading="lazy"></div></div><div class="t-meta"><b>Sarah M.</b><span>Talent Acquisition Lead</span></div></div>
+        <div class="carousel reveal" id="tCar">
+          <div class="t-viewport">
+            <div class="t-track" id="tTrack">
+              <div class="t-card">
+                <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+                <p class="t-quote">„Revetly hat unsere Time-to-Hire halbiert.“</p>
+                <div class="t-author"><div class="t-av"><div class="photo"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Sarah M." loading="lazy"></div></div><div class="t-meta"><b>Sarah M.</b><span>Talent Acquisition Lead</span></div></div>
+              </div>
+              <div class="t-card">
+                <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+                <p class="t-quote">„Der Matching Score ist ein Game-Changer. Kein manuelles Screening mehr.“</p>
+                <div class="t-author"><div class="t-av"><div class="photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" alt="Thomas K." loading="lazy"></div></div><div class="t-meta"><b>Thomas K.</b><span>Personalleasing GmbH</span></div></div>
+              </div>
+              <div class="t-card">
+                <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+                <p class="t-quote">„Endlich ein Tool, das DSGVO ernst nimmt und trotzdem schnell ist.“</p>
+                <div class="t-author"><div class="t-av"><div class="photo"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80" alt="Julia R." loading="lazy"></div></div><div class="t-meta"><b>Julia R.</b><span>HR Managerin</span></div></div>
+              </div>
+              <div class="t-card">
+                <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+                <p class="t-quote">„Wir besetzen Stellen jetzt in Tagen statt Wochen.“</p>
+                <div class="t-author"><div class="t-av"><div class="photo"><img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80" alt="Markus B." loading="lazy"></div></div><div class="t-meta"><b>Markus B.</b><span>Geschäftsführer, TechStaff</span></div></div>
+              </div>
+              <div class="t-card">
+                <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+                <p class="t-quote">„Die Anschreiben-Analyse findet Talente, die wir übersehen hätten.“</p>
+                <div class="t-author"><div class="t-av"><div class="photo"><img src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=120&q=80" alt="Nina H." loading="lazy"></div></div><div class="t-meta"><b>Nina H.</b><span>Recruiterin</span></div></div>
+              </div>
+              <div class="t-card">
+                <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+                <p class="t-quote">„Endlich Transparenz im Matching – mein Team liebt es.“</p>
+                <div class="t-author"><div class="t-av"><div class="photo"><img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80" alt="David L." loading="lazy"></div></div><div class="t-meta"><b>David L.</b><span>Head of People</span></div></div>
+              </div>
+            </div>
           </div>
-          <div class="t-card reveal s1">
-            <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
-            <p class="t-quote">„Der Matching Score ist ein Game-Changer. Kein manuelles Screening mehr.“</p>
-            <div class="t-author"><div class="t-av"><div class="photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" alt="Thomas K." loading="lazy"></div></div><div class="t-meta"><b>Thomas K.</b><span>Personalleasing GmbH</span></div></div>
-          </div>
-          <div class="t-card reveal s2">
-            <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
-            <p class="t-quote">„Endlich ein Tool, das DSGVO ernst nimmt und trotzdem schnell ist.“</p>
-            <div class="t-author"><div class="t-av"><div class="photo"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80" alt="Julia R." loading="lazy"></div></div><div class="t-meta"><b>Julia R.</b><span>HR Managerin</span></div></div>
+          <div class="t-controls">
+            <button class="t-arrow" id="tPrev" aria-label="Vorherige"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <div class="t-dots" id="tDots"></div>
+            <button class="t-arrow" id="tNext" aria-label="Nächste"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 5l7 7-7 7"/></svg></button>
           </div>
         </div>
       </div>
@@ -814,6 +859,40 @@
     // Hero chip count-up
     const hv = document.querySelector('.hv-chip [data-count]');
     if (hv) { const o = new IntersectionObserver((en)=>{en.forEach(e=>{if(e.isIntersecting){countUp(hv);o.disconnect();}});},{threshold:.5}); o.observe(hv); }
+
+    // Testimonial carousel
+    const car = document.getElementById('tCar');
+    if (car) {
+      const track = document.getElementById('tTrack');
+      const cards = [...track.children];
+      const dotsWrap = document.getElementById('tDots');
+      let idx = 0, maxIdx = 0, timer = null;
+      const perView = () => { const w = window.innerWidth; return w < 640 ? 1 : (w < 960 ? 2 : 3); };
+      const stepPx = () => { const r = cards[0].getBoundingClientRect(); const gap = parseFloat(getComputedStyle(track).gap) || 22; return r.width + gap; };
+      function apply() {
+        track.style.transform = `translateX(${-idx * stepPx()}px)`;
+        [...dotsWrap.children].forEach((d, i) => d.classList.toggle('active', i === idx));
+      }
+      function dots() {
+        dotsWrap.innerHTML = '';
+        for (let i = 0; i <= maxIdx; i++) {
+          const b = document.createElement('button');
+          b.className = 't-dot' + (i === idx ? ' active' : '');
+          b.setAttribute('aria-label', 'Zu Slide ' + (i + 1));
+          b.addEventListener('click', () => { idx = i; apply(); restart(); });
+          dotsWrap.appendChild(b);
+        }
+      }
+      function recalc() { maxIdx = Math.max(0, cards.length - perView()); if (idx > maxIdx) idx = maxIdx; dots(); apply(); }
+      function go(d) { idx += d; if (idx > maxIdx) idx = 0; if (idx < 0) idx = maxIdx; apply(); }
+      function restart() { clearInterval(timer); if (!reduce) timer = setInterval(() => go(1), 5000); }
+      document.getElementById('tPrev').addEventListener('click', () => { go(-1); restart(); });
+      document.getElementById('tNext').addEventListener('click', () => { go(1); restart(); });
+      car.addEventListener('mouseenter', () => clearInterval(timer));
+      car.addEventListener('mouseleave', restart);
+      let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(recalc, 150); }, { passive: true });
+      recalc(); restart();
+    }
   </script>
 </body>
 </html>
