@@ -47,6 +47,7 @@
       --ease:        cubic-bezier(0.16, 1, 0.3, 1);
 
       --photo-fallback: linear-gradient(150deg, var(--cyan), var(--green));
+      --grad-solid: linear-gradient(130deg, var(--cyan) 0%, var(--green) 100%);
     }
 
     /* =========================================================
@@ -141,6 +142,7 @@
     .aurora.a-green { background: radial-gradient(circle, rgba(22,199,124,.85), transparent 62%); animation: drift2 23s var(--ease) infinite alternate; }
     .aurora.a-soft-cyan  { background: radial-gradient(circle, rgba(34,193,238,.38), transparent 65%); animation: drift1 26s var(--ease) infinite alternate; }
     .aurora.a-soft-green { background: radial-gradient(circle, rgba(22,199,124,.38), transparent 65%); animation: drift2 30s var(--ease) infinite alternate; }
+    .aurora.a-white { background: radial-gradient(circle, rgba(255,255,255,.6), transparent 62%); animation: drift1 22s var(--ease) infinite alternate; }
     @keyframes drift1 { from { transform: translate3d(-4%,-3%,0) scale(1); } to { transform: translate3d(5%,4%,0) scale(1.18); } }
     @keyframes drift2 { from { transform: translate3d(4%,2%,0) scale(1.1); } to { transform: translate3d(-5%,-3%,0) scale(1); } }
 
@@ -237,13 +239,26 @@
     .marquee .logo-item:hover { opacity: .8; }
 
     /* =========================================================
-       IMPACT STATS BAND (count-up)
+       SOLID GRADIENT PANELS (structure blocks)
        ========================================================= */
-    .impact { padding-block: clamp(56px, 7vw, 90px); }
-    .impact-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
-    .impact-cell { text-align: center; padding: 30px 18px; border-radius: var(--radius); background: var(--mist); border: 1px solid var(--line); }
-    .impact-cell .num { font-family: "JetBrains Mono", monospace; font-size: clamp(2.1rem, 3.6vw, 3rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
-    .impact-cell .lbl { color: var(--muted); margin-top: 12px; font-size: 0.93rem; }
+    .grad-panel { position: relative; overflow: hidden; border-radius: var(--radius-lg); background: var(--grad-solid); box-shadow: var(--shadow-lg); color: var(--ink); }
+    .grad-panel .gp-rings { position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(130% 100% at 100% 0%, rgba(255,255,255,.38), transparent 48%),
+        radial-gradient(130% 100% at 0% 100%, rgba(255,255,255,.22), transparent 48%); }
+
+    .impact { padding-block: clamp(60px, 8vw, 100px); }
+    .impact-panel { position: relative; display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(34px, 5vw, 68px); align-items: center; padding: clamp(40px, 5vw, 66px); }
+    .impact-panel .ip-left { position: relative; z-index: 1; }
+    .impact-panel .eyebrow { color: rgba(12,26,22,.72); margin-bottom: 18px; }
+    .impact-panel .eyebrow::before { background: var(--ink); }
+    .impact-panel h2 { color: var(--ink); }
+    .impact-panel .ip-sub { color: rgba(12,26,22,.74); margin-top: 16px; max-width: 380px; }
+    .ip-tiles { position: relative; z-index: 1; display: grid; gap: 12px; }
+    .ip-tile { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: rgba(255,255,255,.55); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.65); border-radius: 16px; padding: 18px 22px; transition: transform .25s var(--ease); }
+    .ip-tile:hover { transform: translateY(-3px); }
+    .ip-tile .num { font-family: "JetBrains Mono", monospace; font-size: clamp(1.9rem, 3vw, 2.5rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1; color: var(--ink); }
+    .ip-tile .lbl { color: rgba(12,26,22,.74); font-size: 0.9rem; text-align: right; line-height: 1.3; }
 
     /* =========================================================
        PRODUCT SHOWCASE (browser-frame dashboard mock)
@@ -428,8 +443,8 @@
        CTA
        ========================================================= */
     .cta { position: relative; overflow: hidden; }
-    .cta-card { position: relative; border-radius: var(--radius-lg); overflow: hidden; padding: clamp(56px, 8vw, 96px) clamp(24px, 5vw, 64px); text-align: center; background: var(--mist); box-shadow: var(--shadow-lg); }
-    .cta-card .aurora-wrap { background: radial-gradient(120% 120% at 50% 30%, #fff 6%, transparent 60%); }
+    .cta-card { position: relative; border-radius: var(--radius-lg); overflow: hidden; padding: clamp(56px, 8vw, 96px) clamp(24px, 5vw, 64px); text-align: center; background: var(--grad-solid); box-shadow: var(--shadow-lg); }
+    .cta-card .aurora-wrap { background: radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,.42), transparent 55%); }
     .cta-card .a1 { width: 60%; height: 120%; left: -6%; top: -30%; }
     .cta-card .a2 { width: 60%; height: 120%; right: -6%; top: -30%; }
     .cta-card .beam { top: 38%; }
@@ -440,9 +455,9 @@
     .capture input { flex: 1; border: none; background: transparent; outline: none; padding: 0 16px; font-family: inherit; font-size: 0.98rem; color: var(--ink); }
     .capture input::placeholder { color: var(--muted); }
     .capture .btn { flex: none; }
-    .cta-trust { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: var(--muted); }
+    .cta-trust { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: rgba(12,26,22,.72); }
     .cta-trust span { display: inline-flex; align-items: center; gap: 7px; }
-    .cta-trust svg { width: 14px; height: 14px; color: var(--green-deep); }
+    .cta-trust svg { width: 14px; height: 14px; color: var(--ink); }
 
     /* =========================================================
        FOOTER
@@ -471,7 +486,8 @@
     @media (max-width: 1100px) { .footer-grid { grid-template-columns: 1fr 1fr 1fr; } .footer .f-brand { grid-column: 1 / -1; } }
     @media (max-width: 920px) {
       .showcase-grid { grid-template-columns: 1fr; }
-      .price-grid, .impact-grid { grid-template-columns: repeat(2, 1fr); }
+      .price-grid { grid-template-columns: repeat(2, 1fr); }
+      .impact-panel { grid-template-columns: 1fr; gap: 32px; }
       .bento { grid-template-columns: 1fr 1fr; }
       .b-wide, .b-tall { grid-column: auto; grid-row: auto; }
     }
@@ -481,7 +497,7 @@
       .nav.mobile-open .nav-links { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; position: absolute; top: 78px; left: 0; right: 0; background: rgba(255,255,255,.97); backdrop-filter: blur(14px); padding: 24px var(--gutter) 28px; border-bottom: 1px solid var(--line); }
       .nav.mobile-open .nav-actions { display: flex; flex-direction: column; align-items: stretch; gap: 12px; position: absolute; top: 100%; left: 0; right: 0; }
       .tab-panel.active { grid-template-columns: 1fr; }
-      .steps, .t-grid, .bento, .price-grid, .impact-grid { grid-template-columns: 1fr; }
+      .steps, .t-grid, .bento, .price-grid { grid-template-columns: 1fr; }
       .dash { grid-template-columns: 1fr; }
       .dash-side { display: none; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
@@ -569,14 +585,21 @@
       </div>
     </section>
 
-    <!-- ====================== IMPACT STATS ====================== -->
+    <!-- ====================== IMPACT (solid gradient panel) ====================== -->
     <section class="impact">
       <div class="container">
-        <div class="impact-grid">
-          <div class="impact-cell reveal"><div class="num"><span data-count="12000">0</span>+</div><div class="lbl">Kandidaten gematcht</div></div>
-          <div class="impact-cell reveal s1"><div class="num"><span data-count="3">0</span>×</div><div class="lbl">schnellere Time-to-Hire</div></div>
-          <div class="impact-cell reveal s2"><div class="num"><span data-count="98">0</span>%</div><div class="lbl">Treffer-Genauigkeit</div></div>
-          <div class="impact-cell reveal s3"><div class="num"><span data-count="40">0</span>h</div><div class="lbl">gespart pro Monat</div></div>
+        <div class="grad-panel impact-panel reveal">
+          <div class="gp-rings"></div>
+          <div class="ip-left">
+            <span class="eyebrow">Wirkung</span>
+            <h2 class="h2"><span data-count="3">0</span>× schneller zur<br />richtigen Einstellung.</h2>
+            <p class="ip-sub">Weniger Screening-Stunden, schnellere Entscheidungen, bessere Hires – nachweisbar.</p>
+          </div>
+          <div class="ip-tiles">
+            <div class="ip-tile"><div class="num"><span data-count="12000">0</span>+</div><div class="lbl">Kandidaten<br />gematcht</div></div>
+            <div class="ip-tile"><div class="num"><span data-count="98">0</span>%</div><div class="lbl">Treffer-<br />Genauigkeit</div></div>
+            <div class="ip-tile"><div class="num"><span data-count="40">0</span>h</div><div class="lbl">gespart<br />pro Monat</div></div>
+          </div>
         </div>
       </div>
     </section>
@@ -874,10 +897,10 @@
     <section class="cta">
       <div class="container">
         <div class="cta-card reveal">
-          <div class="aurora-wrap"><div class="aurora a-cyan a1"></div><div class="aurora a-green a2"></div></div>
+          <div class="aurora-wrap"><div class="aurora a-white a1"></div><div class="aurora a-white a2"></div></div>
           <div class="beam" aria-hidden="true"><i class="v"></i><i class="h"></i></div>
           <div class="inner">
-            <span class="eyebrow" style="justify-content:center;margin-bottom:18px;">Jetzt starten</span>
+            <span class="eyebrow" style="justify-content:center;margin-bottom:18px;color:rgba(12,26,22,.72);">Jetzt starten</span>
             <h2 class="h2">Sieh, wer wirklich passt.</h2>
             <p>Lade Job und CVs hoch – und finde in Minuten die besten Kandidaten.</p>
             <form class="capture" onsubmit="return false;">
