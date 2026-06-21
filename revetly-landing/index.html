@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>REVETLY — Die besten Kandidaten, sofort sichtbar</title>
-  <meta name="description" content="REVETLY ist KI-gestütztes Recruiting für den DACH-Markt. Matching, Absagen-Mails und Bewerberverwaltung – automatisiert, erklärbar, DSGVO-konform." />
+  <title>Revetly — Die besten Kandidaten, sofort sichtbar</title>
+  <meta name="description" content="Revetly ist KI-gestütztes Recruiting für den DACH-Markt. Matching, Absagen-Mails und Bewerberverwaltung – automatisiert, erklärbar, DSGVO-konform." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,7 +12,7 @@
 
   <style>
     /* =========================================================
-       TOKENS  —  HR-PRO layout · REVETLY cyan/green palette
+       TOKENS  —  HR-PRO layout · Revetly cyan/green palette
        ========================================================= */
     @property --ba { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 
@@ -103,6 +103,9 @@
     .btn-lg { padding: 16px 28px; font-size: 1rem; }
     .btn .arrow { transition: transform .25s var(--ease); }
     .btn:hover .arrow { transform: translate(3px, -3px); }
+    .btn-primary::after, .btn-light::after, .btn-grad::after { content: ""; position: absolute; top: 0; left: -160%; width: 55%; height: 100%; background: linear-gradient(120deg, transparent, rgba(255,255,255,.32), transparent); transform: skewX(-20deg); pointer-events: none; }
+    .btn-primary:hover::after, .btn-light:hover::after, .btn-grad:hover::after { animation: shine .9s var(--ease); }
+    @keyframes shine { to { left: 170%; } }
 
     /* =========================================================
        PHOTO
@@ -113,10 +116,20 @@
     .photo:hover img { transform: scale(1.04); }
 
     /* =========================================================
-       WAVES (signature background — injected by JS)
+       BACKGROUND PATTERNS (varied per section)
        ========================================================= */
-    .wavebg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
-    .wavebg svg { position: absolute; width: 130%; height: 130%; left: -15%; top: -15%; }
+    .patternbg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+    .patternbg::before { content: ""; position: absolute; inset: -20%; }
+    .patternbg[data-pattern="dots"]::before { background-image: radial-gradient(rgba(14,150,196,.22) 1.5px, transparent 1.7px); background-size: 24px 24px; -webkit-mask: radial-gradient(130% 80% at 50% -10%, #000, transparent 72%); mask: radial-gradient(130% 80% at 50% -10%, #000, transparent 72%); }
+    .patternbg[data-pattern="grid"]::before { background-image: linear-gradient(rgba(14,159,98,.13) 1px, transparent 1px), linear-gradient(90deg, rgba(14,159,98,.13) 1px, transparent 1px); background-size: 48px 48px; -webkit-mask: radial-gradient(120% 95% at 100% 0%, #000, transparent 72%); mask: radial-gradient(120% 95% at 100% 0%, #000, transparent 72%); }
+    .patternbg[data-pattern="diagonal"]::before { background-image: repeating-linear-gradient(45deg, rgba(34,193,238,.11) 0 1.5px, transparent 1.5px 17px); -webkit-mask: radial-gradient(120% 95% at 0% 100%, #000, transparent 72%); mask: radial-gradient(120% 95% at 0% 100%, #000, transparent 72%); }
+    .patternbg[data-pattern="rings"]::before { background-image: repeating-radial-gradient(circle at 84% 22%, rgba(22,199,124,.16) 0 1.5px, transparent 1.5px 48px); -webkit-mask: linear-gradient(180deg, #000, transparent 92%); mask: linear-gradient(180deg, #000, transparent 92%); }
+    .patternbg[data-pattern="cross"]::before { background-image: linear-gradient(rgba(14,150,196,.16) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(14,150,196,.16) 1.5px, transparent 1.5px); background-size: 38px 38px; background-position: center; -webkit-mask: radial-gradient(120% 85% at 50% 0%, #000 38%, transparent 78%); mask: radial-gradient(120% 85% at 50% 0%, #000 38%, transparent 78%); }
+    .patternbg[data-pattern="mesh"]::before, .patternbg[data-pattern="mesh"]::after { content: ""; position: absolute; border-radius: 50%; filter: blur(80px); will-change: transform; }
+    .patternbg[data-pattern="mesh"]::before { inset: auto; width: 48%; height: 75%; left: -8%; top: -22%; background: radial-gradient(circle, rgba(34,193,238,.42), transparent 65%); animation: meshA 24s var(--ease) infinite alternate; }
+    .patternbg[data-pattern="mesh"]::after { content: ""; width: 48%; height: 75%; right: -8%; top: -12%; left: auto; background: radial-gradient(circle, rgba(22,199,124,.40), transparent 65%); animation: meshB 28s var(--ease) infinite alternate; }
+    @keyframes meshA { from { transform: translate(-4%,-3%) scale(1);} to { transform: translate(9%,7%) scale(1.22);} }
+    @keyframes meshB { from { transform: translate(4%,2%) scale(1.12);} to { transform: translate(-9%,-5%) scale(1);} }
 
     /* =========================================================
        NAV
@@ -132,6 +145,8 @@
     .nav-actions .btn { padding: 10px 18px; }
     .nav-toggle { display: none; flex-direction: column; gap: 5px; padding: 8px; }
     .nav-toggle span { width: 24px; height: 2px; background: var(--ink); border-radius: 2px; }
+    .scroll-prog { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--grad); z-index: 200; }
+    .logo .lmk { display: block; border-radius: 11px; box-shadow: var(--shadow-sm); }
 
     /* =========================================================
        LOAD ANIM
@@ -156,7 +171,7 @@
     /* hero visual: photo + overlapping gradient card + name label + score chip */
     .hero-visual { position: relative; }
     .hv-photo { aspect-ratio: 4/5; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); }
-    .hv-card { position: absolute; top: 26px; left: -8%; width: min(270px, 74%); background: var(--grad); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); z-index: 2; }
+    .hv-card { position: absolute; top: 26px; left: -8%; width: min(270px, 74%); background: var(--grad); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); z-index: 2; animation: floaty 6.5s ease-in-out infinite; }
     .hv-card .hp { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.65); border-radius: var(--pill); padding: 5px 11px; font-size: 0.68rem; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
     .hv-card .hp svg { width: 12px; height: 12px; }
     .hv-card p { color: var(--ink); font-weight: 700; font-size: 1.02rem; line-height: 1.3; letter-spacing: -0.01em; }
@@ -189,7 +204,7 @@
     .features { background: var(--white); }
     .feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
     .f-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
-    .f-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+    .f-card:hover { transform: translateY(-5px); box-shadow: 0 30px 60px -34px rgba(14,159,98,.40), var(--shadow-sm); }
     .f-ic { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; margin-bottom: 20px; background: var(--ink); color: #fff; }
     .f-ic svg { width: 22px; height: 22px; }
     .f-card h3 { margin-bottom: 9px; font-size: 1.08rem; }
@@ -276,7 +291,7 @@
     .trust .ts-sub { text-align: center; margin: 14px auto 52px; }
     .t-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
     .t-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: transform .3s var(--ease); }
-    .t-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+    .t-card:hover { transform: translateY(-5px); box-shadow: 0 30px 60px -34px rgba(14,159,98,.38), var(--shadow-sm); }
     .t-stars { display: flex; gap: 3px; color: var(--green); margin-bottom: 16px; }
     .t-stars svg { width: 16px; height: 16px; }
     .t-quote { color: var(--ink); font-size: 1.05rem; font-weight: 600; line-height: 1.5; margin-bottom: 24px; flex: 1; letter-spacing: -0.01em; }
@@ -291,7 +306,7 @@
     .pricing { background: var(--white); overflow: hidden; }
     .price-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; align-items: stretch; }
     .price-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 30px 24px; display: flex; flex-direction: column; transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
-    .price-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+    .price-card:hover { transform: translateY(-5px); box-shadow: 0 30px 60px -34px rgba(14,150,196,.40), var(--shadow-sm); }
     .price-card.featured { color: #cfe5de; position: relative; border: 2px solid transparent; background: linear-gradient(var(--ink), var(--ink)) padding-box, conic-gradient(from var(--ba), var(--cyan), var(--green), var(--cyan)) border-box; box-shadow: var(--shadow-lg); animation: borderspin 6s linear infinite; }
     @keyframes borderspin { to { --ba: 360deg; } }
     .price-card.featured .pc-name, .price-card.featured .pc-price { color: #fff; }
@@ -391,13 +406,14 @@
   </style>
 </head>
 <body>
+  <div class="scroll-prog" id="prog"></div>
 
   <!-- ====================== NAV ====================== -->
   <header class="nav" id="nav">
     <div class="container nav-inner">
       <a href="#top" class="logo">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2c.6 5 2.4 7.8 8 8-5.6.2-7.4 3-8 8-.6-5-2.4-7.8-8-8 5.6-.2 7.4-3 8-8z" fill="url(#lg)"/><defs><linearGradient id="lg" x1="4" y1="4" x2="20" y2="20"><stop stop-color="#22C1EE"/><stop offset="1" stop-color="#16C77C"/></linearGradient></defs></svg>
-        REVETLY
+        <svg class="lmk" width="30" height="30" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="bm" x1="44" y1="4" x2="4" y2="44"><stop offset="0" stop-color="#22C1EE"/><stop offset="1" stop-color="#16C77C"/></linearGradient></defs><rect x="3" y="3" width="42" height="42" rx="13" fill="url(#bm)"/><text x="24" y="34" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-size="27" font-weight="800" fill="#0C1A16">R</text></svg>
+        Revetly
       </a>
       <nav class="nav-links">
         <a href="#features">Features</a>
@@ -417,11 +433,12 @@
 
     <!-- ====================== HERO ====================== -->
     <section class="hero">
+      <div class="patternbg" data-pattern="mesh"></div>
       <div class="container hero-grid">
         <div class="hero-copy">
           <span class="badge lift d1"><span class="dot"></span>KI-Powered Recruiting</span>
           <h1 class="h1 lift d2">Recruiting-Prozess<br />mit <span class="gradient-text">smarter KI.</span></h1>
-          <p class="lead lift d3">REVETLY analysiert CV und Anschreiben gemeinsam, bewertet jeden Bewerber objektiv und übernimmt Absagen wie Einladungen automatisch – damit du dich auf die richtigen Talente konzentrierst.</p>
+          <p class="lead lift d3">Revetly analysiert CV und Anschreiben gemeinsam, bewertet jeden Bewerber objektiv und übernimmt Absagen wie Einladungen automatisch – damit du dich auf die richtigen Talente konzentrierst.</p>
           <div class="hero-ctas lift d4">
             <a href="#" class="btn btn-primary btn-lg">Kostenlos starten <span class="ico arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></span></a>
             <a href="#services" class="btn btn-ghost btn-lg"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span> Demo ansehen</a>
@@ -429,7 +446,7 @@
         </div>
 
         <div class="hero-visual lift d5">
-          <div class="photo hv-photo"><img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=900&q=80" alt="HR-Managerin nutzt REVETLY" loading="lazy" /></div>
+          <div class="photo hv-photo"><img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=900&q=80" alt="HR-Managerin nutzt Revetly" loading="lazy" /></div>
           <div class="hv-card">
             <span class="hp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Top-bewertet</span>
             <p>Über <b>1.000</b> Kandidaten erfolgreich gematcht.</p>
@@ -457,7 +474,7 @@
 
     <!-- ====================== FEATURES ====================== -->
     <section class="features" id="features">
-      <div class="wavebg" data-wave="light"></div>
+      <div class="patternbg" data-pattern="dots"></div>
       <div class="container">
         <div class="section-head center reveal">
           <div class="arrowbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></div>
@@ -475,7 +492,7 @@
 
     <!-- ====================== SERVICES (tabs) ====================== -->
     <section class="services" id="services">
-      <div class="wavebg" data-wave="light"></div>
+      <div class="patternbg" data-pattern="rings"></div>
       <div class="container">
         <div class="section-head reveal">
           <span class="eyebrow">Unser Produkt</span>
@@ -546,14 +563,14 @@
           <p class="gb-sub" style="margin-top:16px;">Wir verstehen deine Anforderungen, bewerten jeden Bewerber objektiv und integrieren uns nahtlos in deinen Recruiting-Alltag.</p>
         </div>
         <div class="steps reveal s1">
-          <div class="step"><div class="sn">1</div><h3>Job anlegen</h3><p>Erstelle deinen Job-Blueprint in Minuten – REVETLY extrahiert automatisch alle Anforderungen.</p></div>
+          <div class="step"><div class="sn">1</div><h3>Job anlegen</h3><p>Erstelle deinen Job-Blueprint in Minuten – Revetly extrahiert automatisch alle Anforderungen.</p></div>
           <div class="step"><div class="sn">2</div><h3>CV hochladen</h3><p>Lade Bewerbungen hoch. Der Matching Score bewertet jeden Kandidaten objektiv in 9 Kategorien.</p></div>
           <div class="step"><div class="sn">3</div><h3>Entscheiden &amp; senden</h3><p>Versende Einladungen oder Absagen mit einem Klick – automatisch personalisiert.</p></div>
         </div>
         <div class="gb-banner reveal s2">
           <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1200&q=80" alt="Recruiter bei der Arbeit" loading="lazy">
           <div class="gbb">
-            <h3>Starte heute mit REVETLY und finde schneller die richtigen Talente.</h3>
+            <h3>Starte heute mit Revetly und finde schneller die richtigen Talente.</h3>
             <a href="#" class="btn btn-grad">Talente finden <span class="ico arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></span></a>
           </div>
         </div>
@@ -562,7 +579,7 @@
 
     <!-- ====================== GROW (bento) ====================== -->
     <section class="grow">
-      <div class="wavebg" data-wave="light"></div>
+      <div class="patternbg" data-pattern="grid"></div>
       <div class="container">
         <div class="section-head center reveal">
           <span class="eyebrow">Wie wir dir helfen</span>
@@ -571,7 +588,7 @@
         <div class="grow-grid">
           <div class="g-card reveal">
             <h3>Optimierter Hiring-Prozess</h3>
-            <p>REVETLY automatisiert dein Screening und schlägt die passendsten Kandidaten zuerst vor.</p>
+            <p>Revetly automatisiert dein Screening und schlägt die passendsten Kandidaten zuerst vor.</p>
             <div class="g-faces">
               <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=160&q=80" alt="" loading="lazy"></div></div>
               <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&q=80" alt="" loading="lazy"></div></div>
@@ -604,14 +621,14 @@
 
     <!-- ====================== TESTIMONIALS ====================== -->
     <section class="trust">
-      <div class="wavebg" data-wave="light"></div>
+      <div class="patternbg" data-pattern="diagonal"></div>
       <div class="container">
         <h2 class="h2 reveal">Du bist in guter Gesellschaft.</h2>
-        <p class="lead ts-sub reveal">HR-Teams im DACH-Raum vertrauen auf REVETLY.</p>
+        <p class="lead ts-sub reveal">HR-Teams im DACH-Raum vertrauen auf Revetly.</p>
         <div class="t-grid">
           <div class="t-card reveal">
             <div class="t-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
-            <p class="t-quote">„REVETLY hat unsere Time-to-Hire halbiert.“</p>
+            <p class="t-quote">„Revetly hat unsere Time-to-Hire halbiert.“</p>
             <div class="t-author"><div class="t-av"><div class="photo"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Sarah M." loading="lazy"></div></div><div class="t-meta"><b>Sarah M.</b><span>Talent Acquisition Lead</span></div></div>
           </div>
           <div class="t-card reveal s1">
@@ -630,7 +647,7 @@
 
     <!-- ====================== PRICING ====================== -->
     <section class="pricing" id="pricing">
-      <div class="wavebg" data-wave="light"></div>
+      <div class="patternbg" data-pattern="cross"></div>
       <div class="container">
         <div class="section-head center reveal">
           <span class="eyebrow">Preise</span>
@@ -669,12 +686,12 @@
 
     <!-- ====================== FAQ ====================== -->
     <section class="faq" id="faq">
-      <div class="wavebg" data-wave="light"></div>
+      <div class="patternbg" data-pattern="mesh"></div>
       <div class="container">
         <div class="section-head center reveal"><span class="eyebrow">FAQ</span><h2 class="h2">Häufige Fragen.</h2></div>
         <div class="faq-grid">
-          <div class="faq-item reveal"><button class="faq-q">Wie funktioniert der Matching Score?<span class="pm"></span></button><div class="faq-a"><div><p>REVETLY analysiert CV und Anschreiben gemeinsam und bewertet jeden Kandidaten in 9 Kategorien – von Hard Skills bis Culture Fit. Jeder Score wird nachvollziehbar begründet, damit du die Entscheidung triffst, nicht die Black Box.</p></div></div></div>
-          <div class="faq-item reveal"><button class="faq-q">Sind meine Daten DSGVO-konform gespeichert?<span class="pm"></span></button><div class="faq-a"><div><p>Ja. Alle Daten liegen auf EU-Servern, die KI trainiert nicht auf deinen Kundendaten, und REVETLY ist auf den EU AI Act ausgelegt – inklusive erklärbarer Entscheidungen und Human Oversight.</p></div></div></div>
+          <div class="faq-item reveal"><button class="faq-q">Wie funktioniert der Matching Score?<span class="pm"></span></button><div class="faq-a"><div><p>Revetly analysiert CV und Anschreiben gemeinsam und bewertet jeden Kandidaten in 9 Kategorien – von Hard Skills bis Culture Fit. Jeder Score wird nachvollziehbar begründet, damit du die Entscheidung triffst, nicht die Black Box.</p></div></div></div>
+          <div class="faq-item reveal"><button class="faq-q">Sind meine Daten DSGVO-konform gespeichert?<span class="pm"></span></button><div class="faq-a"><div><p>Ja. Alle Daten liegen auf EU-Servern, die KI trainiert nicht auf deinen Kundendaten, und Revetly ist auf den EU AI Act ausgelegt – inklusive erklärbarer Entscheidungen und Human Oversight.</p></div></div></div>
           <div class="faq-item reveal"><button class="faq-q">Wie schnell bin ich startklar?<span class="pm"></span></button><div class="faq-a"><div><p>In Minuten. Du legst einen Job an, lädst Bewerbungen hoch und siehst sofort die nach Score sortierten Kandidaten. Kein Setup, keine Schulung nötig.</p></div></div></div>
           <div class="faq-item reveal"><button class="faq-q">Kann ich monatlich kündigen?<span class="pm"></span></button><div class="faq-a"><div><p>Ja, alle Pläne sind monatlich kündbar. Der Free-Plan bleibt kostenlos – ganz ohne Kreditkarte.</p></div></div></div>
         </div>
@@ -707,8 +724,8 @@
       <div class="footer-grid">
         <div class="f-brand">
           <a href="#top" class="logo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2c.6 5 2.4 7.8 8 8-5.6.2-7.4 3-8 8-.6-5-2.4-7.8-8-8 5.6-.2 7.4-3 8-8z" fill="url(#lg2)"/><defs><linearGradient id="lg2" x1="4" y1="4" x2="20" y2="20"><stop stop-color="#22C1EE"/><stop offset="1" stop-color="#16C77C"/></linearGradient></defs></svg>
-            REVETLY
+            <svg class="lmk" width="30" height="30" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="bm2" x1="44" y1="4" x2="4" y2="44"><stop offset="0" stop-color="#22C1EE"/><stop offset="1" stop-color="#16C77C"/></linearGradient></defs><rect x="3" y="3" width="42" height="42" rx="13" fill="url(#bm2)"/><text x="24" y="34" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-size="27" font-weight="800" fill="#0C1A16">R</text></svg>
+            Revetly
           </a>
           <p class="f-tag">KI-gestütztes Recruiting für den DACH-Markt. Erklärbar, DSGVO-konform &amp; EU AI Act ready.</p>
         </div>
@@ -718,7 +735,7 @@
         <div class="footer-col"><h4>Standort</h4><div class="ftxt">Mariahilfer Straße 1<br>1060 Wien, Österreich</div></div>
       </div>
       <div class="footer-bottom">
-        <span>© 2026 REVETLY. Alle Rechte vorbehalten.</span>
+        <span>© 2026 Revetly. Alle Rechte vorbehalten.</span>
         <div class="links"><a href="#">Datenschutz</a><a href="#">Impressum</a><a href="#">AGB</a></div>
       </div>
     </div>
@@ -727,20 +744,19 @@
   <script>
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Wave SVG injection (signature background, in brand colors)
-    const WAVE = `<svg viewBox="0 0 1440 760" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-      <defs><linearGradient id="wv" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C1EE"/><stop offset="1" stop-color="#16C77C"/></linearGradient>
-      <path id="wp" d="M-80 620 C 240 540 470 700 720 620 S 1190 540 1520 620"/></defs>
-      <g fill="none" stroke="url(#wv)" stroke-width="1.5">
-        <use href="#wp" y="-260" opacity="0.05"/><use href="#wp" y="-200" opacity="0.07"/>
-        <use href="#wp" y="-140" opacity="0.09"/><use href="#wp" y="-80" opacity="0.11"/>
-        <use href="#wp" y="-20" opacity="0.12"/><use href="#wp" y="40" opacity="0.10"/>
-        <use href="#wp" y="100" opacity="0.08"/>
-      </g>
-      <circle cx="1240" cy="160" r="300" fill="url(#wv)" opacity="0.05"/>
-      <circle cx="160" cy="600" r="240" fill="url(#wv)" opacity="0.04"/>
-    </svg>`;
-    document.querySelectorAll('.wavebg').forEach(w => w.innerHTML = WAVE);
+    // Scroll progress bar + hero parallax (premium depth)
+    const prog = document.getElementById('prog');
+    const pVis = document.querySelector('.hero-visual');
+    function onFrame() {
+      const h = document.documentElement;
+      const max = h.scrollHeight - h.clientHeight;
+      if (prog) prog.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+      if (pVis && !reduce && document.body.classList.contains('loaded')) {
+        pVis.style.transform = `translateY(${Math.min(window.scrollY, 600) * -0.05}px)`;
+      }
+    }
+    window.addEventListener('scroll', onFrame, { passive: true });
+    onFrame();
 
     // Load
     window.addEventListener('load', () => document.body.classList.add('loaded'));
