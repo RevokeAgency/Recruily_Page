@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RECRUILY — Smarter Hiring Starts Here</title>
+  <meta name="description" content="RECRUILY ist KI-gestütztes Recruiting für den DACH-Mittelstand. Matching, CV-Analyse und Bewerberverwaltung – automatisiert, erklärbar, DSGVO-konform." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =====================================================
+       TOKENS — RECRUILY · Teal palette
+       ===================================================== */
+    :root {
+      --teal:       #1AB3A6;
+      --teal-dark:  #0d9488;
+      --teal-light: #99f6e4;
+      --teal-50:    #f0fdfa;
+      --teal-100:   #ccfbf1;
+      --cyan:       #06b6d4;
+      --violet:     #8b5cf6;
+      --amber:      #f59e0b;
+      --emerald:    #10b981;
+      --rose:       #f43f5e;
+
+      --ink:        #0f172a;
+      --ink-soft:   #334155;
+      --muted:      #64748b;
+      --border:     #e2e8f0;
+      --bg:         #ffffff;
+      --bg-mist:    #f8fafc;
+      --dark-bg:    #0f172a;
+      --dark-card:  rgba(255,255,255,0.05);
+
+      --radius:     12px;
+      --radius-lg:  20px;
+      --radius-xl:  28px;
+      --pill:       999px;
+
+      --shadow-sm:  0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+      --shadow:     0 4px 24px -4px rgba(0,0,0,0.12);
+      --shadow-lg:  0 20px 60px -12px rgba(0,0,0,0.20);
+      --shadow-teal:0 8px 32px -4px rgba(26,179,166,0.30);
+
+      --ease:       cubic-bezier(0.16, 1, 0.3, 1);
+      --maxw:       1160px;
+      --gutter:     clamp(20px, 5vw, 60px);
+
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--ink); line-height: 1.6; overflow-x: hidden; }
+
+    a { text-decoration: none; color: inherit; }
+    img { display: block; max-width: 100%; }
+
+    .container {
+      max-width: var(--maxw);
+      margin-inline: auto;
+      padding-inline: var(--gutter);
+    }
+
+    /* =====================================================
+       SCROLL REVEAL
+       ===================================================== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-left  { opacity: 0; transform: translateX(-40px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
+    .reveal-left.visible { opacity: 1; transform: none; }
+    .reveal-right { opacity: 0; transform: translateX(40px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
+    .reveal-right.visible { opacity: 1; transform: none; }
+    .reveal-scale { opacity: 0; transform: scale(0.93); transition: opacity 0.6s var(--ease), transform 0.6s var(--ease); }
+    .reveal-scale.visible { opacity: 1; transform: scale(1); }
+
+    .stagger-1 { transition-delay: 0.05s; }
+    .stagger-2 { transition-delay: 0.12s; }
+    .stagger-3 { transition-delay: 0.19s; }
+    .stagger-4 { transition-delay: 0.26s; }
+
+    /* =====================================================
+       NAVBAR
+       ===================================================== */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px;
+    }
+    .nav-logo {
+      font-size: 1.35rem; font-weight: 800; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--teal) 0%, var(--cyan) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a { font-size: 0.9rem; font-weight: 500; color: var(--ink-soft); transition: color .2s; }
+    .nav-links a:hover { color: var(--teal); }
+    .nav-cta {
+      background: var(--teal); color: #fff; font-weight: 600; font-size: 0.875rem;
+      padding: 8px 20px; border-radius: var(--pill); border: none; cursor: pointer;
+      transition: background .2s, transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 16px -4px rgba(26,179,166,0.45);
+    }
+    .nav-cta:hover { background: var(--teal-dark); transform: translateY(-1px); box-shadow: var(--shadow-teal); }
+
+    /* =====================================================
+       HERO
+       ===================================================== */
+    .hero {
+      position: relative; overflow: hidden;
+      padding: clamp(80px, 10vw, 140px) 0 clamp(60px, 8vw, 120px);
+      background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 50%, #eff6ff 100%);
+    }
+
+    /* Animated glowing orbs */
+    .orb {
+      position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none;
+      will-change: transform;
+    }
+    .orb-1 {
+      width: 500px; height: 500px; top: -100px; right: -80px;
+      background: radial-gradient(circle, rgba(26,179,166,0.18) 0%, transparent 70%);
+      animation: orbFloat1 14s ease-in-out infinite;
+    }
+    .orb-2 {
+      width: 400px; height: 400px; bottom: -80px; left: -60px;
+      background: radial-gradient(circle, rgba(6,182,212,0.15) 0%, transparent 70%);
+      animation: orbFloat2 18s ease-in-out infinite;
+    }
+    .orb-3 {
+      width: 300px; height: 300px; top: 40%; left: 40%;
+      background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);
+      animation: orbFloat3 22s ease-in-out infinite;
+    }
+    @keyframes orbFloat1 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33%      { transform: translate(30px,-20px) scale(1.05); }
+      66%      { transform: translate(-15px,15px) scale(0.97); }
+    }
+    @keyframes orbFloat2 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      40%      { transform: translate(-20px,18px) scale(1.08); }
+      70%      { transform: translate(18px,-12px) scale(0.95); }
+    }
+    @keyframes orbFloat3 {
+      0%,100% { transform: translate(0,0) scale(1); }
+      25%      { transform: translate(12px,20px) scale(0.95); }
+      75%      { transform: translate(-12px,-18px) scale(1.06); }
+    }
+
+    /* Dot grid overlay */
+    .hero-grid {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: radial-gradient(circle, rgba(26,179,166,0.15) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%);
+    }
+
+    .hero-inner {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+      position: relative; z-index: 2;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(26,179,166,0.1); border: 1px solid rgba(26,179,166,0.25);
+      color: var(--teal-dark); font-size: 0.8rem; font-weight: 600;
+      padding: 5px 14px; border-radius: var(--pill); margin-bottom: 20px;
+      letter-spacing: 0.02em;
+    }
+    .hero-badge-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--teal);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 5vw, 3.6rem);
+      font-weight: 900; letter-spacing: -0.04em; line-height: 1.08;
+      color: var(--ink); margin-bottom: 20px;
+    }
+    .hero h1 .accent {
+      background: linear-gradient(135deg, var(--teal) 0%, var(--cyan) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      position: relative;
+    }
+    .underline-svg {
+      position: absolute; bottom: -6px; left: 0; width: 100%; height: 8px; pointer-events: none;
+    }
+
+    .hero p {
+      font-size: 1.15rem; color: var(--ink-soft); max-width: 480px;
+      margin-bottom: 32px; line-height: 1.7;
+    }
+
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+      color: #fff; font-weight: 700; font-size: 0.95rem;
+      padding: 13px 26px; border-radius: var(--pill); border: none; cursor: pointer;
+      box-shadow: var(--shadow-teal); transition: transform .2s var(--ease), box-shadow .2s;
+      text-decoration: none;
+    }
+    .btn-primary:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 40px -8px rgba(26,179,166,0.50); }
+
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: var(--teal-dark); font-weight: 600; font-size: 0.95rem;
+      padding: 12px 24px; border-radius: var(--pill); cursor: pointer;
+      border: 1.5px solid var(--teal); transition: background .2s, transform .2s;
+      text-decoration: none;
+    }
+    .btn-outline:hover { background: var(--teal-50); transform: translateY(-2px); }
+
+    /* Social proof avatars */
+    .social-proof {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .avatar-stack { display: flex; }
+    .avatar-stack .av {
+      width: 34px; height: 34px; border-radius: 50%; border: 2.5px solid white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700; color: #fff;
+      margin-left: -8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .avatar-stack .av:first-child { margin-left: 0; }
+    .social-text { font-size: 0.85rem; color: var(--muted); }
+    .social-text strong { color: var(--ink-soft); }
+
+    /* Hero image card */
+    .hero-image-wrap {
+      position: relative;
+      animation: heroEntrance 0.9s 0.2s var(--ease) both;
+    }
+    @keyframes heroEntrance {
+      from { opacity: 0; transform: translateX(48px) scale(0.96); }
+      to   { opacity: 1; transform: none; }
+    }
+    .hero-bg-card-1 {
+      position: absolute; inset: 0; border-radius: var(--radius-lg);
+      background: var(--teal-100); border: 1px solid var(--teal-light);
+      transform: translate(-18px, -18px); z-index: 0;
+    }
+    .hero-bg-card-2 {
+      position: absolute; inset: 0; border-radius: var(--radius-lg);
+      background: #dbeafe; border: 1px solid #bfdbfe;
+      transform: translate(18px, 18px); z-index: 0;
+    }
+    .hero-img-card {
+      position: relative; z-index: 1; border-radius: var(--radius-lg);
+      overflow: hidden; border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg); aspect-ratio: 4/3;
+      background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
+    }
+    .hero-img-card img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Floating AI badge */
+    .floating-badge {
+      position: absolute; bottom: 20px; right: 20px; z-index: 2;
+      background: #fff; border-radius: var(--radius);
+      padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+      box-shadow: var(--shadow-lg); border: 1px solid var(--border);
+      animation: badgeEntrance 0.6s 0.9s var(--ease) both;
+    }
+    @keyframes badgeEntrance {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: none; }
+    }
+    .badge-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--teal) 0%, var(--cyan) 100%);
+      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem;
+    }
+    .badge-label { font-size: 0.7rem; color: var(--muted); line-height: 1; }
+    .badge-value { font-size: 0.9rem; font-weight: 700; color: var(--teal-dark); line-height: 1.3; }
+
+    /* =====================================================
+       STATS SECTION
+       ===================================================== */
+    .stats {
+      padding: 56px 0; background: var(--bg);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+    }
+    .stat-card {
+      border-radius: var(--radius-lg); padding: 28px 24px; text-align: center;
+      border: 1px solid transparent;
+      transition: transform .3s var(--ease), box-shadow .3s;
+      cursor: default;
+    }
+    .stat-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+    .stat-card.teal   { background: rgba(26,179,166,0.08); border-color: rgba(26,179,166,0.2); }
+    .stat-card.violet { background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.2); }
+    .stat-card.emerald{ background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.2); }
+    .stat-card.amber  { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); }
+
+    .stat-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; margin: 0 auto 14px; box-shadow: 0 4px 16px -4px rgba(0,0,0,0.2);
+    }
+    .stat-card.teal    .stat-icon { background: linear-gradient(135deg, #1AB3A6, #06b6d4); }
+    .stat-card.violet  .stat-icon { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
+    .stat-card.emerald .stat-icon { background: linear-gradient(135deg, #10b981, #34d399); }
+    .stat-card.amber   .stat-icon { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+
+    .stat-number {
+      font-size: 2.6rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .stat-card.teal    .stat-number { background: linear-gradient(135deg, #1AB3A6, #06b6d4); }
+    .stat-card.violet  .stat-number { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
+    .stat-card.emerald .stat-number { background: linear-gradient(135deg, #10b981, #34d399); }
+    .stat-card.amber   .stat-number { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+
+    .stat-label { font-weight: 700; font-size: 0.9rem; color: var(--ink); margin-top: 4px; }
+    .stat-desc  { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+    /* =====================================================
+       HOW IT WORKS — large avatars
+       ===================================================== */
+    .section { padding: clamp(64px, 8vw, 120px) 0; }
+    .section-label {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--teal-dark); background: var(--teal-50); border: 1px solid rgba(26,179,166,0.2);
+      padding: 5px 14px; border-radius: var(--pill); margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900;
+      letter-spacing: -0.03em; color: var(--ink); margin-bottom: 12px;
+    }
+    .section-sub { font-size: 1.05rem; color: var(--muted); max-width: 540px; }
+    .text-center { text-align: center; }
+    .text-center .section-sub { margin-inline: auto; }
+
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+      margin-top: 56px; position: relative;
+    }
+
+    /* Connector lines */
+    .steps-grid::before, .steps-grid::after {
+      content: "";
+      position: absolute; top: 64px; height: 2px; width: calc(33.33% - 40px);
+      background: linear-gradient(90deg, rgba(26,179,166,0.4), rgba(6,182,212,0.4));
+      pointer-events: none;
+    }
+    .steps-grid::before { left: calc(33.33% + 20px); }
+    .steps-grid::after  { left: calc(66.66% + 20px); }
+
+    .step-card {
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      position: relative; z-index: 1;
+    }
+
+    /* LARGE avatar circles — the key upgrade */
+    .step-avatar {
+      width: 128px; height: 128px; border-radius: 28px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3rem; margin-bottom: 24px; position: relative;
+      box-shadow: 0 12px 40px -8px rgba(0,0,0,0.20);
+      transition: transform .35s var(--ease), box-shadow .35s;
+      cursor: default;
+    }
+    .step-avatar:hover {
+      transform: translateY(-6px) rotate(2deg) scale(1.04);
+      box-shadow: 0 24px 60px -12px rgba(0,0,0,0.25);
+    }
+    .step-avatar.s1 { background: linear-gradient(135deg, #1AB3A6 0%, #06b6d4 100%); }
+    .step-avatar.s2 { background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); }
+    .step-avatar.s3 { background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%); }
+
+    /* Step number badge on avatar */
+    .step-num {
+      position: absolute; top: -10px; right: -10px;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--ink); color: #fff; border: 3px solid white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 800; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .step-body { background: var(--bg-mist); border-radius: var(--radius-lg); padding: 22px 18px; width: 100%; }
+    .step-body h3 { font-size: 1.05rem; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+    .step-body p  { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+    /* =====================================================
+       FEATURES
+       ===================================================== */
+    .features-bg { background: var(--bg-mist); }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 56px;
+    }
+    .feat-card {
+      background: var(--bg); border-radius: var(--radius-lg); padding: 28px;
+      border: 1px solid var(--border); transition: transform .3s var(--ease), box-shadow .3s, border-color .3s;
+    }
+    .feat-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: rgba(26,179,166,0.3); }
+    .feat-icon {
+      width: 48px; height: 48px; border-radius: 14px; margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--teal-50) 0%, rgba(26,179,166,0.12) 100%);
+      display: flex; align-items: center; justify-content: center; font-size: 1.35rem;
+      border: 1px solid rgba(26,179,166,0.15);
+    }
+    .feat-card h3 { font-size: 1rem; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+    .feat-card p  { font-size: 0.875rem; color: var(--muted); line-height: 1.65; }
+
+    /* =====================================================
+       TESTIMONIALS — Spectacular dark carousel
+       ===================================================== */
+    .testimonials {
+      position: relative; overflow: hidden;
+      padding: clamp(72px, 9vw, 120px) 0;
+      background: var(--dark-bg);
+    }
+
+    /* Glowing background orbs */
+    .t-orb-1 {
+      position: absolute; width: 500px; height: 500px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(26,179,166,0.12) 0%, transparent 70%);
+      top: -100px; left: 15%; filter: blur(60px); pointer-events: none;
+      animation: orbFloat1 16s ease-in-out infinite;
+    }
+    .t-orb-2 {
+      position: absolute; width: 400px; height: 400px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(6,182,212,0.10) 0%, transparent 70%);
+      bottom: -80px; right: 15%; filter: blur(60px); pointer-events: none;
+      animation: orbFloat2 20s ease-in-out infinite;
+    }
+
+    /* Grid overlay */
+    .t-grid {
+      position: absolute; inset: 0; pointer-events: none; opacity: 0.035;
+      background-image:
+        linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px);
+      background-size: 56px 56px;
+    }
+
+    .t-header { text-align: center; position: relative; z-index: 2; margin-bottom: 56px; }
+    .t-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(26,179,166,0.12); border: 1px solid rgba(26,179,166,0.25);
+      color: #5eead4; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 6px 16px; border-radius: var(--pill); margin-bottom: 18px;
+    }
+    .t-badge-star { color: #fbbf24; font-size: 0.85rem; }
+    .t-header h2 {
+      font-size: clamp(1.9rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em;
+      color: #fff; margin-bottom: 12px;
+    }
+    .t-header h2 span {
+      background: linear-gradient(135deg, #1AB3A6, #06b6d4);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .t-header p { color: #94a3b8; font-size: 1.05rem; }
+
+    /* Carousel */
+    .carousel-wrap { position: relative; z-index: 2; max-width: 820px; margin-inline: auto; }
+    .carousel-slide {
+      background: rgba(255,255,255,0.06); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.10); border-radius: var(--radius-xl);
+      padding: clamp(32px, 5vw, 56px);
+      transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
+      position: relative; overflow: hidden;
+    }
+    .carousel-slide.hiding { opacity: 0; transform: translateX(60px) scale(0.97); }
+    .carousel-slide.entering { opacity: 0; transform: translateX(-60px) scale(0.97); }
+
+    /* Quote icon */
+    .quote-icon {
+      position: absolute; top: -18px; left: 40px;
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--teal), var(--cyan));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; box-shadow: 0 6px 20px -4px rgba(26,179,166,0.5);
+    }
+
+    /* Stars */
+    .t-stars { display: flex; gap: 4px; margin-bottom: 20px; }
+    .t-stars span { color: #fbbf24; font-size: 1.15rem; }
+
+    .t-quote {
+      font-size: clamp(1rem, 2vw, 1.2rem); font-weight: 500;
+      color: rgba(255,255,255,0.9); line-height: 1.7; margin-bottom: 36px;
+      font-style: italic;
+    }
+
+    /* Author row with LARGE avatar */
+    .t-author { display: flex; align-items: center; gap: 16px; }
+    .t-avatar {
+      width: 68px; height: 68px; border-radius: 18px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.35rem; font-weight: 800; color: #fff;
+      box-shadow: 0 8px 24px -6px rgba(0,0,0,0.35); position: relative;
+    }
+    .t-online {
+      position: absolute; bottom: -4px; right: -4px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #10b981; border: 2.5px solid var(--dark-bg);
+    }
+    .t-name { font-size: 1.05rem; font-weight: 700; color: #fff; line-height: 1.2; }
+    .t-pos  { font-size: 0.83rem; color: #94a3b8; margin-top: 2px; }
+    .t-company { font-size: 0.83rem; color: var(--teal-light); font-weight: 600; margin-top: 2px; }
+
+    /* Gradient accent */
+    .t-corner-glow {
+      position: absolute; bottom: 0; right: 0;
+      width: 160px; height: 160px; border-radius: 0 0 var(--radius-xl) 0;
+      opacity: 0.12; pointer-events: none;
+    }
+
+    /* Navigation */
+    .carousel-nav {
+      display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 32px;
+    }
+    .nav-btn {
+      width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06); color: #fff; font-size: 1.1rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background .2s, border-color .2s, transform .2s;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(26,179,166,0.5); transform: scale(1.08); }
+
+    /* Progress dots */
+    .carousel-dots { display: flex; gap: 8px; align-items: center; }
+    .dot {
+      height: 7px; border-radius: var(--pill); cursor: pointer;
+      transition: width .3s var(--ease), background .3s;
+      background: rgba(255,255,255,0.2);
+      width: 7px;
+    }
+    .dot.active { width: 28px; background: var(--teal); }
+
+    /* Logo ticker */
+    .ticker-wrap {
+      margin-top: 64px; padding-top: 40px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      position: relative; z-index: 2;
+    }
+    .ticker-label {
+      text-align: center; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #475569; margin-bottom: 24px;
+    }
+    .ticker { position: relative; overflow: hidden; }
+    .ticker-track {
+      display: flex; gap: 56px;
+      animation: marquee 26s linear infinite;
+      will-change: transform;
+    }
+    .ticker:hover .ticker-track { animation-play-state: paused; }
+    .ticker-name {
+      flex-shrink: 0; font-weight: 700; font-size: 1rem;
+      color: #475569; white-space: nowrap;
+      transition: color .2s;
+    }
+    .ticker-name:hover { color: #94a3b8; }
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    /* Fade edges */
+    .ticker::before, .ticker::after {
+      content: ""; position: absolute; top: 0; bottom: 0; width: 100px; z-index: 2; pointer-events: none;
+    }
+    .ticker::before { left: 0;  background: linear-gradient(to right, var(--dark-bg), transparent); }
+    .ticker::after  { right: 0; background: linear-gradient(to left,  var(--dark-bg), transparent); }
+
+    /* =====================================================
+       PRICING — quick reference
+       ===================================================== */
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 56px;
+    }
+    .price-card {
+      border-radius: var(--radius-lg); padding: 28px 22px;
+      border: 1px solid var(--border); background: var(--bg);
+      transition: transform .3s var(--ease), box-shadow .3s, border-color .3s;
+      position: relative;
+    }
+    .price-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+    .price-card.popular {
+      border-color: var(--teal); background: linear-gradient(160deg, var(--teal-50) 0%, var(--bg) 100%);
+    }
+    .popular-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--teal), var(--cyan));
+      color: #fff; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;
+      padding: 4px 14px; border-radius: var(--pill);
+    }
+    .price-name { font-size: 0.85rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .price-amount {
+      font-size: 2.4rem; font-weight: 900; letter-spacing: -0.04em; color: var(--ink);
+      margin: 10px 0 4px;
+    }
+    .price-amount sup { font-size: 1.1rem; font-weight: 700; vertical-align: super; }
+    .price-matches { font-size: 0.82rem; color: var(--muted); margin-bottom: 22px; }
+    .price-features { list-style: none; display: flex; flex-direction: column; gap: 9px; margin-bottom: 24px; }
+    .price-features li { font-size: 0.84rem; color: var(--ink-soft); display: flex; align-items: center; gap: 8px; }
+    .price-features li::before { content: "✓"; color: var(--teal); font-weight: 700; flex-shrink: 0; }
+    .price-btn {
+      display: block; width: 100%; padding: 11px; border-radius: var(--pill);
+      font-weight: 700; font-size: 0.875rem; text-align: center; cursor: pointer;
+      border: 1.5px solid var(--teal); color: var(--teal-dark);
+      background: transparent; transition: background .2s, color .2s;
+    }
+    .price-btn:hover { background: var(--teal); color: #fff; }
+    .price-card.popular .price-btn { background: var(--teal); color: #fff; }
+    .price-card.popular .price-btn:hover { background: var(--teal-dark); }
+
+    /* =====================================================
+       CTA BAND
+       ===================================================== */
+    .cta-band {
+      background: linear-gradient(135deg, var(--teal) 0%, #0891b2 100%);
+      padding: clamp(56px, 7vw, 100px) 0; text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-band-grid {
+      position: absolute; inset: 0; pointer-events: none; opacity: 0.08;
+      background-image:
+        linear-gradient(rgba(255,255,255,.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.2) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .cta-band h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 900; color: #fff;
+      letter-spacing: -0.03em; margin-bottom: 14px; position: relative; z-index: 1;
+    }
+    .cta-band p { color: rgba(255,255,255,0.82); font-size: 1.05rem; margin-bottom: 36px; position: relative; z-index: 1; }
+    .btn-white {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #fff; color: var(--teal-dark); font-weight: 800; font-size: 0.95rem;
+      padding: 14px 32px; border-radius: var(--pill); border: none; cursor: pointer;
+      box-shadow: 0 8px 32px -8px rgba(0,0,0,0.25);
+      transition: transform .2s var(--ease), box-shadow .2s;
+      position: relative; z-index: 1; text-decoration: none;
+    }
+    .btn-white:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 16px 48px -8px rgba(0,0,0,0.30); }
+
+    /* Wave divider */
+    .wave-divider { display: block; line-height: 0; }
+    .wave-divider svg { display: block; }
+
+    /* =====================================================
+       FOOTER
+       ===================================================== */
+    footer {
+      background: var(--ink); color: #94a3b8;
+      padding: 48px 0 28px;
+    }
+    .footer-inner {
+      display: flex; flex-direction: column; gap: 32px;
+    }
+    .footer-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; flex-wrap: wrap; }
+    .footer-logo {
+      font-size: 1.4rem; font-weight: 900; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--teal), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .footer-tagline { font-size: 0.82rem; color: #475569; margin-top: 6px; max-width: 240px; }
+    .footer-links { display: flex; gap: 48px; flex-wrap: wrap; }
+    .footer-col h4 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #e2e8f0; margin-bottom: 14px; }
+    .footer-col a { display: block; font-size: 0.84rem; color: #64748b; margin-bottom: 9px; transition: color .2s; }
+    .footer-col a:hover { color: var(--teal-light); }
+    .footer-bottom {
+      border-top: 1px solid #1e293b; padding-top: 24px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+      font-size: 0.8rem; color: #475569;
+    }
+    .dsgvo-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(26,179,166,0.1); border: 1px solid rgba(26,179,166,0.2);
+      color: #5eead4; font-size: 0.75rem; font-weight: 600;
+      padding: 4px 12px; border-radius: var(--pill);
+    }
+
+    /* =====================================================
+       RESPONSIVE
+       ===================================================== */
+    @media (max-width: 900px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-bg-card-1, .hero-bg-card-2 { display: none; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .steps-grid { grid-template-columns: 1fr; }
+      .steps-grid::before, .steps-grid::after { display: none; }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 600px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ======================================================
+     NAVBAR
+     ====================================================== -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <div class="nav-logo">RECRUILY</div>
+      <div class="nav-links">
+        <a href="#how-it-works">So funktioniert's</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Preise</a>
+        <a href="#testimonials">Referenzen</a>
+      </div>
+      <button class="nav-cta">Kostenlos starten →</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ======================================================
+     HERO
+     ====================================================== -->
+<section class="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="hero-grid"></div>
+
+  <div class="container">
+    <div class="hero-inner">
+
+      <!-- Left: Content -->
+      <div>
+        <div class="reveal stagger-1">
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            KI-gestützte Rekrutierung
+          </div>
+        </div>
+        <div class="reveal stagger-2">
+          <h1>
+            Intelligentere Einstellungen<br>
+            <span class="accent">
+              Beginnen Hier
+              <svg class="underline-svg" viewBox="0 0 200 12" preserveAspectRatio="none">
+                <path d="M0,8 C50,2 150,2 200,8" stroke="rgba(26,179,166,0.4)" stroke-width="3" fill="none" stroke-linecap="round"/>
+              </svg>
+            </span>
+          </h1>
+        </div>
+        <div class="reveal stagger-3">
+          <p>KI-gestütztes Matching, um Top-Kandidaten ohne Lebenslauf-Chaos zu finden. CV und Anschreiben gemeinsam analysiert — erklärt, DSGVO-konform.</p>
+        </div>
+        <div class="reveal stagger-4">
+          <div class="hero-ctas">
+            <a href="#" class="btn-primary">Kostenlos testen <span>→</span></a>
+            <a href="#" class="btn-outline">▷ Demo anfragen</a>
+          </div>
+          <div class="social-proof">
+            <div class="avatar-stack">
+              <div class="av" style="background:#1AB3A6">SJ</div>
+              <div class="av" style="background:#8b5cf6">MC</div>
+              <div class="av" style="background:#f59e0b">TM</div>
+              <div class="av" style="background:#10b981">AW</div>
+            </div>
+            <p class="social-text"><strong>500+</strong> Unternehmen vertrauen RECRUILY</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Image card -->
+      <div class="hero-image-wrap">
+        <div class="hero-bg-card-1"></div>
+        <div class="hero-bg-card-2"></div>
+        <div class="hero-img-card">
+          <img
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/hr-recruitment-leadership-teambuilding-select-team-leader-business-concept.jpg-DKyyu1yR5EgxYxuoBkM81I85Y4OR85.jpeg"
+            alt="RECRUILY KI-gestützte Kandidaten-Analyse"
+          />
+          <div class="floating-badge">
+            <div class="badge-icon">✨</div>
+            <div>
+              <div class="badge-label">KI Match</div>
+              <div class="badge-value">94% Fit</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     STATS
+     ====================================================== -->
+<section class="stats">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card teal reveal stagger-1">
+        <div class="stat-icon">⏱</div>
+        <div class="stat-number" data-target="60" data-suffix="%">0%</div>
+        <div class="stat-label">Schnellere Einstellung</div>
+        <div class="stat-desc">Reduzierung der Einstellungszeit</div>
+      </div>
+      <div class="stat-card violet reveal stagger-2">
+        <div class="stat-icon">📈</div>
+        <div class="stat-number" data-target="45" data-suffix="%">0%</div>
+        <div class="stat-label">Bessere Qualität</div>
+        <div class="stat-desc">Verbesserung der Kandidatenpassung</div>
+      </div>
+      <div class="stat-card emerald reveal stagger-3">
+        <div class="stat-icon">💶</div>
+        <div class="stat-number" data-target="35" data-suffix="%">0%</div>
+        <div class="stat-label">Kostenreduzierung</div>
+        <div class="stat-desc">Geringere Kosten pro Einstellung</div>
+      </div>
+      <div class="stat-card amber reveal stagger-4">
+        <div class="stat-icon">📊</div>
+        <div class="stat-number" data-target="10" data-suffix="x">0x</div>
+        <div class="stat-label">Return on Investment</div>
+        <div class="stat-desc">Durchschnittlicher ROI im ersten Jahr</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     HOW IT WORKS — large avatars
+     ====================================================== -->
+<section class="section" id="how-it-works">
+  <div class="container">
+    <div class="text-center reveal">
+      <div class="section-label">⚡ So einfach geht's</div>
+      <h2 class="section-title">In 3 Schritten zum<br>perfekten Kandidaten</h2>
+      <p class="section-sub">RECRUILY automatisiert den aufwändigsten Teil Ihres Recruiting-Prozesses.</p>
+    </div>
+
+    <div class="steps-grid">
+      <!-- Step 1 -->
+      <div class="step-card reveal stagger-1">
+        <div class="step-avatar s1">
+          📄
+          <div class="step-num">1</div>
+        </div>
+        <div class="step-body">
+          <h3>Stellenbeschreibung hochladen</h3>
+          <p>Laden Sie Ihre Stellenbeschreibung hoch oder lassen Sie unseren KI-Assistenten eine erstellen — in Sekunden.</p>
+        </div>
+      </div>
+      <!-- Step 2 -->
+      <div class="step-card reveal stagger-2">
+        <div class="step-avatar s2">
+          📤
+          <div class="step-num">2</div>
+        </div>
+        <div class="step-body">
+          <h3>CVs &amp; Anschreiben hochladen</h3>
+          <p>Laden Sie Lebensläufe und Anschreiben hoch. RECRUILY analysiert beides gemeinsam — als einziges Tool am Markt.</p>
+        </div>
+      </div>
+      <!-- Step 3 -->
+      <div class="step-card reveal stagger-3">
+        <div class="step-avatar s3">
+          🏆
+          <div class="step-num">3</div>
+        </div>
+        <div class="step-body">
+          <h3>Top-Kandidaten erhalten</h3>
+          <p>KI analysiert und bewertet nach 6 Ebenen. Sie erhalten einen erklärten Match-Score — transparent, nicht Black-Box.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     FEATURES
+     ====================================================== -->
+<section class="section features-bg" id="features">
+  <div class="container">
+    <div class="text-center reveal">
+      <div class="section-label">💡 Leistungsstarke Funktionen</div>
+      <h2 class="section-title">Alles was Sie brauchen</h2>
+      <p class="section-sub">Gebaut für den DACH-Mittelstand — DSGVO-konform, EU-Server, AI Act compliant.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card reveal stagger-1">
+        <div class="feat-icon">✨</div>
+        <h3>KI Lebenslauf &amp; Job Matching</h3>
+        <p>Fortschrittliche Algorithmen finden Kandidaten, die perfekt zu Ihren Anforderungen passen — in Minuten statt Tagen.</p>
+      </div>
+      <div class="feat-card reveal stagger-2">
+        <div class="feat-icon">📝</div>
+        <h3>Anschreiben-Psychologie</h3>
+        <p>Als einziges Tool am Markt analysieren wir CV und Anschreiben gemeinsam. Motivation, Kultur-Fit und Kommunikationsstärke messbar gemacht.</p>
+      </div>
+      <div class="feat-card reveal stagger-3">
+        <div class="feat-icon">📊</div>
+        <h3>Erklärbarer Match-Score</h3>
+        <p>Verstehen Sie genau, warum ein Kandidat passt. Mit Stärken, Risiken, K.O.-Kriterien und Handlungsempfehlung.</p>
+      </div>
+      <div class="feat-card reveal stagger-1">
+        <div class="feat-icon">👥</div>
+        <h3>Multi-User Team-Zugang</h3>
+        <p>Zusammenarbeit mit rollenbasierten Berechtigungen und gemeinsamen Kandidatenpools für Ihr ganzes HR-Team.</p>
+      </div>
+      <div class="feat-card reveal stagger-2">
+        <div class="feat-icon">🔒</div>
+        <h3>DSGVO-konform &amp; sicher</h3>
+        <p>EU-Server (Supabase Frankfurt, Vertex AI Frankfurt). Kein Training auf Ihren Daten. AI Act compliant mit erklärbarer KI.</p>
+      </div>
+      <div class="feat-card reveal stagger-3">
+        <div class="feat-icon">⚡</div>
+        <h3>Einfache Einrichtung</h3>
+        <p>Starten Sie in unter 10 Minuten. Keine IT erforderlich, keine Schulung nötig. Sofort einsatzbereit.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     TESTIMONIALS — dark carousel
+     ====================================================== -->
+<section class="testimonials" id="testimonials">
+  <div class="t-orb-1"></div>
+  <div class="t-orb-2"></div>
+  <div class="t-grid"></div>
+
+  <div class="container">
+    <div class="t-header reveal">
+      <div class="t-badge">
+        <span class="t-badge-star">★</span>
+        Vertraut von 500+ Unternehmen
+      </div>
+      <h2>Warum HR-Teams <span>RECRUILY</span> lieben</h2>
+      <p>Echte Ergebnisse von echten Unternehmen im DACH-Raum.</p>
+    </div>
+
+    <div class="carousel-wrap reveal">
+      <div class="carousel-slide" id="carousel-slide">
+        <div class="quote-icon">💬</div>
+        <div class="t-stars">
+          <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+        </div>
+        <p class="t-quote" id="t-quote"></p>
+        <div class="t-author">
+          <div class="t-avatar" id="t-avatar">
+            <div class="t-online"></div>
+          </div>
+          <div>
+            <div class="t-name" id="t-name"></div>
+            <div class="t-pos"  id="t-pos"></div>
+            <div class="t-company" id="t-company"></div>
+          </div>
+        </div>
+        <div class="t-corner-glow" id="t-glow"></div>
+      </div>
+
+      <div class="carousel-nav">
+        <button class="nav-btn" id="prev-btn">←</button>
+        <div class="carousel-dots" id="carousel-dots"></div>
+        <button class="nav-btn" id="next-btn">→</button>
+      </div>
+    </div>
+
+    <!-- Logo ticker -->
+    <div class="ticker-wrap reveal">
+      <p class="ticker-label">Vertraut von Teams bei</p>
+      <div class="ticker">
+        <div class="ticker-track">
+          <span class="ticker-name">TechGrowth GmbH</span>
+          <span class="ticker-name">Innovate Solutions AG</span>
+          <span class="ticker-name">Future Finance</span>
+          <span class="ticker-name">TopTalent Recruiting</span>
+          <span class="ticker-name">Mittelstand Plus</span>
+          <span class="ticker-name">Scale GmbH</span>
+          <span class="ticker-name">Digital HR Austria</span>
+          <span class="ticker-name">PeopleFirst</span>
+          <!-- duplicate for loop -->
+          <span class="ticker-name">TechGrowth GmbH</span>
+          <span class="ticker-name">Innovate Solutions AG</span>
+          <span class="ticker-name">Future Finance</span>
+          <span class="ticker-name">TopTalent Recruiting</span>
+          <span class="ticker-name">Mittelstand Plus</span>
+          <span class="ticker-name">Scale GmbH</span>
+          <span class="ticker-name">Digital HR Austria</span>
+          <span class="ticker-name">PeopleFirst</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     PRICING
+     ====================================================== -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="text-center reveal">
+      <div class="section-label">💰 Transparente Preise</div>
+      <h2 class="section-title">Bezahlen Sie pro Match</h2>
+      <p class="section-sub">1 Match = 1 CV gegen 1 Job analysiert. Keine versteckten Kosten.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card reveal stagger-1">
+        <div class="price-name">Free</div>
+        <div class="price-amount">€0</div>
+        <div class="price-matches">10 Matches inkludiert</div>
+        <ul class="price-features">
+          <li>10 kostenlose Matches</li>
+          <li>Kein Credit Card</li>
+          <li>Voller Feature-Zugang</li>
+          <li>Email Support</li>
+        </ul>
+        <button class="price-btn">Kostenlos starten</button>
+      </div>
+      <div class="price-card reveal stagger-2">
+        <div class="price-name">Starter</div>
+        <div class="price-amount"><sup>€</sup>49<small style="font-size:1rem;font-weight:500">/Mo</small></div>
+        <div class="price-matches">50 Matches / Monat</div>
+        <ul class="price-features">
+          <li>50 Matches</li>
+          <li>1 User</li>
+          <li>Email Support</li>
+          <li>Basis Analytics</li>
+        </ul>
+        <button class="price-btn">Jetzt starten</button>
+      </div>
+      <div class="price-card popular reveal stagger-3">
+        <div class="popular-badge">Most Popular</div>
+        <div class="price-name">Growth</div>
+        <div class="price-amount"><sup>€</sup>149<small style="font-size:1rem;font-weight:500">/Mo</small></div>
+        <div class="price-matches">200 Matches / Monat</div>
+        <ul class="price-features">
+          <li>200 Matches</li>
+          <li>5 Users</li>
+          <li>Vollständige Analytics</li>
+          <li>Priority Support</li>
+        </ul>
+        <button class="price-btn">Jetzt starten</button>
+      </div>
+      <div class="price-card reveal stagger-4">
+        <div class="price-name">Pro</div>
+        <div class="price-amount"><sup>€</sup>299<small style="font-size:1rem;font-weight:500">/Mo</small></div>
+        <div class="price-matches">500 Matches / Monat</div>
+        <ul class="price-features">
+          <li>500 Matches</li>
+          <li>Unlimited Users</li>
+          <li>API Zugang</li>
+          <li>Dedicated Support</li>
+        </ul>
+        <button class="price-btn">Jetzt starten</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     CTA BAND
+     ====================================================== -->
+<div class="wave-divider">
+  <svg viewBox="0 0 1440 80" preserveAspectRatio="none" style="width:100%;display:block">
+    <path fill="#1AB3A6" d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z"/>
+  </svg>
+</div>
+<section class="cta-band">
+  <div class="cta-band-grid"></div>
+  <div class="container reveal">
+    <h2>Bereit für intelligenteres Matching?</h2>
+    <p>Schließen Sie sich 500+ Unternehmen an, die ihre Rekrutierung mit RECRUILY optimiert haben.</p>
+    <a href="#" class="btn-white">Kostenlos starten – Keine Kreditkarte erforderlich ✓</a>
+  </div>
+</section>
+
+<!-- ======================================================
+     FOOTER
+     ====================================================== -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div>
+          <div class="footer-logo">RECRUILY</div>
+          <p class="footer-tagline">Der digitale Senior Recruiter für den DACH-Mittelstand — erklärt jede Entscheidung.</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-col">
+            <h4>Produkt</h4>
+            <a href="#">Features</a>
+            <a href="#">Preise</a>
+            <a href="#">Demo</a>
+            <a href="#">Changelog</a>
+          </div>
+          <div class="footer-col">
+            <h4>Unternehmen</h4>
+            <a href="#">Über uns</a>
+            <a href="#">Blog</a>
+            <a href="#">Karriere</a>
+            <a href="#">Kontakt</a>
+          </div>
+          <div class="footer-col">
+            <h4>Rechtliches</h4>
+            <a href="#">Datenschutz</a>
+            <a href="#">AGB</a>
+            <a href="#">Impressum</a>
+            <a href="#">DSGVO DPA</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 RECRUILY. Alle Rechte vorbehalten.</span>
+        <div class="dsgvo-badge">🔒 DSGVO-konform · EU-Server</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ======================================================
+     JAVASCRIPT
+     ====================================================== -->
+<script>
+  /* ——— Scroll Reveal ——— */
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '-40px 0px' });
+
+  document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale')
+    .forEach(el => observer.observe(el));
+
+  /* ——— Animated Counters ——— */
+  const counterObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      const target = parseInt(el.dataset.target);
+      const suffix = el.dataset.suffix || '';
+      const duration = 1800;
+      const start = performance.now();
+      const animate = (now) => {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.floor(eased * target) + suffix;
+        if (progress < 1) requestAnimationFrame(animate);
+      };
+      requestAnimationFrame(animate);
+      counterObserver.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+
+  document.querySelectorAll('.stat-number[data-target]')
+    .forEach(el => counterObserver.observe(el));
+
+  /* ——— Testimonials Carousel ——— */
+  const testimonials = [
+    {
+      quote: "RECRUILY hat unseren Einstellungsprozess komplett verändert. Wir haben die Einstellungszeit um 60% reduziert und deutlich bessere Kandidaten gefunden — in der halben Zeit.",
+      author: "Sarah Johnson", pos: "HR-Direktorin", company: "TechGrowth GmbH",
+      initials: "SJ", grad: "linear-gradient(135deg,#1AB3A6,#06b6d4)", glow: "rgba(26,179,166,0.2)"
+    },
+    {
+      quote: "Das KI-Matching ist unglaublich präzise. Wir interviewen jetzt nur noch Kandidaten, die wirklich qualifiziert sind — allein die Anschreiben-Analyse ist ihren Preis wert.",
+      author: "Michael Chen", pos: "Talent Acquisition Manager", company: "Innovate Solutions AG",
+      initials: "MC", grad: "linear-gradient(135deg,#8b5cf6,#a78bfa)", glow: "rgba(139,92,246,0.2)"
+    },
+    {
+      quote: "Das Setup dauerte unter 10 Minuten. Das gesamte Team nutzte es sofort — keine IT nötig, keine Schulung erforderlich. Einfach brillant.",
+      author: "Emma Rodriguez", pos: "Head of People", company: "Future Finance GmbH",
+      initials: "ER", grad: "linear-gradient(135deg,#f43f5e,#fb7185)", glow: "rgba(244,63,94,0.2)"
+    },
+    {
+      quote: "Als Personalvermittlung betreuen wir dutzende Kunden. RECRUILY ermöglicht uns eine 3-fache Skalierung ohne mehr Recruiter einzustellen. Der ROI ist außergewöhnlich.",
+      author: "Thomas Müller", pos: "Geschäftsführer", company: "TopTalent Recruiting",
+      initials: "TM", grad: "linear-gradient(135deg,#f59e0b,#fb923c)", glow: "rgba(245,158,11,0.2)"
+    },
+    {
+      quote: "DSGVO-Konformität auf EU-Servern war für uns nicht verhandelbar. RECRUILY hat in jeder Hinsicht geliefert — Sicherheit, Geschwindigkeit und Match-Qualität.",
+      author: "Anna Weber", pos: "CHRO", company: "Mittelstand Plus GmbH",
+      initials: "AW", grad: "linear-gradient(135deg,#10b981,#34d399)", glow: "rgba(16,185,129,0.2)"
+    }
+  ];
+
+  let current = 0;
+  let autoTimer = null;
+  const slide  = document.getElementById('carousel-slide');
+  const quote  = document.getElementById('t-quote');
+  const avatar = document.getElementById('t-avatar');
+  const name   = document.getElementById('t-name');
+  const pos    = document.getElementById('t-pos');
+  const company= document.getElementById('t-company');
+  const glow   = document.getElementById('t-glow');
+  const dotsEl = document.getElementById('carousel-dots');
+
+  // Build dots
+  testimonials.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => goTo(i));
+    dotsEl.appendChild(d);
+  });
+
+  function render(idx) {
+    const t = testimonials[idx];
+    quote.textContent  = `"${t.quote}"`;
+    name.textContent   = t.author;
+    pos.textContent    = t.pos;
+    company.textContent= t.company;
+    avatar.style.background = t.grad;
+    // Keep initials and online dot
+    avatar.innerHTML = `${t.initials}<div class="t-online"></div>`;
+    glow.style.background = `radial-gradient(circle at bottom right, ${t.glow} 0%, transparent 70%)`;
+    document.querySelectorAll('.dot').forEach((d, i) => {
+      d.classList.toggle('active', i === idx);
+    });
+  }
+
+  function goTo(idx) {
+    slide.classList.add('hiding');
+    setTimeout(() => {
+      current = (idx + testimonials.length) % testimonials.length;
+      render(current);
+      slide.classList.remove('hiding');
+      slide.classList.add('entering');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => slide.classList.remove('entering'));
+      });
+    }, 200);
+    resetTimer();
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  document.getElementById('next-btn').addEventListener('click', next);
+  document.getElementById('prev-btn').addEventListener('click', prev);
+
+  function resetTimer() {
+    if (autoTimer) clearInterval(autoTimer);
+    autoTimer = setInterval(next, 5000);
+  }
+
+  const carouselWrap = document.querySelector('.carousel-wrap');
+  carouselWrap.addEventListener('mouseenter', () => clearInterval(autoTimer));
+  carouselWrap.addEventListener('mouseleave', resetTimer);
+
+  render(0);
+  resetTimer();
+</script>
+
+</body>
+</html>
