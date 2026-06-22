@@ -9,7 +9,7 @@ const testimonials = [
     content:
       "RECRUILY hat unsere Time-to-Hire halbiert. Wir finden jetzt in Minuten die wirklich passenden Kandidaten – nicht nur Keyword-Treffer, sondern echte Matches.",
     rating: 5,
-    avatar: "https://i.pravatar.cc/120?img=47",
+    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=SarahM&backgroundColor=b6e3f4",
   },
   {
     id: 2,
@@ -19,7 +19,7 @@ const testimonials = [
     content:
       "Das KI-Matching ist beeindruckend präzise. Wir interviewen jetzt nur noch Kandidaten, die wirklich zum Job passen – inklusive Anschreiben-Analyse. Genau das haben wir gesucht.",
     rating: 5,
-    avatar: "https://i.pravatar.cc/120?img=33",
+    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=ThomasK&backgroundColor=c0aede",
   },
   {
     id: 3,
@@ -29,7 +29,7 @@ const testimonials = [
     content:
       "Die Einrichtung war einfach, die Oberfläche intuitiv. Unser gesamtes HR-Team konnte RECRUILY sofort nutzen – ohne lange Schulungen. DSGVO-Konformität war für uns entscheidend.",
     rating: 5,
-    avatar: "https://i.pravatar.cc/120?img=25",
+    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=JuliaR&backgroundColor=d1d4f9",
   },
   {
     id: 4,
@@ -39,7 +39,7 @@ const testimonials = [
     content:
       "Endlich ein Tool, das CV und Anschreiben gemeinsam bewertet. Die erklärbaren Scores geben uns Sicherheit bei jeder Entscheidung. Absolute Empfehlung für den DACH-Mittelstand.",
     rating: 5,
-    avatar: "https://i.pravatar.cc/120?img=52",
+    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=MarkusB&backgroundColor=ffd5dc",
   },
   {
     id: 5,
@@ -49,7 +49,7 @@ const testimonials = [
     content:
       "Als kleines Unternehmen hatten wir nie die Ressourcen für professionelles Recruiting. RECRUILY gibt uns die Power eines Senior-Recruiters – zu einem Bruchteil der Kosten.",
     rating: 5,
-    avatar: "https://i.pravatar.cc/120?img=44",
+    avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=NinaH&backgroundColor=ffdfbf",
   },
 ]
 
