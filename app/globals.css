@@ -226,6 +226,74 @@
     }
   }
 
+  /* Marquee animation for logo ticker */
+  .animate-marquee {
+    animation: marquee 28s linear infinite;
+    will-change: transform;
+  }
+
+  .animate-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* Hero gradient orb animations */
+  .animate-orb-1 {
+    animation: orbMove1 12s ease-in-out infinite;
+  }
+  .animate-orb-2 {
+    animation: orbMove2 16s ease-in-out infinite;
+  }
+  .animate-orb-3 {
+    animation: orbMove3 20s ease-in-out infinite;
+  }
+
+  @keyframes orbMove1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -20px) scale(1.05); }
+    66% { transform: translate(-20px, 15px) scale(0.95); }
+  }
+  @keyframes orbMove2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    40% { transform: translate(-25px, 20px) scale(1.08); }
+    70% { transform: translate(20px, -15px) scale(0.96); }
+  }
+  @keyframes orbMove3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(15px, 25px) scale(0.94); }
+    75% { transform: translate(-15px, -20px) scale(1.06); }
+  }
+
+  /* Shimmer for cards */
+  .shimmer-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 150%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.06) 50%,
+      transparent 100%
+    );
+    animation: shimmerMove 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes shimmerMove {
+    0% { left: -150%; }
+    100% { left: 100%; }
+  }
+
   /* Glassmorphism effect */
   .glass-card {
     background: rgba(255, 255, 255, 0.25);
