@@ -329,11 +329,11 @@
     .at-stage { position: relative; z-index: 1; }
     .at-bigquote { font-family: Georgia, serif; font-size: 6rem; line-height: 1; color: var(--green-wash); position: absolute; top: -22px; left: -8px; pointer-events: none; user-select: none; }
 
-    /* slides container — CSS grid stacking so all slides share one cell */
-    .at-slides { display: grid; grid-template-areas: "stack"; }
-    .at-slide { grid-area: stack; opacity: 0; visibility: hidden; transform: translateY(18px) scale(.98); transition: opacity .5s cubic-bezier(0.16,1,0.3,1), transform .5s cubic-bezier(0.16,1,0.3,1), visibility 0s .5s; pointer-events: none; }
-    .at-slide.active { opacity: 1; visibility: visible; transform: translateY(0) scale(1); pointer-events: auto; transition: opacity .5s cubic-bezier(0.16,1,0.3,1), transform .5s cubic-bezier(0.16,1,0.3,1), visibility 0s 0s; }
-    .at-slide.exiting { opacity: 0; visibility: hidden; transform: translateY(-18px) scale(.98); pointer-events: none; transition: opacity .38s cubic-bezier(0.16,1,0.3,1), transform .38s cubic-bezier(0.16,1,0.3,1), visibility 0s .38s; }
+    /* slides container */
+    .at-slides { position: relative; }
+    .at-slide { display: none; }
+    .at-slide.active { display: block; animation: atIn .45s cubic-bezier(0.16,1,0.3,1) both; }
+    @keyframes atIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
     /* stars */
     .at-stars { display: flex; gap: 4px; color: var(--green); margin-bottom: 18px; padding-top: 32px; }
@@ -363,7 +363,6 @@
       .at-portrait { width: 130px; height: 160px; border-radius: 20px; }
       .at-portrait-glow { display: none; }
       .at-text { font-size: 1.08rem; }
-      .at-slides { min-height: 290px; }
     }
 
     /* =========================================================
@@ -696,16 +695,16 @@
           <!-- Left: portrait + thumbnails -->
           <div class=”at-portrait-col”>
             <div class=”at-portrait” id=”atPortrait”>
-              <img id=”atPortraitImg” src=”https://randomuser.me/api/portraits/women/23.jpg” alt=”Sarah M.” loading=”eager”>
+              <img id=”atPortraitImg” src=”https://i.pravatar.cc/400?img=47” alt=”Sarah M.” loading=”eager”>
             </div>
             <div class=”at-portrait-glow”></div>
             <div class=”at-thumbs” id=”atThumbs”>
-              <button class=”at-thumb active” data-idx=”0” aria-label=”Sarah M.”><img src=”https://randomuser.me/api/portraits/women/23.jpg” alt=”Sarah M.” loading=”lazy”></button>
-              <button class=”at-thumb” data-idx=”1” aria-label=”Thomas K.”><img src=”https://randomuser.me/api/portraits/men/41.jpg” alt=”Thomas K.” loading=”lazy”></button>
-              <button class=”at-thumb” data-idx=”2” aria-label=”Julia R.”><img src=”https://randomuser.me/api/portraits/women/67.jpg” alt=”Julia R.” loading=”lazy”></button>
-              <button class=”at-thumb” data-idx=”3” aria-label=”Markus B.”><img src=”https://randomuser.me/api/portraits/men/52.jpg” alt=”Markus B.” loading=”lazy”></button>
-              <button class=”at-thumb” data-idx=”4” aria-label=”Nina H.”><img src=”https://randomuser.me/api/portraits/women/45.jpg” alt=”Nina H.” loading=”lazy”></button>
-              <button class=”at-thumb” data-idx=”5” aria-label=”David L.”><img src=”https://randomuser.me/api/portraits/men/36.jpg” alt=”David L.” loading=”lazy”></button>
+              <button class=”at-thumb active” data-idx=”0” aria-label=”Sarah M.”><img src=”https://i.pravatar.cc/80?img=47” alt=”Sarah M.” loading=”lazy”></button>
+              <button class=”at-thumb” data-idx=”1” aria-label=”Thomas K.”><img src=”https://i.pravatar.cc/80?img=33” alt=”Thomas K.” loading=”lazy”></button>
+              <button class=”at-thumb” data-idx=”2” aria-label=”Julia R.”><img src=”https://i.pravatar.cc/80?img=25” alt=”Julia R.” loading=”lazy”></button>
+              <button class=”at-thumb” data-idx=”3” aria-label=”Markus B.”><img src=”https://i.pravatar.cc/80?img=52” alt=”Markus B.” loading=”lazy”></button>
+              <button class=”at-thumb” data-idx=”4” aria-label=”Nina H.”><img src=”https://i.pravatar.cc/80?img=44” alt=”Nina H.” loading=”lazy”></button>
+              <button class=”at-thumb” data-idx=”5” aria-label=”David L.”><img src=”https://i.pravatar.cc/80?img=67” alt=”David L.” loading=”lazy”></button>
             </div>
           </div>
 
@@ -717,37 +716,37 @@
               <div class=”at-slide active” data-idx=”0”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Revetly hat unsere Time-to-Hire halbiert.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/women/23.jpg” alt=”Sarah M.” loading=”lazy”></div><div class=”at-meta”><b>Sarah M.</b><span>Talent Acquisition Lead</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://i.pravatar.cc/120?img=47” alt=”Sarah M.” loading=”lazy”></div><div class=”at-meta”><b>Sarah M.</b><span>Talent Acquisition Lead</span></div></div>
               </div>
 
               <div class=”at-slide” data-idx=”1”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Der Matching Score ist ein Game-Changer. Kein manuelles Screening mehr.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/men/41.jpg” alt=”Thomas K.” loading=”lazy”></div><div class=”at-meta”><b>Thomas K.</b><span>Personalleasing GmbH</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://i.pravatar.cc/120?img=33” alt=”Thomas K.” loading=”lazy”></div><div class=”at-meta”><b>Thomas K.</b><span>Personalleasing GmbH</span></div></div>
               </div>
 
               <div class=”at-slide” data-idx=”2”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Endlich ein Tool, das DSGVO ernst nimmt und trotzdem schnell ist.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/women/67.jpg” alt=”Julia R.” loading=”lazy”></div><div class=”at-meta”><b>Julia R.</b><span>HR Managerin</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://i.pravatar.cc/120?img=25” alt=”Julia R.” loading=”lazy”></div><div class=”at-meta”><b>Julia R.</b><span>HR Managerin</span></div></div>
               </div>
 
               <div class=”at-slide” data-idx=”3”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Wir besetzen Stellen jetzt in Tagen statt Wochen.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/men/52.jpg” alt=”Markus B.” loading=”lazy”></div><div class=”at-meta”><b>Markus B.</b><span>Geschäftsführer, TechStaff</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://i.pravatar.cc/120?img=52” alt=”Markus B.” loading=”lazy”></div><div class=”at-meta”><b>Markus B.</b><span>Geschäftsführer, TechStaff</span></div></div>
               </div>
 
               <div class=”at-slide” data-idx=”4”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Die Anschreiben-Analyse findet Talente, die wir übersehen hätten.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/women/45.jpg” alt=”Nina H.” loading=”lazy”></div><div class=”at-meta”><b>Nina H.</b><span>Recruiterin</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://i.pravatar.cc/120?img=44” alt=”Nina H.” loading=”lazy”></div><div class=”at-meta”><b>Nina H.</b><span>Recruiterin</span></div></div>
               </div>
 
               <div class=”at-slide” data-idx=”5”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Endlich Transparenz im Matching – mein Team liebt es.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/men/36.jpg” alt=”David L.” loading=”lazy”></div><div class=”at-meta”><b>David L.</b><span>Head of People</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://i.pravatar.cc/120?img=67” alt=”David L.” loading=”lazy”></div><div class=”at-meta”><b>David L.</b><span>Head of People</span></div></div>
               </div>
 
             </div>
@@ -933,7 +932,7 @@
     const hv = document.querySelector('.hv-chip [data-count]');
     if (hv) { const o = new IntersectionObserver((en)=>{en.forEach(e=>{if(e.isIntersecting){countUp(hv);o.disconnect();}});},{threshold:.5}); o.observe(hv); }
 
-    // Animated testimonials (bankkroll-style)
+    // Animated testimonials
     const atWrap = document.getElementById('atWrap');
     if (atWrap) {
       const slides = [...atWrap.querySelectorAll('.at-slide')];
@@ -941,36 +940,23 @@
       const portraitImg = document.getElementById('atPortraitImg');
       const curEl = document.getElementById('atCur');
       const portraits = [
-        'https://randomuser.me/api/portraits/women/23.jpg',
-        'https://randomuser.me/api/portraits/men/41.jpg',
-        'https://randomuser.me/api/portraits/women/67.jpg',
-        'https://randomuser.me/api/portraits/men/52.jpg',
-        'https://randomuser.me/api/portraits/women/45.jpg',
-        'https://randomuser.me/api/portraits/men/36.jpg'
+        'https://i.pravatar.cc/400?img=47',
+        'https://i.pravatar.cc/400?img=33',
+        'https://i.pravatar.cc/400?img=25',
+        'https://i.pravatar.cc/400?img=52',
+        'https://i.pravatar.cc/400?img=44',
+        'https://i.pravatar.cc/400?img=67'
       ];
-      let cur = 0, timer = null, busy = false;
+      let cur = 0, timer = null;
 
       function goTo(next) {
         next = ((next % slides.length) + slides.length) % slides.length;
-        if (busy || next === cur) return;
-        busy = true;
-        const prev = cur;
+        if (next === cur) return;
+        slides[cur].classList.remove('active');
         cur = next;
-
-        // Crossfade portrait image
+        slides[cur].classList.add('active');
         portraitImg.style.opacity = '0';
-        setTimeout(() => {
-          portraitImg.src = portraits[cur];
-          portraitImg.style.opacity = '1';
-        }, 280);
-
-        // Exit old slide, enter new slide
-        slides[prev].classList.add('exiting');
-        slides[prev].classList.remove('active');
-        setTimeout(() => slides[prev].classList.remove('exiting'), 450);
-        setTimeout(() => { slides[cur].classList.add('active'); busy = false; }, 60);
-
-        // Update thumbnails and counter
+        setTimeout(() => { portraitImg.src = portraits[cur]; portraitImg.style.opacity = '1'; }, 250);
         thumbs.forEach((t, i) => t.classList.toggle('active', i === cur));
         if (curEl) curEl.textContent = cur + 1;
       }
