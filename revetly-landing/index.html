@@ -329,11 +329,11 @@
     .at-stage { position: relative; z-index: 1; }
     .at-bigquote { font-family: Georgia, serif; font-size: 6rem; line-height: 1; color: var(--green-wash); position: absolute; top: -22px; left: -8px; pointer-events: none; user-select: none; }
 
-    /* slides container */
-    .at-slides { position: relative; min-height: 240px; overflow: hidden; }
-    .at-slide { position: absolute; top: 0; left: 0; right: 0; opacity: 0; transform: translateY(18px) scale(.98); transition: opacity .5s cubic-bezier(0.16,1,0.3,1), transform .5s cubic-bezier(0.16,1,0.3,1); pointer-events: none; }
-    .at-slide.active { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; z-index: 1; }
-    .at-slide.exiting { opacity: 0; transform: translateY(-18px) scale(.98); z-index: 2; transition: opacity .38s cubic-bezier(0.16,1,0.3,1), transform .38s cubic-bezier(0.16,1,0.3,1); }
+    /* slides container — CSS grid stacking so all slides share one cell */
+    .at-slides { display: grid; grid-template-areas: "stack"; }
+    .at-slide { grid-area: stack; opacity: 0; visibility: hidden; transform: translateY(18px) scale(.98); transition: opacity .5s cubic-bezier(0.16,1,0.3,1), transform .5s cubic-bezier(0.16,1,0.3,1), visibility 0s .5s; pointer-events: none; }
+    .at-slide.active { opacity: 1; visibility: visible; transform: translateY(0) scale(1); pointer-events: auto; transition: opacity .5s cubic-bezier(0.16,1,0.3,1), transform .5s cubic-bezier(0.16,1,0.3,1), visibility 0s 0s; }
+    .at-slide.exiting { opacity: 0; visibility: hidden; transform: translateY(-18px) scale(.98); pointer-events: none; transition: opacity .38s cubic-bezier(0.16,1,0.3,1), transform .38s cubic-bezier(0.16,1,0.3,1), visibility 0s .38s; }
 
     /* stars */
     .at-stars { display: flex; gap: 4px; color: var(--green); margin-bottom: 18px; padding-top: 32px; }
@@ -696,16 +696,16 @@
           <!-- Left: portrait + thumbnails -->
           <div class=”at-portrait-col”>
             <div class=”at-portrait” id=”atPortrait”>
-              <img id=”atPortraitImg” src=”https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80” alt=”Sarah M.” loading=”lazy”>
+              <img id=”atPortraitImg” src=”https://randomuser.me/api/portraits/women/23.jpg” alt=”Sarah M.” loading=”eager”>
             </div>
             <div class=”at-portrait-glow”></div>
             <div class=”at-thumbs” id=”atThumbs”>
-              <button class=”at-thumb active” data-idx=”0” aria-label=”Sarah M.”><img src=”https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80” alt=”Sarah M.” loading=”lazy”></button>
-              <button class=”at-thumb” data-idx=”1” aria-label=”Thomas K.”><img src=”https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&q=80” alt=”Thomas K.” loading=”lazy”></button>
-              <button class=”at-thumb” data-idx=”2” aria-label=”Julia R.”><img src=”https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80” alt=”Julia R.” loading=”lazy”></button>
-              <button class=”at-thumb” data-idx=”3” aria-label=”Markus B.”><img src=”https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=80&q=80” alt=”Markus B.” loading=”lazy”></button>
-              <button class=”at-thumb” data-idx=”4” aria-label=”Nina H.”><img src=”https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=80&q=80” alt=”Nina H.” loading=”lazy”></button>
-              <button class=”at-thumb” data-idx=”5” aria-label=”David L.”><img src=”https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=80&q=80” alt=”David L.” loading=”lazy”></button>
+              <button class=”at-thumb active” data-idx=”0” aria-label=”Sarah M.”><img src=”https://randomuser.me/api/portraits/women/23.jpg” alt=”Sarah M.” loading=”lazy”></button>
+              <button class=”at-thumb” data-idx=”1” aria-label=”Thomas K.”><img src=”https://randomuser.me/api/portraits/men/41.jpg” alt=”Thomas K.” loading=”lazy”></button>
+              <button class=”at-thumb” data-idx=”2” aria-label=”Julia R.”><img src=”https://randomuser.me/api/portraits/women/67.jpg” alt=”Julia R.” loading=”lazy”></button>
+              <button class=”at-thumb” data-idx=”3” aria-label=”Markus B.”><img src=”https://randomuser.me/api/portraits/men/52.jpg” alt=”Markus B.” loading=”lazy”></button>
+              <button class=”at-thumb” data-idx=”4” aria-label=”Nina H.”><img src=”https://randomuser.me/api/portraits/women/45.jpg” alt=”Nina H.” loading=”lazy”></button>
+              <button class=”at-thumb” data-idx=”5” aria-label=”David L.”><img src=”https://randomuser.me/api/portraits/men/36.jpg” alt=”David L.” loading=”lazy”></button>
             </div>
           </div>
 
@@ -717,37 +717,37 @@
               <div class=”at-slide active” data-idx=”0”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Revetly hat unsere Time-to-Hire halbiert.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80” alt=”Sarah M.” loading=”lazy”></div><div class=”at-meta”><b>Sarah M.</b><span>Talent Acquisition Lead</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/women/23.jpg” alt=”Sarah M.” loading=”lazy”></div><div class=”at-meta”><b>Sarah M.</b><span>Talent Acquisition Lead</span></div></div>
               </div>
 
               <div class=”at-slide” data-idx=”1”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Der Matching Score ist ein Game-Changer. Kein manuelles Screening mehr.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80” alt=”Thomas K.” loading=”lazy”></div><div class=”at-meta”><b>Thomas K.</b><span>Personalleasing GmbH</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/men/41.jpg” alt=”Thomas K.” loading=”lazy”></div><div class=”at-meta”><b>Thomas K.</b><span>Personalleasing GmbH</span></div></div>
               </div>
 
               <div class=”at-slide” data-idx=”2”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Endlich ein Tool, das DSGVO ernst nimmt und trotzdem schnell ist.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80” alt=”Julia R.” loading=”lazy”></div><div class=”at-meta”><b>Julia R.</b><span>HR Managerin</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/women/67.jpg” alt=”Julia R.” loading=”lazy”></div><div class=”at-meta”><b>Julia R.</b><span>HR Managerin</span></div></div>
               </div>
 
               <div class=”at-slide” data-idx=”3”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Wir besetzen Stellen jetzt in Tagen statt Wochen.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80” alt=”Markus B.” loading=”lazy”></div><div class=”at-meta”><b>Markus B.</b><span>Geschäftsführer, TechStaff</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/men/52.jpg” alt=”Markus B.” loading=”lazy”></div><div class=”at-meta”><b>Markus B.</b><span>Geschäftsführer, TechStaff</span></div></div>
               </div>
 
               <div class=”at-slide” data-idx=”4”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Die Anschreiben-Analyse findet Talente, die wir übersehen hätten.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=120&q=80” alt=”Nina H.” loading=”lazy”></div><div class=”at-meta”><b>Nina H.</b><span>Recruiterin</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/women/45.jpg” alt=”Nina H.” loading=”lazy”></div><div class=”at-meta”><b>Nina H.</b><span>Recruiterin</span></div></div>
               </div>
 
               <div class=”at-slide” data-idx=”5”>
                 <div class=”at-stars”><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg><svg viewBox=”0 0 24 24” fill=”currentColor”><path d=”M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z”/></svg></div>
                 <p class=”at-text”>„Endlich Transparenz im Matching – mein Team liebt es.”</p>
-                <div class=”at-author”><div class=”at-av”><img src=”https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80” alt=”David L.” loading=”lazy”></div><div class=”at-meta”><b>David L.</b><span>Head of People</span></div></div>
+                <div class=”at-author”><div class=”at-av”><img src=”https://randomuser.me/api/portraits/men/36.jpg” alt=”David L.” loading=”lazy”></div><div class=”at-meta”><b>David L.</b><span>Head of People</span></div></div>
               </div>
 
             </div>
@@ -941,12 +941,12 @@
       const portraitImg = document.getElementById('atPortraitImg');
       const curEl = document.getElementById('atCur');
       const portraits = [
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
-        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80',
-        'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=400&q=80',
-        'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=400&q=80'
+        'https://randomuser.me/api/portraits/women/23.jpg',
+        'https://randomuser.me/api/portraits/men/41.jpg',
+        'https://randomuser.me/api/portraits/women/67.jpg',
+        'https://randomuser.me/api/portraits/men/52.jpg',
+        'https://randomuser.me/api/portraits/women/45.jpg',
+        'https://randomuser.me/api/portraits/men/36.jpg'
       ];
       let cur = 0, timer = null, busy = false;
 
