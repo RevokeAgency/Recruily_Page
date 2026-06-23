@@ -296,73 +296,72 @@
     .g-person span { color: var(--muted); font-size: 0.78rem; }
 
     /* =========================================================
-       TESTIMONIALS  —  animated-testimonials (bankkroll-style)
+       TESTIMONIALS  —  glassmorphism card stack carousel
        ========================================================= */
     .trust { background: var(--mist); overflow: hidden; }
-    .trust .h2 { text-align: center; }
-    .trust .ts-sub { text-align: center; margin: 14px auto 52px; }
+    .trust .ts-sub { max-width: 520px; }
 
-    /* outer wrapper */
-    .at-wrap { display: grid; grid-template-columns: 220px 1fr; gap: 52px; align-items: center; max-width: 880px; margin: 0 auto; position: relative; }
-    /* ambient glow blob */
-    .at-wrap::before { content: ""; position: absolute; top: 50%; left: 15%; width: 380px; height: 320px; transform: translate(-50%, -50%); background: radial-gradient(circle, rgba(22,199,124,.17) 0%, transparent 68%); filter: blur(38px); pointer-events: none; z-index: 0; }
+    /* card stack wrapper */
+    .tc-wrap { position: relative; max-width: 680px; margin: 52px auto 0; }
 
-    /* left column */
-    .at-portrait-col { display: flex; flex-direction: column; align-items: center; gap: 20px; position: relative; z-index: 1; }
+    /* perspective container for the 3-D stack */
+    .tc-stack { position: relative; min-height: 280px; padding-bottom: 36px; }
 
-    /* main portrait */
-    .at-portrait { position: relative; width: 188px; height: 232px; border-radius: 28px; overflow: hidden; background: var(--grad); box-shadow: 0 40px 80px -36px rgba(14,159,98,.5), var(--shadow-lg); flex: none; }
-    .at-portrait > div { width: 100%; height: 100%; }
-    .at-portrait::after { content: ""; position: absolute; inset: 0; border-radius: 26px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.2); pointer-events: none; }
+    /* individual cards */
+    .tc-card {
+      position: absolute; top: 0; left: 0; right: 0;
+      background: var(--white);
+      border-radius: 28px;
+      padding: 38px 44px 34px;
+      box-shadow: 0 28px 70px -36px rgba(12,26,22,.22), 0 0 0 1px var(--line);
+      transform-origin: top center;
+      transition: transform .65s var(--ease), opacity .65s var(--ease), filter .65s var(--ease), box-shadow .65s var(--ease);
+      will-change: transform, opacity;
+      overflow: hidden;
+    }
 
-    /* bottom glow drip */
-    .at-portrait-glow { width: 130px; height: 44px; background: radial-gradient(ellipse, rgba(22,199,124,.55) 0%, transparent 68%); filter: blur(10px); margin-top: -20px; flex: none; }
+    /* progress bar — driven by JS .run class */
+    .tc-bar { position: absolute; top: 0; left: 0; height: 3px; width: 0%; background: var(--grad); border-radius: 0 2px 2px 0; z-index: 2; }
+    .tc-bar.run { animation: tcBarFill var(--tc-dur, 5.5s) linear forwards; }
+    @keyframes tcBarFill { from { width: 0% } to { width: 100% } }
 
-    /* thumbnail strip */
-    .at-thumbs { display: flex; gap: 9px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
-    .at-thumb { width: 42px; height: 42px; border-radius: 50%; overflow: hidden; cursor: pointer; padding: 0; border: 2.5px solid transparent; transition: border-color .3s, transform .35s cubic-bezier(0.16,1,0.3,1), opacity .3s, box-shadow .3s; opacity: .42; flex: none; background: none; }
-    .at-thumb:hover { opacity: .78; transform: scale(1.1); }
-    .at-thumb.active { border-color: var(--green); opacity: 1; transform: scale(1.15); box-shadow: 0 0 0 3px var(--green-wash); }
+    /* card state transitions */
+    .tc-card[data-state="active"] { transform: translateX(0) translateY(0) scale(1) rotate(0deg); opacity: 1; z-index: 5; filter: none; box-shadow: 0 32px 80px -30px rgba(12,26,22,.28), 0 0 0 1px var(--line), 0 0 0 4px var(--green-wash); }
+    .tc-card[data-state="behind1"] { transform: translateX(16px) translateY(16px) scale(.963) rotate(1.2deg); opacity: .52; z-index: 4; filter: blur(.4px); pointer-events: none; }
+    .tc-card[data-state="behind2"] { transform: translateX(30px) translateY(30px) scale(.927) rotate(2.4deg); opacity: .26; z-index: 3; filter: blur(.9px); pointer-events: none; }
+    .tc-card[data-state="exit"] { transform: translateX(-112%) translateY(-8px) scale(.88) rotate(-5deg); opacity: 0; z-index: 6; pointer-events: none; }
+    .tc-card[data-state="hidden"] { transform: translateX(30px) translateY(30px) scale(.927) rotate(2.4deg); opacity: 0; z-index: 1; pointer-events: none; }
 
+    /* card content */
+    .tc-bigquote { font-family: Georgia, serif; font-size: 6rem; line-height: 1; color: var(--green-wash); position: absolute; top: 12px; right: 26px; pointer-events: none; user-select: none; font-style: italic; }
+    .tc-stars { display: flex; gap: 4px; color: var(--green); margin-bottom: 18px; }
+    .tc-stars svg { width: 17px; height: 17px; filter: drop-shadow(0 2px 5px rgba(22,199,124,.4)); }
+    .tc-quote { font-size: clamp(1.05rem, 1.5vw, 1.24rem); font-weight: 600; color: var(--ink); line-height: 1.58; letter-spacing: -0.02em; margin-bottom: 28px; }
+    .tc-author { display: flex; align-items: center; gap: 14px; }
+    .tc-av { width: 50px; height: 50px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; color: rgba(255,255,255,.95); font-family: system-ui,sans-serif; border: 3px solid var(--white); box-shadow: 0 6px 18px -8px rgba(12,26,22,.38), 0 0 0 2px var(--green-wash); }
+    .tc-meta b { display: block; color: var(--ink); font-size: 0.95rem; font-weight: 700; }
+    .tc-meta span { color: var(--muted); font-size: 0.8rem; }
 
-    /* right: stage */
-    .at-stage { position: relative; z-index: 1; }
-    .at-bigquote { font-family: Georgia, serif; font-size: 6rem; line-height: 1; color: var(--green-wash); position: absolute; top: -22px; left: -8px; pointer-events: none; user-select: none; }
+    /* controls row */
+    .tc-controls { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 18px; }
+    .tc-btn { width: 46px; height: 46px; border-radius: 50%; background: var(--white); border: 1.5px solid var(--line-strong); display: grid; place-items: center; color: var(--ink); cursor: pointer; box-shadow: var(--shadow-sm); transition: background .25s, transform .25s var(--ease), box-shadow .25s, border-color .25s; }
+    .tc-btn:hover { background: var(--grad); border-color: transparent; transform: translateY(-3px) scale(1.06); box-shadow: 0 14px 28px -12px var(--green); }
+    .tc-btn svg { width: 17px; height: 17px; }
+    .tc-dots { display: flex; gap: 6px; align-items: center; }
+    .tc-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); cursor: pointer; border: none; padding: 0; transition: background .3s, width .35s var(--ease), border-radius .35s var(--ease); }
+    .tc-dot.active { background: var(--green); width: 22px; border-radius: 4px; }
+    .tc-dot:hover:not(.active) { background: var(--muted); }
 
-    /* slides container */
-    .at-slides { position: relative; }
-    .at-slide { display: none; }
-    .at-slide.active { display: block; animation: atIn .45s cubic-bezier(0.16,1,0.3,1) both; }
-    @keyframes atIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-
-    /* stars */
-    .at-stars { display: flex; gap: 4px; color: var(--green); margin-bottom: 18px; padding-top: 32px; }
-    .at-stars svg { width: 18px; height: 18px; filter: drop-shadow(0 2px 6px rgba(22,199,124,.4)); }
-
-    /* quote text */
-    .at-text { font-size: 1.26rem; font-weight: 600; color: var(--ink); line-height: 1.55; letter-spacing: -0.02em; margin-bottom: 28px; }
-
-    /* author row */
-    .at-author { display: flex; align-items: center; gap: 14px; }
-    .at-av { width: 52px; height: 52px; border-radius: 50%; overflow: hidden; background: var(--grad); flex: none; border: 3px solid var(--white); box-shadow: 0 6px 16px -6px rgba(12,26,22,.4), 0 0 0 2px var(--green-wash); }
-
-    .at-meta b { display: block; color: var(--ink); font-size: 0.96rem; }
-    .at-meta span { color: var(--muted); font-size: 0.82rem; }
-
-    /* nav row */
-    .at-nav { display: flex; align-items: center; gap: 14px; margin-top: 30px; }
-    .at-btn { width: 48px; height: 48px; border-radius: 50%; background: var(--white); border: 1.5px solid var(--line-strong); display: grid; place-items: center; color: var(--ink); cursor: pointer; box-shadow: var(--shadow-sm); transition: background .25s, transform .25s cubic-bezier(0.16,1,0.3,1), box-shadow .25s, border-color .25s; }
-    .at-btn:hover { background: var(--grad); border-color: transparent; transform: translateY(-3px) scale(1.06); box-shadow: 0 16px 30px -14px var(--green); }
-    .at-btn svg { width: 18px; height: 18px; }
-    .at-counter { font-size: 0.88rem; font-weight: 500; color: var(--muted); min-width: 36px; text-align: center; }
-    .at-counter strong { color: var(--ink); }
+    /* social proof logos */
+    .tc-logos { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 30px; margin-top: 52px; padding-top: 34px; border-top: 1px solid var(--line); }
+    .tc-logo { font-size: 0.96rem; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); opacity: .28; transition: opacity .25s; cursor: default; white-space: nowrap; }
+    .tc-logo:hover { opacity: .6; }
 
     @media (max-width: 700px) {
-      .at-wrap { grid-template-columns: 1fr; gap: 28px; }
-      .at-portrait-col { flex-direction: row; align-items: flex-start; gap: 18px; }
-      .at-portrait { width: 130px; height: 160px; border-radius: 20px; }
-      .at-portrait-glow { display: none; }
-      .at-text { font-size: 1.08rem; }
+      .tc-card { padding: 28px 22px 24px; border-radius: 22px; }
+      .tc-quote { font-size: 1.02rem; }
+      .tc-bigquote { font-size: 4.5rem; }
+      .tc-stack { min-height: 340px; }
     }
 
     /* =========================================================
@@ -439,8 +438,12 @@
        REVEAL
        ========================================================= */
     .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+    .reveal[data-dir="left"] { transform: translateX(-38px) translateY(6px); }
+    .reveal[data-dir="right"] { transform: translateX(38px) translateY(6px); }
+    .reveal[data-dir="scale"] { transform: scale(0.88) translateY(18px); }
     .reveal.in { opacity: 1; transform: none; }
     .reveal.s1 { transition-delay: .08s; } .reveal.s2 { transition-delay: .16s; } .reveal.s3 { transition-delay: .24s; }
+    .reveal.s4 { transition-delay: .32s; } .reveal.s5 { transition-delay: .42s; }
 
     /* =========================================================
        RESPONSIVE
@@ -541,7 +544,7 @@
     <section class="features" id="features">
       <div class="patternbg" data-pattern="dots"></div>
       <div class="container">
-        <div class="section-head center reveal">
+        <div class="section-head center reveal" data-dir="scale">
           <div class="arrowbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></div>
           <h2 class="h2">Eine Plattform, gebaut, um dein<br />Recruiting zu vereinfachen.</h2>
           <p class="lead">Matching, Kommunikation und Verwaltung an einem Ort – weniger Handarbeit, schnellere und objektivere Entscheidungen.</p>
@@ -559,7 +562,7 @@
     <section class="services" id="services">
       <div class="patternbg" data-pattern="rings"></div>
       <div class="container">
-        <div class="section-head reveal">
+        <div class="section-head reveal" data-dir="left">
           <span class="eyebrow">Unser Produkt</span>
           <h2 class="h2">Eine Plattform, die dein Business<br />mit Top-Talenten verbindet.</h2>
           <p class="lead">Unser Ansatz integriert sich nahtlos in deinen Workflow – von der Stellenausschreibung bis zur Einstellung.</p>
@@ -622,7 +625,7 @@
     <section class="grad-block">
       <div class="gb-rings"></div>
       <div class="container">
-        <div class="section-head reveal">
+        <div class="section-head reveal" data-dir="left">
           <span class="eyebrow">So funktioniert's</span>
           <h2 class="h2">Effizienter Prozess, um die besten<br />Talente zu finden.</h2>
           <p class="gb-sub" style="margin-top:16px;">Wir verstehen deine Anforderungen, bewerten jeden Bewerber objektiv und integrieren uns nahtlos in deinen Recruiting-Alltag.</p>
@@ -646,12 +649,12 @@
     <section class="grow">
       <div class="patternbg" data-pattern="grid"></div>
       <div class="container">
-        <div class="section-head center reveal">
+        <div class="section-head center reveal" data-dir="scale">
           <span class="eyebrow">Wie wir dir helfen</span>
           <h2 class="h2">Wir helfen dir zu wachsen, indem wir<br />dich mit den richtigen Talenten verbinden.</h2>
         </div>
         <div class="grow-grid">
-          <div class="g-card reveal">
+          <div class="g-card reveal" data-dir="left">
             <h3>Optimierter Hiring-Prozess</h3>
             <p>Revetly automatisiert dein Screening und schlägt die passendsten Kandidaten zuerst vor.</p>
             <div class="g-faces">
@@ -662,7 +665,7 @@
             </div>
           </div>
           <div class="g-right">
-            <div class="g-card reveal s1">
+            <div class="g-card reveal s1" data-dir="right">
               <h3>Bessere Entscheidungen</h3>
               <p>Jeder Score ist begründet – du behältst die Kontrolle.</p>
               <div class="g-chips">
@@ -671,7 +674,7 @@
                 <div class="g-chip"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Anschreiben-Analyse</div>
               </div>
             </div>
-            <div class="g-card reveal s2">
+            <div class="g-card reveal s2" data-dir="right">
               <h3>Schneller zur Einstellung</h3>
               <p>Top-Kandidaten in Minuten statt Tagen identifizieren.</p>
               <div class="g-person">
@@ -685,79 +688,106 @@
     </section>
 
     <!-- ====================== TESTIMONIALS ====================== -->
-    <section class="trust">
+    <section class="trust" id="testimonials">
       <div class="patternbg" data-pattern="diagonal"></div>
       <div class="container">
-        <h2 class="h2 reveal">Du bist in guter Gesellschaft.</h2>
-        <p class="lead ts-sub reveal">HR-Teams im DACH-Raum vertrauen auf Revetly.</p>
-        <div class="at-wrap reveal" id="atWrap">
+        <div class="section-head center reveal" data-dir="scale">
+          <span class="eyebrow">Kundenstimmen</span>
+          <h2 class="h2">Du bist in guter Gesellschaft.</h2>
+          <p class="lead ts-sub">HR-Teams im DACH-Raum vertrauen auf Revetly.</p>
+        </div>
 
-          <!-- Left: portrait + thumbnails -->
-          <div class="at-portrait-col">
-            <div class="at-portrait" id="atPortrait">
-              <div id="atPortraitDiv" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif;font-size:6rem;transition:opacity .32s ease;background:linear-gradient(135deg,#22C1EE,#16C77C)">S</div>
+        <div class="tc-wrap reveal" id="tcWrap">
+          <div class="tc-stack" id="tcStack">
+
+            <div class="tc-card" data-idx="0" data-state="active">
+              <div class="tc-bar"></div>
+              <span class="tc-bigquote">&#x201C;</span>
+              <div class="tc-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+              <p class="tc-quote">Revetly hat unsere Time-to-Hire halbiert. In drei Wochen hatten wir mehr qualifizierte Kandidaten als in den sechs Monaten davor.</p>
+              <div class="tc-author">
+                <div class="tc-av" style="background:linear-gradient(135deg,#22C1EE,#16C77C)">S</div>
+                <div class="tc-meta"><b>Sarah M.</b><span>Talent Acquisition Lead &middot; TechStaff GmbH</span></div>
+              </div>
             </div>
-            <div class="at-portrait-glow"></div>
-            <div class="at-thumbs" id="atThumbs">
-              <button class="at-thumb active" data-idx="0" style="background:linear-gradient(135deg,#22C1EE,#16C77C)" aria-label="Sarah M."><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif;font-size:1.3rem;">S</span></button>
-              <button class="at-thumb" data-idx="1" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)" aria-label="Thomas K."><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif;font-size:1.3rem;">T</span></button>
-              <button class="at-thumb" data-idx="2" style="background:linear-gradient(135deg,#EC4899,#F43F5E)" aria-label="Julia R."><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif;font-size:1.3rem;">J</span></button>
-              <button class="at-thumb" data-idx="3" style="background:linear-gradient(135deg,#F59E0B,#EF4444)" aria-label="Markus B."><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif;font-size:1.3rem;">M</span></button>
-              <button class="at-thumb" data-idx="4" style="background:linear-gradient(135deg,#10B981,#059669)" aria-label="Nina H."><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif;font-size:1.3rem;">N</span></button>
-              <button class="at-thumb" data-idx="5" style="background:linear-gradient(135deg,#3B82F6,#1D4ED8)" aria-label="David L."><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif;font-size:1.3rem;">D</span></button>
+
+            <div class="tc-card" data-idx="1" data-state="behind1">
+              <div class="tc-bar"></div>
+              <span class="tc-bigquote">&#x201C;</span>
+              <div class="tc-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+              <p class="tc-quote">Der Matching Score ist ein Game-Changer. Kein manuelles Screening mehr &ndash; wir interviewen nur noch die wirklich passenden Kandidaten.</p>
+              <div class="tc-author">
+                <div class="tc-av" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">T</div>
+                <div class="tc-meta"><b>Thomas K.</b><span>Gesch&#228;ftsf&#252;hrer &middot; Personalleasing GmbH</span></div>
+              </div>
             </div>
+
+            <div class="tc-card" data-idx="2" data-state="behind2">
+              <div class="tc-bar"></div>
+              <span class="tc-bigquote">&#x201C;</span>
+              <div class="tc-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+              <p class="tc-quote">Endlich ein Tool, das DSGVO ernst nimmt und trotzdem schnell ist. Setup in 10 Minuten, erste Matches in unter einer Stunde.</p>
+              <div class="tc-author">
+                <div class="tc-av" style="background:linear-gradient(135deg,#EC4899,#F43F5E)">J</div>
+                <div class="tc-meta"><b>Julia R.</b><span>HR Managerin &middot; M&#252;nchner Scale-Up</span></div>
+              </div>
+            </div>
+
+            <div class="tc-card" data-idx="3" data-state="hidden">
+              <div class="tc-bar"></div>
+              <span class="tc-bigquote">&#x201C;</span>
+              <div class="tc-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+              <p class="tc-quote">Wir besetzen Stellen jetzt in Tagen statt Wochen. Das Anschreiben-Feature ist Gold wert &ndash; man sieht sofort, wer wirklich motiviert ist.</p>
+              <div class="tc-author">
+                <div class="tc-av" style="background:linear-gradient(135deg,#F59E0B,#EF4444)">M</div>
+                <div class="tc-meta"><b>Markus B.</b><span>CEO &middot; TechStaff AG Z&#252;rich</span></div>
+              </div>
+            </div>
+
+            <div class="tc-card" data-idx="4" data-state="hidden">
+              <div class="tc-bar"></div>
+              <span class="tc-bigquote">&#x201C;</span>
+              <div class="tc-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+              <p class="tc-quote">Die Anschreiben-Analyse findet Talente, die wir &#252;bersehen h&#228;tten. Unser Team spart 6 Stunden pro Stelle &ndash; Zeit f&#252;r die wirklich wichtigen Gespr&#228;che.</p>
+              <div class="tc-author">
+                <div class="tc-av" style="background:linear-gradient(135deg,#10B981,#059669)">N</div>
+                <div class="tc-meta"><b>Nina H.</b><span>Recruiterin &middot; Vienna HR Consulting</span></div>
+              </div>
+            </div>
+
+            <div class="tc-card" data-idx="5" data-state="hidden">
+              <div class="tc-bar"></div>
+              <span class="tc-bigquote">&#x201C;</span>
+              <div class="tc-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
+              <p class="tc-quote">Endlich Transparenz im Matching &ndash; mein Team liebt es. Wir sehen genau, warum ein Kandidat empfohlen wird. Das gibt uns Sicherheit bei jeder Entscheidung.</p>
+              <div class="tc-author">
+                <div class="tc-av" style="background:linear-gradient(135deg,#3B82F6,#1D4ED8)">D</div>
+                <div class="tc-meta"><b>David L.</b><span>Head of People &middot; Berlin Scale-Up</span></div>
+              </div>
+            </div>
+
           </div>
 
-          <!-- Right: quote stage -->
-          <div class="at-stage">
-            <span class="at-bigquote">&#x201C;</span>
-            <div class="at-slides" id="atSlides">
-
-              <div class="at-slide active" data-idx="0">
-                <div class="at-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
-                <p class="at-text">„Revetly hat unsere Time-to-Hire halbiert."</p>
-                <div class="at-author"><div class="at-av" style="background:linear-gradient(135deg,#22C1EE,#16C77C);display:flex;align-items:center;justify-content:center"><span style="font-size:1.4rem;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif">S</span></div><div class="at-meta"><b>Sarah M.</b><span>Talent Acquisition Lead</span></div></div>
-              </div>
-
-              <div class="at-slide" data-idx="1">
-                <div class="at-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
-                <p class="at-text">„Der Matching Score ist ein Game-Changer. Kein manuelles Screening mehr."</p>
-                <div class="at-author"><div class="at-av" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);display:flex;align-items:center;justify-content:center"><span style="font-size:1.4rem;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif">T</span></div><div class="at-meta"><b>Thomas K.</b><span>Personalleasing GmbH</span></div></div>
-              </div>
-
-              <div class="at-slide" data-idx="2">
-                <div class="at-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
-                <p class="at-text">„Endlich ein Tool, das DSGVO ernst nimmt und trotzdem schnell ist."</p>
-                <div class="at-author"><div class="at-av" style="background:linear-gradient(135deg,#EC4899,#F43F5E);display:flex;align-items:center;justify-content:center"><span style="font-size:1.4rem;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif">J</span></div><div class="at-meta"><b>Julia R.</b><span>HR Managerin</span></div></div>
-              </div>
-
-              <div class="at-slide" data-idx="3">
-                <div class="at-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
-                <p class="at-text">„Wir besetzen Stellen jetzt in Tagen statt Wochen."</p>
-                <div class="at-author"><div class="at-av" style="background:linear-gradient(135deg,#F59E0B,#EF4444);display:flex;align-items:center;justify-content:center"><span style="font-size:1.4rem;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif">M</span></div><div class="at-meta"><b>Markus B.</b><span>Geschäftsführer, TechStaff</span></div></div>
-              </div>
-
-              <div class="at-slide" data-idx="4">
-                <div class="at-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
-                <p class="at-text">„Die Anschreiben-Analyse findet Talente, die wir übersehen hätten."</p>
-                <div class="at-author"><div class="at-av" style="background:linear-gradient(135deg,#10B981,#059669);display:flex;align-items:center;justify-content:center"><span style="font-size:1.4rem;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif">N</span></div><div class="at-meta"><b>Nina H.</b><span>Recruiterin</span></div></div>
-              </div>
-
-              <div class="at-slide" data-idx="5">
-                <div class="at-stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/></svg></div>
-                <p class="at-text">„Endlich Transparenz im Matching – mein Team liebt es."</p>
-                <div class="at-author"><div class="at-av" style="background:linear-gradient(135deg,#3B82F6,#1D4ED8);display:flex;align-items:center;justify-content:center"><span style="font-size:1.4rem;font-weight:700;color:rgba(255,255,255,.95);font-family:system-ui,sans-serif">D</span></div><div class="at-meta"><b>David L.</b><span>Head of People</span></div></div>
-              </div>
-
+          <div class="tc-controls">
+            <button class="tc-btn" id="tcPrev" aria-label="Vorherige"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <div class="tc-dots" id="tcDots">
+              <button class="tc-dot active" data-idx="0" aria-label="1"></button>
+              <button class="tc-dot" data-idx="1" aria-label="2"></button>
+              <button class="tc-dot" data-idx="2" aria-label="3"></button>
+              <button class="tc-dot" data-idx="3" aria-label="4"></button>
+              <button class="tc-dot" data-idx="4" aria-label="5"></button>
+              <button class="tc-dot" data-idx="5" aria-label="6"></button>
             </div>
-            <!-- Navigation -->
-            <div class="at-nav">
-              <button class="at-btn" id="atPrev" aria-label="Vorherige"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></button>
-              <span class="at-counter"><strong id="atCur">1</strong> / 6</span>
-              <button class="at-btn" id="atNext" aria-label="Nächste"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 5l7 7-7 7"/></svg></button>
-            </div>
+            <button class="tc-btn" id="tcNext" aria-label="N&#228;chste"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 5l7 7-7 7"/></svg></button>
           </div>
+        </div>
 
+        <div class="tc-logos reveal">
+          <span class="tc-logo">TechStaff GmbH</span>
+          <span class="tc-logo">Personalleasing GmbH</span>
+          <span class="tc-logo">Vienna HR Consulting</span>
+          <span class="tc-logo">Nordtalent AG</span>
+          <span class="tc-logo">RecrutePLUS</span>
         </div>
       </div>
     </section>
@@ -818,7 +848,7 @@
     <!-- ====================== CTA (gradient block) ====================== -->
     <section class="cta">
       <div class="container">
-        <div class="cta-card reveal">
+        <div class="cta-card reveal" data-dir="scale">
           <div class="gb-rings"></div>
           <div class="cta-text">
             <div class="arrowbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></div>
@@ -932,37 +962,103 @@
     const hv = document.querySelector('.hv-chip [data-count]');
     if (hv) { const o = new IntersectionObserver((en)=>{en.forEach(e=>{if(e.isIntersecting){countUp(hv);o.disconnect();}});},{threshold:.5}); o.observe(hv); }
 
-    // Animated testimonials
-    const atWrap = document.getElementById('atWrap');
-    if (atWrap) {
-      const slides = [...atWrap.querySelectorAll('.at-slide')];
-      const thumbs = [...atWrap.querySelectorAll('.at-thumb')];
-      const portraitDiv = document.getElementById('atPortraitDiv');
-      const curEl = document.getElementById('atCur');
-      const initials = ['S','T','J','M','N','D'];
-      const grads = ['linear-gradient(135deg,#22C1EE,#16C77C)', 'linear-gradient(135deg,#6366F1,#8B5CF6)', 'linear-gradient(135deg,#EC4899,#F43F5E)', 'linear-gradient(135deg,#F59E0B,#EF4444)', 'linear-gradient(135deg,#10B981,#059669)', 'linear-gradient(135deg,#3B82F6,#1D4ED8)'];
-      let cur = 0, timer = null;
+    // Card stack testimonial carousel
+    const tcWrap = document.getElementById('tcWrap');
+    if (tcWrap) {
+      const cards = [...tcWrap.querySelectorAll('.tc-card')];
+      const dots  = [...tcWrap.querySelectorAll('.tc-dot')];
+      const TC_DUR = 5500;
+      let cur = 0, timer = null, busy = false;
 
-      function goTo(next) {
-        next = ((next % slides.length) + slides.length) % slides.length;
-        if (next === cur) return;
-        slides[cur].classList.remove('active');
-        cur = next;
-        slides[cur].classList.add('active');
-        portraitDiv.style.opacity = '0';
-        setTimeout(() => { portraitDiv.style.background = grads[cur]; portraitDiv.textContent = initials[cur]; portraitDiv.style.opacity = '1'; }, 250);
-        thumbs.forEach((t, i) => t.classList.toggle('active', i === cur));
-        if (curEl) curEl.textContent = cur + 1;
+      function stateAt(offset, total) {
+        const o = ((offset % total) + total) % total;
+        if (o === 0) return 'active';
+        if (o === 1) return 'behind1';
+        if (o === 2) return 'behind2';
+        return 'hidden';
       }
 
-      thumbs.forEach((t, i) => t.addEventListener('click', () => { goTo(i); restart(); }));
-      document.getElementById('atPrev').addEventListener('click', () => { goTo(cur - 1); restart(); });
-      document.getElementById('atNext').addEventListener('click', () => { goTo(cur + 1); restart(); });
+      function startBar(card) {
+        const bar = card.querySelector('.tc-bar');
+        if (!bar || reduce) return;
+        bar.classList.remove('run');
+        bar.offsetWidth; // force reflow to restart animation
+        bar.classList.add('run');
+      }
 
-      function restart() { clearInterval(timer); if (!reduce) timer = setInterval(() => goTo(cur + 1), 5500); }
-      atWrap.addEventListener('mouseenter', () => clearInterval(timer));
-      atWrap.addEventListener('mouseleave', restart);
-      restart();
+      function stopBar(card) {
+        const bar = card.querySelector('.tc-bar');
+        if (bar) bar.classList.remove('run');
+      }
+
+      function applyStates(activIdx) {
+        cards.forEach((c, i) => {
+          const offset = ((i - activIdx) % cards.length + cards.length) % cards.length;
+          c.setAttribute('data-state', stateAt(offset, cards.length));
+        });
+        dots.forEach((d, i) => d.classList.toggle('active', i === activIdx));
+      }
+
+      function goTo(next) {
+        if (busy) return;
+        next = ((next % cards.length) + cards.length) % cards.length;
+        if (next === cur) return;
+        busy = true;
+        const prev = cur;
+        cur = next;
+        stopBar(cards[prev]);
+        cards[prev].setAttribute('data-state', 'exit');
+        cards.forEach((c, i) => {
+          if (i !== prev) {
+            const offset = ((i - cur) % cards.length + cards.length) % cards.length;
+            c.setAttribute('data-state', stateAt(offset, cards.length));
+          }
+        });
+        dots.forEach((d, i) => d.classList.toggle('active', i === cur));
+        startBar(cards[cur]);
+        setTimeout(() => {
+          const offset = ((prev - cur) % cards.length + cards.length) % cards.length;
+          cards[prev].setAttribute('data-state', stateAt(offset, cards.length));
+          busy = false;
+        }, 700);
+      }
+
+      function startTimer() {
+        clearInterval(timer);
+        if (!reduce) timer = setInterval(() => goTo(cur + 1), TC_DUR);
+      }
+
+      applyStates(0);
+      startBar(cards[0]);
+      startTimer();
+
+      document.getElementById('tcPrev').addEventListener('click', () => { goTo(cur - 1); startTimer(); });
+      document.getElementById('tcNext').addEventListener('click', () => { goTo(cur + 1); startTimer(); });
+      dots.forEach((d, i) => d.addEventListener('click', () => { goTo(i); startTimer(); }));
+
+      tcWrap.addEventListener('mouseenter', () => clearInterval(timer));
+      tcWrap.addEventListener('mouseleave', startTimer);
+
+      let _tx = 0;
+      tcWrap.addEventListener('touchstart', e => { _tx = e.touches[0].clientX; }, { passive: true });
+      tcWrap.addEventListener('touchend', e => {
+        const dx = _tx - e.changedTouches[0].clientX;
+        if (Math.abs(dx) > 44) { goTo(dx > 0 ? cur + 1 : cur - 1); startTimer(); }
+      }, { passive: true });
+    }
+
+    // Subtle parallax on section backgrounds
+    if (!reduce) {
+      const pbs = [...document.querySelectorAll('.patternbg')];
+      window.addEventListener('scroll', () => {
+        const sy = window.scrollY;
+        pbs.forEach(pb => {
+          const rect = pb.parentElement.getBoundingClientRect();
+          const mid = rect.top + rect.height / 2;
+          const offset = (window.innerHeight / 2 - mid) * 0.07;
+          pb.style.transform = 'translateY(' + offset.toFixed(2) + 'px)';
+        });
+      }, { passive: true });
     }
   </script>
 </body>
