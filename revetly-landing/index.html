@@ -198,17 +198,34 @@
     .marquee .logo-item:hover { opacity: .8; }
 
     /* =========================================================
-       FEATURES (2×2 asymmetric grid)
+       FEATURES — sticky left panel + scrollable right cards
        ========================================================= */
     .features { background: var(--white); }
-    .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-    .f-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 32px; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
-    .f-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .features-sticky { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(48px, 7vw, 110px); align-items: start; }
+    .features-left { position: sticky; top: 110px; }
+    .features-left .arrowbox { margin: 0 0 22px; }
+    .features-right { display: flex; flex-direction: column; gap: 18px; }
+
+    /* Progress tracker */
+    .feat-progress { margin-top: 36px; }
+    .feat-step { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); opacity: .35; transition: opacity .4s var(--ease); cursor: default; }
+    .feat-step:last-child { border-bottom: 1px solid var(--line); }
+    .feat-step.active { opacity: 1; }
+    .feat-num { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--green-deep); width: 22px; flex: none; opacity: 0; transition: opacity .35s var(--ease); font-variant-numeric: tabular-nums; }
+    .feat-step.active .feat-num { opacity: 1; }
+    .feat-label { font-size: 0.88rem; font-weight: 600; color: var(--ink-soft); letter-spacing: -0.01em; transition: color .35s var(--ease); }
+    .feat-step.active .feat-label { color: var(--ink); }
+    .feat-bar { margin-left: auto; width: 0; height: 2px; background: var(--grad); border-radius: 2px; transition: width .4s var(--ease); flex: none; }
+    .feat-step.active .feat-bar { width: 32px; }
+
+    /* Cards */
+    .f-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 36px; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+    .f-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
     .f-ic { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; background: var(--ink); color: #fff; flex: none; }
     .f-ic svg { width: 22px; height: 22px; }
     .f-badge { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; border-radius: var(--pill); background: var(--green-wash); color: var(--green-deep); }
-    .f-card h3 { margin-bottom: 10px; font-size: 1.12rem; letter-spacing: -0.02em; }
-    .f-card p { color: var(--muted); font-size: 0.92rem; line-height: 1.62; }
+    .f-card h3 { margin-bottom: 10px; font-size: 1.15rem; letter-spacing: -0.02em; }
+    .f-card p { color: var(--muted); font-size: 0.92rem; line-height: 1.65; }
 
     /* =========================================================
        SERVICES (bento grid)
@@ -458,13 +475,13 @@
     /* =========================================================
        REVEAL
        ========================================================= */
-    .reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s var(--ease), transform .6s var(--ease); will-change: opacity, transform; }
-    .reveal[data-dir="left"] { transform: translateX(-28px) translateY(4px); }
-    .reveal[data-dir="right"] { transform: translateX(28px) translateY(4px); }
-    .reveal[data-dir="scale"] { transform: scale(0.95) translateY(12px); }
-    .reveal.in { opacity: 1; transform: none; }
-    .reveal.s1 { transition-delay: .07s; } .reveal.s2 { transition-delay: .14s; } .reveal.s3 { transition-delay: .21s; }
-    .reveal.s4 { transition-delay: .28s; } .reveal.s5 { transition-delay: .38s; }
+    .reveal { opacity: 0; transform: translateY(44px) scale(0.97); filter: blur(4px); transition: opacity .8s var(--ease), transform .8s var(--ease), filter .6s var(--ease); will-change: opacity, transform, filter; }
+    .reveal[data-dir="left"] { transform: translateX(-38px) translateY(6px) scale(0.98); filter: blur(3px); }
+    .reveal[data-dir="right"] { transform: translateX(38px) translateY(6px) scale(0.98); filter: blur(3px); }
+    .reveal[data-dir="scale"] { transform: scale(0.93) translateY(18px); filter: blur(5px); }
+    .reveal.in { opacity: 1; transform: none; filter: none; }
+    .reveal.s1 { transition-delay: .08s; } .reveal.s2 { transition-delay: .16s; } .reveal.s3 { transition-delay: .24s; }
+    .reveal.s4 { transition-delay: .32s; } .reveal.s5 { transition-delay: .44s; }
 
     /* =========================================================
        RESPONSIVE
@@ -473,7 +490,10 @@
     @media (max-width: 960px) {
       .hero-grid { grid-template-columns: 1fr; }
       .hero-visual { max-width: 440px; margin-inline: auto; }
-      .feature-grid, .price-grid { grid-template-columns: repeat(2, 1fr); }
+      .price-grid { grid-template-columns: repeat(2, 1fr); }
+      .features-sticky { grid-template-columns: 1fr; }
+      .features-left { position: static; }
+      .feat-progress { display: none; }
       .grow-grid-new { grid-template-columns: repeat(2, 1fr); }
       .gn-proof { grid-column: 1 / -1; }
       .cta-card { grid-template-columns: 1fr; }
@@ -488,7 +508,7 @@
       .nav-toggle { display: flex; }
       .nav.mobile-open .nav-links { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; position: absolute; top: 76px; left: 0; right: 0; background: rgba(255,255,255,.97); backdrop-filter: blur(14px); padding: 22px var(--gutter) 26px; border-bottom: 1px solid var(--line); }
       .nav.mobile-open .nav-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; position: absolute; top: 100%; left: 0; right: 0; padding: 0 var(--gutter) 22px; background: rgba(255,255,255,.97); }
-      .feature-grid, .price-grid, .t-grid, .steps { grid-template-columns: 1fr; }
+      .price-grid, .t-grid, .steps { grid-template-columns: 1fr; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
       .footer-bottom { flex-direction: column; align-items: flex-start; }
       .hv-card { left: 0; } .hv-chip { right: 0; }
@@ -598,44 +618,73 @@
     <section class="features" id="features">
       <div class="patternbg" data-pattern="dots"></div>
       <div class="container">
-        <div class="section-head center reveal" data-dir="scale">
-          <div class="arrowbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></div>
-          <h2 class="h2">Warum Revetly anders ist<br />als alles, was du kennst.</h2>
-          <p class="lead">Kein Keyword-Matching. Keine Black Box. Kein Kompromiss bei Datenschutz. Vier Gründe, warum HR-Teams im DACH-Markt wechseln.</p>
-        </div>
-        <div class="feature-grid">
-          <div class="f-card reveal" data-dir="left">
-            <div class="f-card-top">
-              <div class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M9 12h6M9 16h4M17 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><path d="M9 8h6"/></svg></div>
-              <span class="f-badge">Einzigartig</span>
-            </div>
-            <h3>CV + Anschreiben kombiniert</h3>
-            <p>Kein anderes Tool am Markt analysiert CV und Anschreiben gemeinsam. Revetly liest beides – und findet Kandidaten, die Keyword-Matcher übersehen hätten.</p>
+        <div class="features-sticky">
+
+          <!-- LEFT: sticky panel with progress tracker -->
+          <div class="features-left reveal" data-dir="left">
+            <div class="arrowbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></div>
+            <h2 class="h2">Warum Revetly anders ist<br />als alles, was du kennst.</h2>
+            <p class="lead" style="margin-top:16px;">Kein Keyword-Matching. Keine Black Box. Kein Kompromiss beim Datenschutz.</p>
+            <nav class="feat-progress" aria-label="Features">
+              <div class="feat-step active" data-feat="0">
+                <span class="feat-num">01</span>
+                <span class="feat-label">CV + Anschreiben kombiniert</span>
+                <span class="feat-bar"></span>
+              </div>
+              <div class="feat-step" data-feat="1">
+                <span class="feat-num">02</span>
+                <span class="feat-label">Keine Black Box</span>
+                <span class="feat-bar"></span>
+              </div>
+              <div class="feat-step" data-feat="2">
+                <span class="feat-num">03</span>
+                <span class="feat-label">DSGVO &amp; EU AI Act konform</span>
+                <span class="feat-bar"></span>
+              </div>
+              <div class="feat-step" data-feat="3">
+                <span class="feat-num">04</span>
+                <span class="feat-label">K.O.-Kriterien pro Stelle</span>
+                <span class="feat-bar"></span>
+              </div>
+            </nav>
           </div>
-          <div class="f-card reveal s1" data-dir="right">
-            <div class="f-card-top">
-              <div class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35M11 8v3l2 2"/></svg></div>
-              <span class="f-badge">Transparent</span>
+
+          <!-- RIGHT: scrollable feature cards -->
+          <div class="features-right">
+            <div class="f-card reveal" data-dir="right" data-feat-card="0">
+              <div class="f-card-top">
+                <div class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M9 12h6M9 16h4M17 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><path d="M9 8h6"/></svg></div>
+                <span class="f-badge">Einzigartig</span>
+              </div>
+              <h3>CV + Anschreiben kombiniert</h3>
+              <p>Kein anderes Tool am Markt analysiert CV und Anschreiben gemeinsam. Revetly liest beides – und findet Kandidaten, die Keyword-Matcher übersehen hätten.</p>
             </div>
-            <h3>Keine Black Box</h3>
-            <p>Jeder Score wird mit konkreten Stärken, Risiken und Belegen aus dem CV begründet. Du triffst die Entscheidung – mit vollem Überblick, nicht auf Verdacht.</p>
-          </div>
-          <div class="f-card reveal s2" data-dir="left">
-            <div class="f-card-top">
-              <div class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
-              <span class="f-badge">Rechtssicher</span>
+            <div class="f-card reveal s1" data-dir="right" data-feat-card="1">
+              <div class="f-card-top">
+                <div class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35M11 8v3l2 2"/></svg></div>
+                <span class="f-badge">Transparent</span>
+              </div>
+              <h3>Keine Black Box</h3>
+              <p>Jeder Score wird mit konkreten Stärken, Risiken und Belegen aus dem CV begründet. Du triffst die Entscheidung – mit vollem Überblick, nicht auf Verdacht.</p>
             </div>
-            <h3>DSGVO &amp; EU AI Act konform</h3>
-            <p>Alle Daten auf EU-Servern in Frankfurt. Kein Training auf Bewerberdaten. Erklärbarer Score und Human Oversight erfüllen die Anforderungen des EU AI Act.</p>
-          </div>
-          <div class="f-card reveal s3" data-dir="right">
-            <div class="f-card-top">
-              <div class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
-              <span class="f-badge">Konfigurierbar</span>
+            <div class="f-card reveal s2" data-dir="right" data-feat-card="2">
+              <div class="f-card-top">
+                <div class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+                <span class="f-badge">Rechtssicher</span>
+              </div>
+              <h3>DSGVO &amp; EU AI Act konform</h3>
+              <p>Alle Daten auf EU-Servern in Frankfurt. Kein Training auf Bewerberdaten. Erklärbarer Score und Human Oversight erfüllen die Anforderungen des EU AI Act.</p>
             </div>
-            <h3>K.O.-Kriterien pro Stelle</h3>
-            <p>Definiere Pflichtsprachen, Mindesterfahrung oder Zertifikate – Kandidaten, die sie nicht erfüllen, fallen automatisch raus. Keine Handarbeit beim Aussieben.</p>
+            <div class="f-card reveal s3" data-dir="right" data-feat-card="3">
+              <div class="f-card-top">
+                <div class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+                <span class="f-badge">Konfigurierbar</span>
+              </div>
+              <h3>K.O.-Kriterien pro Stelle</h3>
+              <p>Definiere Pflichtsprachen, Mindesterfahrung oder Zertifikate – Kandidaten, die sie nicht erfüllen, fallen automatisch raus. Keine Handarbeit beim Aussieben.</p>
+            </div>
           </div>
+
         </div>
       </div>
     </section>
@@ -1283,6 +1332,21 @@
           mTrack.style.animationDirection = mDir > 0 ? 'normal' : 'reverse';
         }
       }, 50);
+    }
+
+    // ── Feat-step progress tracker — sticky left panel activation ──────────
+    const featCards = document.querySelectorAll('[data-feat-card]');
+    const featSteps = document.querySelectorAll('[data-feat]');
+    if (featCards.length && featSteps.length) {
+      const featObs = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            const idx = e.target.dataset.featCard;
+            featSteps.forEach(s => s.classList.toggle('active', s.dataset.feat === idx));
+          }
+        });
+      }, { threshold: 0.45, rootMargin: '-5% 0px -30% 0px' });
+      featCards.forEach(c => featObs.observe(c));
     }
   </script>
 </body>
