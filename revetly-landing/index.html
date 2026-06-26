@@ -131,19 +131,33 @@
     /* =========================================================
        NAV
        ========================================================= */
-    .nav { position: fixed; inset: 0 0 auto 0; z-index: 100; transition: background .35s var(--ease), backdrop-filter .35s var(--ease), border-color .35s var(--ease); border-bottom: 1px solid transparent; }
-    .nav.scrolled { background: rgba(255,255,255,.78); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); border-bottom: 1px solid var(--line); }
-    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 76px; }
-    .logo { display: inline-flex; align-items: center; gap: 9px; font-size: 1.32rem; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); }
-    .nav-links { display: flex; gap: 30px; align-items: center; }
-    .nav-links a { font-size: 0.93rem; font-weight: 600; color: var(--ink-soft); transition: color .2s; }
-    .nav-links a:hover { color: var(--green-deep); }
-    .nav-actions { display: flex; gap: 10px; align-items: center; }
-    .nav-actions .btn { padding: 10px 18px; }
+    /* floating glass pill navbar */
+    .nav { position: fixed; inset: 16px 0 auto 0; z-index: 100; padding-inline: var(--gutter); transition: inset .4s var(--ease); }
+    .nav.scrolled { inset: 9px 0 auto 0; }
+    .nav-inner {
+      max-width: var(--maxw); margin-inline: auto; padding: 0 12px 0 18px !important;
+      display: flex; align-items: center; justify-content: space-between; height: 64px;
+      background: rgba(255,255,255,.62);
+      backdrop-filter: blur(20px) saturate(1.7); -webkit-backdrop-filter: blur(20px) saturate(1.7);
+      border: 1px solid rgba(255,255,255,.55); border-radius: 20px;
+      box-shadow: 0 16px 44px -20px rgba(12,26,22,.40), inset 0 1px 0 rgba(255,255,255,.65);
+      transition: height .4s var(--ease), background .4s var(--ease), box-shadow .4s var(--ease), border-radius .4s var(--ease);
+    }
+    .nav.scrolled .nav-inner { height: 56px; background: rgba(255,255,255,.84); border-radius: 16px; box-shadow: 0 12px 30px -16px rgba(12,26,22,.30), inset 0 1px 0 rgba(255,255,255,.7); }
+    .logo { display: inline-flex; align-items: center; transition: transform .3s var(--ease); }
+    .logo img { height: 40px !important; width: auto; display: block; }
+    @media (hover: hover) { .logo:hover { transform: scale(1.04); } }
+    .nav-links { display: flex; gap: 4px; align-items: center; }
+    .nav-links a { position: relative; font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); padding: 8px 14px; border-radius: 11px; transition: color .2s, background .25s var(--ease); }
+    .nav-links a:hover { color: var(--ink); background: rgba(12,26,22,.055); }
+    .nav-actions { display: flex; gap: 6px; align-items: center; }
+    .nav-actions .btn { padding: 9px 16px; }
+    /* "Anmelden" as a subtle text button, not a white box */
+    .nav-actions .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-soft); }
+    .nav-actions .btn-ghost:hover { background: rgba(12,26,22,.055); color: var(--ink); }
     .nav-toggle { display: none; flex-direction: column; gap: 5px; padding: 8px; }
-    .nav-toggle span { width: 24px; height: 2px; background: var(--ink); border-radius: 2px; }
+    .nav-toggle span { width: 22px; height: 2px; background: var(--ink); border-radius: 2px; }
     .scroll-prog { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--grad); z-index: 200; }
-    .logo .lmk { display: block; border-radius: 11px; box-shadow: var(--shadow-sm); }
 
     /* =========================================================
        LOAD ANIM
@@ -201,13 +215,6 @@
     .hero-cue .mouse::before { content: ''; position: absolute; left: 50%; top: 6px; width: 3px; height: 6px; border-radius: 2px; background: rgba(255,255,255,.7); transform: translateX(-50%); animation: scrolldot 1.8s var(--ease) infinite; }
     @keyframes scrolldot { 0% { opacity: 0; transform: translate(-50%,0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,11px); } }
     @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
-
-    /* nav transparent state over the dark teal hero */
-    .nav:not(.scrolled) .nav-links a { color: rgba(255,255,255,.82); }
-    .nav:not(.scrolled) .nav-links a:hover { color: #fff; }
-    .nav:not(.scrolled) .nav-actions .btn-ghost { color: rgba(255,255,255,.88); border-color: rgba(255,255,255,.30); }
-    .nav:not(.scrolled) .nav-actions .btn-ghost:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.46); color: #fff; }
-    .nav:not(.scrolled) .nav-toggle span { background: rgba(255,255,255,.92); }
 
     /* =========================================================
        MARQUEE (kept as before)
@@ -532,10 +539,10 @@
     @media (max-width: 700px) {
       .nav-links, .nav-actions { display: none; }
       .nav-toggle { display: flex; }
-      .nav.mobile-open .nav-links { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; position: absolute; top: 76px; left: 0; right: 0; background: rgba(255,255,255,.97); backdrop-filter: blur(14px); padding: 22px var(--gutter) 26px; border-bottom: 1px solid var(--line); }
-      .nav.mobile-open .nav-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; position: absolute; top: 100%; left: 0; right: 0; padding: 0 var(--gutter) 22px; background: rgba(255,255,255,.97); }
-      /* mobile: restore nav links dark text when menu opens over white bg */
-      .nav.mobile-open .nav-links a { color: var(--ink-soft); }
+      .nav.mobile-open .nav-inner { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+      .nav.mobile-open .nav-links { display: flex; flex-direction: column; align-items: stretch; gap: 4px; position: absolute; top: calc(100% - 1px); left: 0; right: 0; background: rgba(255,255,255,.94); backdrop-filter: blur(18px) saturate(1.6); -webkit-backdrop-filter: blur(18px) saturate(1.6); padding: 14px 12px 8px; border: 1px solid rgba(255,255,255,.55); border-top: none; }
+      .nav.mobile-open .nav-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; position: absolute; top: 100%; left: 0; right: 0; padding: 4px 12px 16px; background: rgba(255,255,255,.94); backdrop-filter: blur(18px) saturate(1.6); -webkit-backdrop-filter: blur(18px) saturate(1.6); border: 1px solid rgba(255,255,255,.55); border-top: none; border-radius: 0 0 18px 18px; }
+      .nav.mobile-open .nav-links a { color: var(--ink-soft); padding: 11px 14px; }
       .price-grid, .t-grid, .steps { grid-template-columns: 1fr; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
       .footer-bottom { flex-direction: column; align-items: flex-start; }
@@ -584,8 +591,8 @@
   <!-- ====================== NAV ====================== -->
   <header class="nav" id="nav">
     <div class="container nav-inner">
-      <a href="#top" class="logo">
-        <img src="LogoEntwurf.png" alt="Revetly" style="height:125px;width:auto;display:block;">
+      <a href="#top" class="logo" aria-label="Revetly Startseite">
+        <img src="LogoEntwurf.png" alt="Revetly" />
       </a>
       <nav class="nav-links">
         <a href="#features">Features</a>
