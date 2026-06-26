@@ -93,7 +93,9 @@
     .btn { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 14px 24px; border-radius: var(--pill); font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em; transition: transform .2s var(--ease), background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease); white-space: nowrap; }
     .btn:active { transform: scale(0.97); }
     .btn .ico { width: 18px; height: 18px; display: grid; place-items: center; }
-    .btn-primary { background: var(--ink); color: #fff; }
+    .btn-primary { background: var(--grad); color: var(--ink); font-weight: 700; box-shadow: 0 10px 26px -14px rgba(22,199,124,.55); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 16px 34px -14px rgba(22,199,124,.62); }
+    .btn-primary:active { transform: scale(0.97); }
     .btn-ghost { background: var(--white); color: var(--ink); border: 1px solid var(--line-strong); }
     .btn-ghost .ico { color: var(--green-deep); }
     .btn-grad { background: var(--grad); color: var(--ink); font-weight: 700; }
@@ -145,16 +147,24 @@
     }
     .nav.scrolled .nav-inner { height: 56px; background: rgba(255,255,255,.84); border-radius: 16px; box-shadow: 0 12px 30px -16px rgba(12,26,22,.30), inset 0 1px 0 rgba(255,255,255,.7); }
     .logo { display: inline-flex; align-items: center; transition: transform .3s var(--ease); }
-    .logo img { height: 40px !important; width: auto; display: block; }
+    .logo img { height: 116px !important; width: auto; display: block; margin: -28px 0; }
     @media (hover: hover) { .logo:hover { transform: scale(1.04); } }
     .nav-links { display: flex; gap: 4px; align-items: center; }
     .nav-links a { position: relative; font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); padding: 8px 14px; border-radius: 11px; transition: color .2s, background .25s var(--ease); }
     .nav-links a:hover { color: var(--ink); background: rgba(12,26,22,.055); }
-    .nav-actions { display: flex; gap: 6px; align-items: center; }
-    .nav-actions .btn { padding: 9px 16px; }
-    /* "Anmelden" as a subtle text button, not a white box */
-    .nav-actions .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-soft); }
-    .nav-actions .btn-ghost:hover { background: rgba(12,26,22,.055); color: var(--ink); }
+    .nav-actions { display: flex; gap: 8px; align-items: center; }
+    .nav-actions .btn { padding: 9px 17px; }
+    /* "Anmelden" — gradient-ring pill (transparent interior, brand border) */
+    .nav-actions .btn-ghost {
+      border: 1.5px solid transparent;
+      background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,0)) padding-box, var(--grad) border-box;
+      color: var(--ink-soft); font-weight: 600;
+    }
+    .nav-actions .btn-ghost:hover {
+      background: linear-gradient(rgba(34,193,238,.13), rgba(22,199,124,.13)) padding-box, var(--grad) border-box;
+      color: var(--ink); transform: translateY(-1px);
+    }
+    .nav-actions .btn-ghost:active { transform: scale(0.97); }
     .nav-toggle { display: none; flex-direction: column; gap: 5px; padding: 8px; }
     .nav-toggle span { width: 22px; height: 2px; background: var(--ink); border-radius: 2px; }
     .scroll-prog { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--grad); z-index: 200; }
