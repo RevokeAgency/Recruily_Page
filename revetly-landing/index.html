@@ -141,12 +141,6 @@
     .nav-actions { display: flex; gap: 10px; align-items: center; }
     .nav-actions .btn { padding: 10px 18px; }
     .nav-toggle { display: none; flex-direction: column; gap: 5px; padding: 8px; }
-    /* nav transparent state over dark hero */
-    .nav:not(.scrolled) .nav-links a { color: rgba(255,255,255,.80); }
-    .nav:not(.scrolled) .nav-links a:hover { color: #fff; }
-    .nav:not(.scrolled) .nav-actions .btn-ghost { color: rgba(255,255,255,.85); border-color: rgba(255,255,255,.28); }
-    .nav:not(.scrolled) .nav-actions .btn-ghost:hover { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.42); color: #fff; }
-    .nav:not(.scrolled) .nav-toggle span { background: rgba(255,255,255,.9); }
     .nav-toggle span { width: 24px; height: 2px; background: var(--ink); border-radius: 2px; }
     .scroll-prog { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--grad); z-index: 200; }
     .logo .lmk { display: block; border-radius: 11px; box-shadow: var(--shadow-sm); }
@@ -160,47 +154,25 @@
     body.loaded .lift.d3 { transition-delay: .23s; } body.loaded .lift.d4 { transition-delay: .32s; } body.loaded .lift.d5 { transition-delay: .44s; }
 
     /* =========================================================
-       HERO — full-bleed cinematic photo
+       HERO — airy editorial split
        ========================================================= */
-    .hero { padding-block: 0; overflow: hidden; }
-    .hero-bg { position: absolute; inset: 0; z-index: 0; }
-    .hero-bg img { width: 100%; height: 115%; object-fit: cover; object-position: 62% center; transform-origin: top; }
-    .hero-darken { position: absolute; inset: 0; z-index: 1; background: linear-gradient(103deg, rgba(12,26,22,.96) 0%, rgba(12,26,22,.84) 30%, rgba(12,26,22,.46) 56%, rgba(12,26,22,.12) 78%, rgba(12,26,22,.04) 100%); }
-    .hero > .container { z-index: 2; min-height: 100dvh; display: flex; align-items: center; padding-block: clamp(110px,14dvh,150px) clamp(60px,8dvh,100px); }
-    .hero-content { max-width: 560px; }
-    .hero .badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: var(--pill); padding: 7px 15px; font-size: .78rem; font-weight: 600; color: rgba(255,255,255,.88); margin-bottom: 28px; }
+    .hero { background: var(--mist); padding-block: 0; overflow: hidden; }
+    .hero-split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(36px, 5.5vw, 80px); align-items: center; min-height: 100dvh; padding-block: clamp(110px, 12dvh, 140px) clamp(56px, 7dvh, 88px); }
+    .hero .badge { display: inline-flex; align-items: center; gap: 8px; background: var(--white); border: 1px solid var(--line); border-radius: var(--pill); padding: 7px 15px; font-size: .78rem; font-weight: 600; color: var(--ink-soft); box-shadow: var(--shadow-sm); margin-bottom: 28px; }
     .hero .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: ping 2.4s var(--ease) infinite; }
     @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(22,199,124,.45); } 100% { box-shadow: 0 0 0 12px rgba(22,199,124,0); } }
-    .hero h1 { color: #fff; margin-bottom: 22px; }
-    .hero .lead { color: rgba(255,255,255,.65); max-width: 500px; margin-bottom: 34px; }
+    .hero h1 { margin-bottom: 22px; }
+    .hero .lead { max-width: 500px; margin-bottom: 34px; }
     .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
-    /* ghost button variant for dark backgrounds */
-    .btn-ghost-light { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.24); color: rgba(255,255,255,.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-    .btn-ghost-light:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.38); color: #fff; }
-    @media (hover: hover) { .btn-ghost-light:active { transform: scale(.97); } }
-    /* trust row */
-    .hero-trust { display: flex; align-items: center; gap: 22px; margin-top: 30px; flex-wrap: wrap; }
-    .hero-trust-item { display: flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 600; color: rgba(255,255,255,.46); letter-spacing: .02em; }
-    .hero-trust-item svg { width: 13px; height: 13px; flex: none; color: var(--green); }
-    /* floating glassmorphic match card */
-    .hc-float { position: absolute; bottom: clamp(48px,8dvh,80px); right: clamp(24px,5vw,72px); width: min(290px,calc(100vw - 48px)); background: rgba(255,255,255,.07); backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.11), 0 24px 48px -16px rgba(0,0,0,.50); border-radius: var(--radius); padding: 18px 20px; color: #fff; z-index: 3; animation: floaty 7s ease-in-out infinite; }
-    .hcf-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-    .hcf-live { display: inline-flex; align-items: center; gap: 6px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--green); }
-    .hcf-live .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: ping 2s var(--ease) infinite; }
-    .hcf-time { font-size: .72rem; color: rgba(255,255,255,.36); }
-    .hcf-candidate { display: flex; align-items: center; gap: 11px; margin-bottom: 14px; }
-    .hcf-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--grad); display: grid; place-items: center; font-size: .7rem; font-weight: 800; color: var(--ink); flex: none; }
-    .hcf-cname { flex: 1; min-width: 0; }
-    .hcf-cname strong { display: block; font-size: .88rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .hcf-cname span { font-size: .74rem; color: rgba(255,255,255,.50); }
-    .hcf-score { font-size: 1.1rem; font-weight: 800; letter-spacing: -.02em; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; flex: none; }
-    .hcf-bar { height: 4px; background: rgba(255,255,255,.12); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
-    .hcf-fill { height: 100%; background: var(--grad); border-radius: 2px; transform: scaleX(0); transform-origin: left; }
-    body.loaded .hcf-fill { animation: barGrow 1.4s .7s cubic-bezier(0.16,1,0.3,1) forwards; }
-    @keyframes barGrow { to { transform: scaleX(1); } }
-    .hcf-row { display: flex; align-items: center; justify-content: space-between; font-size: .76rem; }
-    .hcf-row span:first-child { color: rgba(255,255,255,.46); }
-    .hcf-check { font-weight: 700; color: var(--green); }
+    .hero-trust { display: flex; align-items: center; gap: 22px; margin-top: 28px; flex-wrap: wrap; }
+    .hero-trust-item { display: flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 600; color: var(--muted); }
+    .hero-trust-item svg { width: 13px; height: 13px; flex: none; color: var(--green-deep); }
+    /* photo column */
+    .hero-visual { position: relative; }
+    .hero-visual::before { content: ''; position: absolute; inset: -18%; border-radius: 50%; background: radial-gradient(closest-side, rgba(34,193,238,.24), rgba(22,199,124,.14), transparent 72%); filter: blur(48px); z-index: 0; pointer-events: none; animation: heroglow 10s ease-in-out infinite; }
+    @keyframes heroglow { 0%,100% { transform: scale(1) translate(-2%,-1%); } 50% { transform: scale(1.12) translate(2%,2%); } }
+    .hv-photo { position: relative; z-index: 1; height: clamp(440px, 63vh, 700px); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-lg); }
+    .hv-photo img { width: 100%; height: 115%; object-fit: cover; object-position: 50% 8%; transform-origin: top; }
     @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
 
     /* =========================================================
@@ -506,6 +478,9 @@
        ========================================================= */
     @media (max-width: 1100px) { .footer-grid { grid-template-columns: 1fr 1fr 1fr; } .footer .f-brand { grid-column: 1 / -1; } }
     @media (max-width: 960px) {
+      .hero-split { grid-template-columns: 1fr; padding-block: 120px 56px; }
+      .hero-visual { order: -1; }
+      .hv-photo { height: clamp(260px, 42vh, 380px); }
       .price-grid { grid-template-columns: repeat(2, 1fr); }
       .features-sticky { grid-template-columns: 1fr; }
       .features-left { position: static; }
@@ -529,7 +504,8 @@
       .price-grid, .t-grid, .steps { grid-template-columns: 1fr; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
       .footer-bottom { flex-direction: column; align-items: flex-start; }
-      .hc-float { display: none; }
+      .hero-trust { gap: 14px; }
+      .hv-photo { height: clamp(220px, 38vh, 300px); }
       .sb-score-num { font-size: 2.8rem; }
       .sb-num { font-size: 2rem; }
       .grow-grid-new { grid-template-columns: 1fr; }
@@ -563,7 +539,6 @@
     @media (prefers-reduced-motion: reduce) {
       * { animation: none !important; transition: none !important; scroll-behavior: auto; }
       .reveal, .lift { opacity: 1 !important; transform: none !important; filter: none !important; }
-      .hcf-fill { transform: scaleX(1) !important; }
     }
   </style>
 </head>
@@ -594,49 +569,33 @@
 
     <!-- ====================== HERO ====================== -->
     <section class="hero">
-      <!-- Full-bleed background photo -->
-      <div class="hero-bg" id="heroBgImg">
-        <img src="magnific_an-european-woman-is-hold_vuDVfAna47.png" alt="" role="presentation" loading="eager" />
-      </div>
-      <!-- Dark gradient overlay: ink → transparent toward photo -->
-      <div class="hero-darken"></div>
-
-      <!-- Text content -->
+      <div class="patternbg" data-pattern="mesh"></div>
       <div class="container">
-        <div class="hero-content">
-          <span class="badge lift d1"><span class="dot"></span>10 Matches gratis &middot; kein Account nötig</span>
-          <h1 class="h1 lift d2">Kein Raten.<br />Kein Keyword-Matching.<br />Nur die <span class="gradient-text">Top-Kandidaten.</span></h1>
-          <p class="lead lift d3">Revetly analysiert CV und Anschreiben gemeinsam – mit erklärbarem Score, ohne Black Box. DSGVO-konform, auf EU-Servern.</p>
-          <div class="hero-ctas lift d4">
-            <a href="#" class="btn btn-primary btn-lg">Jetzt kostenlos starten <span class="ico arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></span></a>
-            <a href="#how" class="btn btn-ghost-light btn-lg"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span> So funktioniert's</a>
-          </div>
-          <div class="hero-trust lift d5">
-            <div class="hero-trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>DSGVO-konform</div>
-            <div class="hero-trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>EU AI Act</div>
-            <div class="hero-trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Server in Deutschland</div>
-          </div>
-        </div>
-      </div>
+        <div class="hero-split">
 
-      <!-- Floating live match card (glassmorphic) -->
-      <div class="hc-float reveal" data-dir="scale">
-        <div class="hcf-header">
-          <span class="hcf-live"><span class="live-dot"></span>Live</span>
-          <span class="hcf-time">gerade eben</span>
-        </div>
-        <div class="hcf-candidate">
-          <div class="hcf-avatar">MH</div>
-          <div class="hcf-cname">
-            <strong>Dr. Markus Hoffbauer</strong>
-            <span>Senior IT-Projektleiter</span>
+          <!-- Left: copy -->
+          <div class="hero-copy">
+            <span class="badge lift d1"><span class="dot"></span>10 Matches gratis &middot; kein Account nötig</span>
+            <h1 class="h1 lift d2">Lade Job &amp; CVs hoch –<br />finde in Minuten die <span class="gradient-text">Top-Kandidaten.</span></h1>
+            <p class="lead lift d3">Revetly matcht CV und Anschreiben gemeinsam und zeigt dir mit einem erklärbaren Score, wer wirklich zu deiner Stelle passt – ohne Black Box, ohne Handarbeit.</p>
+            <div class="hero-ctas lift d4">
+              <a href="#" class="btn btn-primary btn-lg">Jetzt kostenlos starten <span class="ico arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></span></a>
+              <a href="#how" class="btn btn-ghost btn-lg"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span> So funktioniert's</a>
+            </div>
+            <div class="hero-trust lift d5">
+              <div class="hero-trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>DSGVO-konform</div>
+              <div class="hero-trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>EU AI Act</div>
+              <div class="hero-trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Server in Deutschland</div>
+            </div>
           </div>
-          <div class="hcf-score">91%</div>
-        </div>
-        <div class="hcf-bar"><div class="hcf-fill"></div></div>
-        <div class="hcf-row">
-          <span>K.O.-Kriterien erfüllt</span>
-          <span class="hcf-check">8 / 8</span>
+
+          <!-- Right: photo -->
+          <div class="hero-visual lift d5">
+            <div class="hv-photo">
+              <img src="magnific_an-european-woman-is-hold_vuDVfAna47.png" alt="HR-Managerin nutzt Revetly" loading="eager" />
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
@@ -1127,7 +1086,7 @@
 
     // Scroll progress bar + hero parallax (premium depth)
     const prog = document.getElementById('prog');
-    const pVis = document.querySelector('.hero-bg img');
+    const pVis = document.querySelector('.hv-photo img');
     function onFrame() {
       const h = document.documentElement;
       const max = h.scrollHeight - h.clientHeight;
