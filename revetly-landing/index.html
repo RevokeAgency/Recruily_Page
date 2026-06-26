@@ -448,22 +448,59 @@
        PRICING
        ========================================================= */
     .pricing { background: var(--white); overflow: hidden; }
-    .price-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; align-items: stretch; }
-    .price-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 30px 24px; display: flex; flex-direction: column; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+    /* billing toggle */
+    .bill-row { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 46px; }
+    .bill-toggle { position: relative; display: inline-flex; background: var(--mist); border: 1px solid var(--line); border-radius: var(--pill); padding: 5px; }
+    .bill-toggle button { position: relative; z-index: 1; min-width: 116px; padding: 10px 22px; font-size: 0.9rem; font-weight: 700; color: var(--muted); border-radius: var(--pill); transition: color .3s var(--ease); }
+    .bill-toggle button.active { color: var(--ink); }
+    .bill-thumb { position: absolute; z-index: 0; top: 5px; bottom: 5px; left: 5px; width: calc(50% - 5px); background: var(--white); border-radius: var(--pill); box-shadow: var(--shadow-sm); transition: transform .4s var(--ease); }
+    .bill-toggle.yearly .bill-thumb { transform: translateX(100%); }
+    .bill-save { display: inline-flex; align-items: center; gap: 7px; font-size: 0.8rem; font-weight: 700; color: var(--green-deep); }
+    .bill-save .pill { background: var(--green-wash); padding: 4px 11px; border-radius: var(--pill); }
+    .bill-save svg { width: 14px; height: 14px; }
+
+    .price-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; align-items: stretch; }
+    .price-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px 20px; display: flex; flex-direction: column; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
     .price-card.featured { color: #cfe5de; position: relative; border: 2px solid transparent; background: linear-gradient(var(--ink), var(--ink)) padding-box, conic-gradient(from var(--ba), var(--cyan), var(--green), var(--cyan)) border-box; box-shadow: var(--shadow-lg); animation: borderspin 6s linear infinite; }
     @keyframes borderspin { to { --ba: 360deg; } }
     .price-card.featured .pc-name, .price-card.featured .pc-price { color: #fff; }
-    .pc-tag { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--grad); color: var(--ink); font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 14px; border-radius: var(--pill); white-space: nowrap; }
-    .pc-name { font-size: 1.1rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
-    .pc-desc { font-size: 0.84rem; color: var(--muted); margin-bottom: 20px; }
-    .pc-price { font-size: 2.4rem; font-weight: 800; color: var(--ink); letter-spacing: -0.03em; line-height: 1; margin-bottom: 2px; }
-    .pc-price span { font-size: 0.9rem; font-weight: 500; color: var(--muted); }
-    .pc-list { margin: 22px 0 26px; flex: 1; }
-    .pc-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; margin-bottom: 12px; color: var(--ink-soft); }
+    .pc-tag { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--grad); color: var(--ink); font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 13px; border-radius: var(--pill); white-space: nowrap; }
+    .pc-name { font-size: 1.05rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .pc-desc { font-size: 0.8rem; color: var(--muted); margin-bottom: 18px; min-height: 2.2em; }
+    .pc-price { font-size: 2.1rem; font-weight: 800; color: var(--ink); letter-spacing: -0.03em; line-height: 1; margin-bottom: 2px; transition: filter .25s var(--ease), opacity .25s var(--ease); }
+    .pc-price .pc-per { font-size: 0.82rem; font-weight: 500; color: var(--muted); }
+    .price-card.featured .pc-per { color: #9fc2ba; }
+    .pc-price.swap { filter: blur(6px); opacity: .5; }
+    .pc-save { font-size: 0.72rem; font-weight: 700; color: var(--green-deep); min-height: 1.1em; margin-top: 7px; letter-spacing: .01em; }
+    .price-card.featured .pc-save { color: var(--green); }
+    .pc-list { margin: 20px 0 24px; flex: 1; }
+    .pc-list li { display: flex; align-items: flex-start; gap: 9px; font-size: 0.85rem; margin-bottom: 11px; color: var(--ink-soft); }
     .price-card.featured .pc-list li { color: #b9d4cc; }
-    .pc-list .ck { flex: none; width: 16px; height: 16px; color: var(--green-deep); margin-top: 3px; }
+    .pc-list .ck { flex: none; width: 15px; height: 15px; color: var(--green-deep); margin-top: 3px; }
     .price-card.featured .pc-list .ck { color: var(--green); }
     .price-card .btn { width: 100%; }
+
+    /* feature comparison matrix */
+    .matrix-wrap { margin-top: 56px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--white); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .matrix { width: 100%; border-collapse: collapse; min-width: 760px; }
+    .matrix th, .matrix td { padding: 13px 14px; font-size: 0.84rem; text-align: center; border-bottom: 1px solid var(--line); }
+    .matrix thead th { background: var(--white); font-weight: 700; color: var(--ink); padding-top: 18px; padding-bottom: 18px; border-bottom: 2px solid var(--line); }
+    .matrix thead th .mh-name { font-size: 0.96rem; letter-spacing: -0.01em; }
+    .matrix thead th .mh-tag { display: block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--green-deep); margin-top: 3px; }
+    .matrix th:first-child, .matrix td:first-child { text-align: left; position: sticky; left: 0; background: var(--white); z-index: 1; font-weight: 600; color: var(--ink-soft); min-width: 210px; }
+    .matrix thead th:first-child { z-index: 3; }
+    .matrix tr-grp, .matrix .grp td { text-align: left; background: var(--mist); font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; font-size: 0.7rem; color: var(--muted); }
+    .matrix .grp td:first-child { background: var(--mist); }
+    /* highlight Growth (col 4) */
+    .matrix td:nth-child(4), .matrix thead th:nth-child(4) { background: rgba(22,199,124,.05); }
+    .matrix thead th:nth-child(4) { background: rgba(22,199,124,.09); }
+    .matrix .ck { width: 17px; height: 17px; color: var(--green-deep); }
+    .matrix .dash { color: var(--line-strong); font-weight: 600; }
+    .matrix .mval { font-weight: 700; color: var(--ink); font-size: 0.82rem; }
+    .matrix tbody tr:hover td { background: var(--mist); }
+    .matrix tbody tr:hover td:nth-child(4) { background: rgba(22,199,124,.09); }
+    .matrix tbody tr.grp:hover td { background: var(--mist); }
     .enterprise-line { text-align: center; margin-top: 38px; color: var(--muted); }
     .enterprise-line a { color: var(--green-deep); font-weight: 700; }
 
@@ -528,6 +565,7 @@
        RESPONSIVE
        ========================================================= */
     @media (max-width: 1100px) { .footer-grid { grid-template-columns: 1fr 1fr 1fr; } .footer .f-brand { grid-column: 1 / -1; } }
+    @media (max-width: 1080px) { .price-grid { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 960px) {
       .hero-bg img { object-position: 70% center; }
       .hero-scrim { background:
@@ -1034,60 +1072,139 @@
         <div class="section-head center reveal">
           <span class="eyebrow">Preise</span>
           <h2 class="h2">Transparent. Fair. Skalierbar.</h2>
-          <p class="lead" style="margin-top:16px;">1 Match = 1 CV gegen 1 Stelle analysiert. Du zahlst nur, was du nutzt.</p>
+          <p class="lead" style="margin-top:16px;">Starte gratis. Wachse, wenn dein Recruiting wächst. Jederzeit kündbar.</p>
         </div>
+
+        <!-- Billing toggle -->
+        <div class="bill-row reveal">
+          <div class="bill-toggle" id="billToggle" role="tablist" aria-label="Abrechnungszeitraum">
+            <span class="bill-thumb" aria-hidden="true"></span>
+            <button type="button" class="active" data-bill="monthly" role="tab" aria-selected="true">Monatlich</button>
+            <button type="button" data-bill="yearly" role="tab" aria-selected="false">Jährlich</button>
+          </div>
+          <span class="bill-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg><span class="pill">2 Monate gratis pro Jahr</span></span>
+        </div>
+
         <div class="price-grid">
+          <!-- Free -->
           <div class="price-card reveal">
             <div class="pc-name">Free</div>
             <div class="pc-desc">Zum Reinschnuppern</div>
-            <div class="pc-price">€0<span>/mo</span></div>
+            <div class="pc-price"><span class="pc-amt" data-m="€0" data-y="€0">€0</span> <span class="pc-per" data-m="/Monat" data-y="/Jahr">/Monat</span></div>
+            <div class="pc-save" data-y=""></div>
             <ul class="pc-list">
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>10 Matches</b> gesamt</li>
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Kein Account nötig</li>
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Keine Kreditkarte</li>
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Erklärbarer Score</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>1</b> aktiver Job</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>5</b> AI Matches / Monat</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> CV Upload &amp; Parsing</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Rejection Emails</li>
             </ul>
             <a href="#" class="btn btn-ghost">Loslegen</a>
           </div>
+
+          <!-- Starter -->
           <div class="price-card reveal s1">
             <div class="pc-name">Starter</div>
-            <div class="pc-desc">Für Einzelpersonen</div>
-            <div class="pc-price">€49<span>/mo</span></div>
+            <div class="pc-desc">Für Einzel-Recruiter</div>
+            <div class="pc-price"><span class="pc-amt" data-m="€99" data-y="€990">€99</span> <span class="pc-per" data-m="/Monat" data-y="/Jahr">/Monat</span></div>
+            <div class="pc-save" data-y="2 Monate gratis"></div>
             <ul class="pc-list">
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>50 Matches</b> / Monat</li>
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> 1 User</li>
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Matching + Auto-Mails</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>3</b> aktive Jobs</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>50</b> AI Matches / Monat</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Interview .ics Invites</li>
               <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Email Support</li>
             </ul>
-            <a href="#" class="btn btn-ghost">Starten</a>
+            <a href="#" class="btn btn-ghost">Starter wählen</a>
           </div>
+
+          <!-- Growth (featured) -->
           <div class="price-card featured reveal s2">
             <span class="pc-tag">Am beliebtesten</span>
             <div class="pc-name">Growth</div>
             <div class="pc-desc">Für wachsende Teams</div>
-            <div class="pc-price">€149<span>/mo</span></div>
+            <div class="pc-price"><span class="pc-amt" data-m="€249" data-y="€2.490">€249</span> <span class="pc-per" data-m="/Monat" data-y="/Jahr">/Monat</span></div>
+            <div class="pc-save" data-y="2 Monate gratis"></div>
             <ul class="pc-list">
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>200 Matches</b> / Monat</li>
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> 5 Users</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>10</b> aktive Jobs</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>300</b> AI Matches / Monat</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Global Candidate Pool</li>
               <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Analytics Dashboard</li>
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Alle Features</li>
             </ul>
             <a href="#" class="btn btn-grad">Growth wählen</a>
           </div>
+
+          <!-- Pro -->
           <div class="price-card reveal s3">
             <div class="pc-name">Pro</div>
-            <div class="pc-desc">Für Agenturen &amp; Teams</div>
-            <div class="pc-price">€299<span>/mo</span></div>
+            <div class="pc-desc">Für Agenturen &amp; HR-Teams</div>
+            <div class="pc-price"><span class="pc-amt" data-m="€499" data-y="€4.990">€499</span> <span class="pc-per" data-m="/Monat" data-y="/Jahr">/Monat</span></div>
+            <div class="pc-save" data-y="2 Monate gratis"></div>
             <ul class="pc-list">
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>500 Matches</b> / Monat</li>
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Unbegrenzte Users</li>
-              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> API-Zugang</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>Unlimited</b> Jobs</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> <b>1.000</b> AI Matches / Monat</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> AI Outreach &amp; API</li>
               <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Priority Support</li>
             </ul>
             <a href="#" class="btn btn-ghost">Pro wählen</a>
           </div>
+
+          <!-- Enterprise -->
+          <div class="price-card reveal s4">
+            <div class="pc-name">Enterprise</div>
+            <div class="pc-desc">Für Konzerne &amp; Volumen</div>
+            <div class="pc-price"><span class="pc-amt">Custom</span></div>
+            <div class="pc-save"></div>
+            <ul class="pc-list">
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Custom Matches &amp; SLA</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> White Label &amp; API</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Unlimited Team</li>
+              <li><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> SLA &amp; dedizierter Support</li>
+            </ul>
+            <a href="#" class="btn btn-ghost">Kontakt</a>
+          </div>
         </div>
-        <p class="enterprise-line" style="margin-top:24px;">Jährlich zahlen: <strong>2 Monate gratis</strong> &mdash; ca. 17&nbsp;% Ersparnis &bull; <a href="#">Enterprise anfragen →</a></p>
+
+        <!-- Full feature comparison matrix -->
+        <div class="matrix-wrap reveal">
+          <div class="matrix-scroll">
+            <table class="matrix">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th><span class="mh-name">Free</span></th>
+                  <th><span class="mh-name">Starter</span></th>
+                  <th><span class="mh-name">Growth</span><span class="mh-tag">Beliebt</span></th>
+                  <th><span class="mh-name">Pro</span></th>
+                  <th><span class="mh-name">Enterprise</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="grp"><td colspan="6">Jobs &amp; Matches</td></tr>
+                <tr><td>Aktive Jobs</td><td><span class="mval">1</span></td><td><span class="mval">3</span></td><td><span class="mval">10</span></td><td><span class="mval">Unlimited</span></td><td><span class="mval">Custom</span></td></tr>
+                <tr><td>AI Matches / Monat</td><td><span class="mval">5</span></td><td><span class="mval">50</span></td><td><span class="mval">300</span></td><td><span class="mval">1.000</span></td><td><span class="mval">Custom SLA</span></td></tr>
+                <tr><td>Overage pro Match</td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><span class="mval">€0,49</span></td><td><span class="mval">€0,29</span></td><td><span class="mval">Verhandelt</span></td></tr>
+
+                <tr class="grp"><td colspan="6">Core Features</td></tr>
+                <tr><td>CV Upload &amp; Parsing</td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>Public Apply Page</td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>AI Matching Score</td><td><span class="mval">Basic</span></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>Rejection Emails</td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>Interview .ics Invite</td><td><span class="dash">—</span></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>Email Inbound Parsing</td><td><span class="dash">—</span></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>Global Candidate Pool</td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>Kandidaten-Suche</td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>Analytics Dashboard</td><td><span class="dash">—</span></td><td><span class="mval">Basic</span></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>AI Outreach</td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>API Access</td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>White Label</td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+
+                <tr class="grp"><td colspan="6">Team &amp; Support</td></tr>
+                <tr><td>Team Members</td><td><span class="mval">1</span></td><td><span class="mval">2</span></td><td><span class="mval">5</span></td><td><span class="mval">Unlimited</span></td><td><span class="mval">Unlimited</span></td></tr>
+                <tr><td>GDPR Export</td><td><span class="dash">—</span></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td><td><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></td></tr>
+                <tr><td>Support</td><td><span class="mval">Community</span></td><td><span class="mval">Email</span></td><td><span class="mval">Priority</span></td><td><span class="mval">Dedicated</span></td><td><span class="mval">SLA</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1414,6 +1531,32 @@
         });
       }, { threshold: 0.45, rootMargin: '-5% 0px -30% 0px' });
       featCards.forEach(c => featObs.observe(c));
+    }
+
+    // ── Billing toggle — monthly / yearly with blur-masked price swap ──────
+    const billToggle = document.getElementById('billToggle');
+    if (billToggle) {
+      const billBtns = billToggle.querySelectorAll('button');
+      const priceEls = document.querySelectorAll('.price-grid .pc-price');
+      const amts = document.querySelectorAll('.price-grid .pc-amt');
+      const pers = document.querySelectorAll('.price-grid .pc-per');
+      const saves = document.querySelectorAll('.price-grid .pc-save');
+      function setBilling(yearly) {
+        billToggle.classList.toggle('yearly', yearly);
+        billBtns.forEach(b => {
+          const on = (b.dataset.bill === 'yearly') === yearly;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        priceEls.forEach(p => p.classList.add('swap'));
+        setTimeout(() => {
+          amts.forEach(el => { const v = yearly ? el.dataset.y : el.dataset.m; if (v != null && v !== '') el.textContent = v; });
+          pers.forEach(el => { const v = yearly ? el.dataset.y : el.dataset.m; if (v != null) el.textContent = v; });
+          saves.forEach(el => { el.textContent = yearly ? (el.dataset.y || '') : ''; });
+          priceEls.forEach(p => p.classList.remove('swap'));
+        }, reduce ? 0 : 170);
+      }
+      billBtns.forEach(b => b.addEventListener('click', () => setBilling(b.dataset.bill === 'yearly')));
     }
   </script>
 </body>
