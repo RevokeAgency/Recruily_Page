@@ -209,33 +209,50 @@
     .f-card p { color: var(--muted); font-size: 0.93rem; }
 
     /* =========================================================
-       SERVICES (tabs + card with photo)
+       SERVICES (bento grid)
        ========================================================= */
     .services { background: var(--mist); overflow: hidden; }
-    .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
-    .tab-btn { padding: 11px 18px; border-radius: var(--pill); font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); background: var(--white); border: 1px solid var(--line); transition: background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease); }
-    .tab-btn:active { transform: scale(0.97); }
-    .tab-btn:hover { border-color: var(--line-strong); }
-    .tab-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; animation: fade .45s var(--ease); }
-    @keyframes fade { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: none;} }
-    .svc-card { display: grid; grid-template-columns: 1fr 0.9fr; gap: 0; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
-    .svc-text { padding: clamp(28px, 4vw, 46px); }
-    .svc-text h3 { margin-bottom: 22px; font-size: clamp(1.4rem, 2.4vw, 1.9rem); letter-spacing: -0.02em; }
-    .checks { margin-bottom: 26px; }
-    .checks li { display: flex; align-items: flex-start; gap: 12px; color: var(--ink-soft); font-size: 1rem; margin-bottom: 13px; }
-    .checks .ck { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--grad); color: #fff; }
-    .checks .ck svg { width: 13px; height: 13px; }
-    .details-link { color: var(--green-deep); font-weight: 700; font-size: 0.95rem; display: inline-flex; gap: 7px; align-items: center; }
-    .details-link:hover .arrow { transform: translate(3px,-3px); }
-    .svc-photo { position: relative; min-height: 320px; background: var(--photo-fallback); }
-    .svc-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .svc-photo img.failed { opacity: 0; }
-    .svc-float { position: absolute; left: 18px; bottom: 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255,255,255,.92); backdrop-filter: blur(8px); border-radius: 13px; padding: 11px 14px; box-shadow: var(--shadow-sm); right: 18px; }
-    .svc-float .sf-n { font-weight: 800; color: var(--ink); font-size: 1.1rem; }
-    .svc-float .sf-l { font-size: 0.76rem; color: var(--muted); }
-    .svc-float .sf-pill { font-size: 0.74rem; font-weight: 700; padding: 5px 11px; border-radius: var(--pill); background: var(--grad); color: var(--ink); }
+    .svc-bento { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 20px; align-items: start; }
+    /* Main card */
+    .sb-main { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; box-shadow: var(--shadow); }
+    /* Left: mockup pane */
+    .sb-mockup { background: var(--mist-2); padding: 32px 26px; display: flex; flex-direction: column; gap: 22px; border-right: 1px solid var(--line); }
+    .sb-score-row { display: flex; align-items: baseline; gap: 6px; }
+    .sb-score-num { font-size: 3.6rem; font-weight: 800; letter-spacing: -0.06em; color: var(--ink); line-height: 1; }
+    .sb-score-denom { font-size: 1.1rem; font-weight: 600; color: var(--muted); }
+    .sb-score-label { font-size: 0.74rem; font-weight: 600; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .sb-layers { display: flex; flex-direction: column; gap: 12px; }
+    .sb-layer-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+    .sb-layer-head span { font-size: 0.73rem; font-weight: 600; color: var(--ink-soft); }
+    .sb-layer-head b { font-size: 0.73rem; font-weight: 700; color: var(--green-deep); }
+    .sb-bar-track { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; }
+    .sb-bar { height: 100%; width: 0; background: var(--grad); border-radius: 4px; transition: width 1.1s var(--ease); }
+    .reveal.in .sb-bar { width: var(--w); }
+    .sb-candidate { display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: var(--white); border-radius: 12px; border: 1px solid var(--line); }
+    .sb-av { width: 34px; height: 34px; border-radius: 50%; flex: none; }
+    .sb-candidate-info b { display: block; font-size: 0.82rem; color: var(--ink); font-weight: 700; }
+    .sb-candidate-info span { font-size: 0.7rem; color: var(--muted); }
+    .sb-badge { margin-left: auto; font-size: 0.69rem; font-weight: 700; padding: 4px 9px; border-radius: var(--pill); background: var(--grad); color: var(--ink); white-space: nowrap; flex: none; }
+    /* Right: text pane */
+    .sb-main-text { padding: 32px 26px; display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+    .sb-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--green-wash); color: var(--green-deep); font-size: 0.71rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 5px 12px; border-radius: var(--pill); width: fit-content; }
+    .sb-main-text h3 { font-size: clamp(1.05rem, 1.5vw, 1.28rem); margin: 0; letter-spacing: -0.025em; line-height: 1.35; }
+    .sb-main-text > p { color: var(--muted); font-size: 0.9rem; line-height: 1.64; margin: 0; }
+    .sb-checks { display: flex; flex-direction: column; gap: 9px; margin: 0; padding: 0; }
+    .sb-checks li { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--ink-soft); list-style: none; }
+    .sb-checks li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--grad); flex: none; }
+    /* Right column: stacked side cards */
+    .sb-side { display: flex; flex-direction: column; gap: 20px; }
+    .sb-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 26px 24px; display: flex; flex-direction: column; gap: 10px; flex: 1; box-shadow: var(--shadow-sm); transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+    .sb-card:active { transform: scale(0.98); }
+    .sb-card-ic { width: 40px; height: 40px; border-radius: 12px; background: var(--ink); display: grid; place-items: center; color: #fff; flex: none; }
+    .sb-card-ic svg { width: 19px; height: 19px; }
+    .sb-num { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.04em; color: var(--ink); line-height: 1; }
+    .sb-card h3 { font-size: 1.04rem; margin: 0; letter-spacing: -0.015em; }
+    .sb-card > p { color: var(--muted); font-size: 0.87rem; line-height: 1.58; margin: 0; }
+    @media (hover: hover) and (pointer: fine) {
+      .sb-card:hover { transform: translateY(-4px); box-shadow: 0 24px 50px -28px rgba(14,159,98,.35), var(--shadow-sm); }
+    }
 
     /* =========================================================
        CONTRAST BLOCK (gradient) — How it works
@@ -459,9 +476,12 @@
       .hero-grid { grid-template-columns: 1fr; }
       .hero-visual { max-width: 440px; margin-inline: auto; }
       .feature-grid, .price-grid { grid-template-columns: repeat(2, 1fr); }
-      .svc-card, .grow-grid, .cta-card { grid-template-columns: 1fr; }
+      .grow-grid, .cta-card { grid-template-columns: 1fr; }
       .steps { grid-template-columns: 1fr; }
       .step::before { display: none; }
+      .svc-bento { grid-template-columns: 1fr; }
+      .sb-main { grid-template-columns: 1fr; }
+      .sb-mockup { border-right: none; border-bottom: 1px solid var(--line); }
     }
     @media (max-width: 700px) {
       .nav-links, .nav-actions { display: none; }
@@ -472,6 +492,8 @@
       .footer-grid { grid-template-columns: 1fr 1fr; }
       .footer-bottom { flex-direction: column; align-items: flex-start; }
       .hv-card { left: 0; } .hv-chip { right: 0; }
+      .sb-score-num { font-size: 2.8rem; }
+      .sb-num { font-size: 2rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       * { animation: none !important; transition: none !important; scroll-behavior: auto; }
@@ -563,63 +585,80 @@
       </div>
     </section>
 
-    <!-- ====================== SERVICES (tabs) ====================== -->
+    <!-- ====================== SERVICES (bento) ====================== -->
     <section class="services" id="services">
       <div class="patternbg" data-pattern="rings"></div>
       <div class="container">
         <div class="section-head reveal" data-dir="left">
-          <span class="eyebrow">Unser Produkt</span>
-          <h2 class="h2">Eine Plattform, die dein Business<br />mit Top-Talenten verbindet.</h2>
-          <p class="lead">Unser Ansatz integriert sich nahtlos in deinen Workflow – von der Stellenausschreibung bis zur Einstellung.</p>
+          <span class="eyebrow">Wie wir dir helfen</span>
+          <h2 class="h2">Kein Keyword-Matching.<br /><span class="gradient-text">Echter KI-Recruiter.</span></h2>
+          <p class="lead">Revetly analysiert CV und Anschreiben gemeinsam – und erklärt jede Entscheidung mit konkreten Belegen.</p>
         </div>
 
-        <div class="tabs reveal" role="tablist">
-          <button class="tab-btn active" data-tab="0" role="tab">KI-Matching</button>
-          <button class="tab-btn" data-tab="1" role="tab">Kandidaten-Management</button>
-          <button class="tab-btn" data-tab="2" role="tab">Job-Aktivierung</button>
-        </div>
+        <div class="svc-bento">
+          <!-- Main card: mockup + text -->
+          <div class="sb-main reveal" data-dir="left">
+            <div class="sb-mockup">
+              <div>
+                <div class="sb-score-row">
+                  <div class="sb-score-num" data-count="87">0</div>
+                  <div class="sb-score-denom">/100</div>
+                </div>
+                <div class="sb-score-label">Match Score</div>
+              </div>
+              <div class="sb-layers">
+                <div class="sb-layer">
+                  <div class="sb-layer-head"><span>Hard Skills</span><b>92</b></div>
+                  <div class="sb-bar-track"><div class="sb-bar" style="--w:92%"></div></div>
+                </div>
+                <div class="sb-layer">
+                  <div class="sb-layer-head"><span>Berufserfahrung</span><b>78</b></div>
+                  <div class="sb-bar-track"><div class="sb-bar" style="--w:78%"></div></div>
+                </div>
+                <div class="sb-layer">
+                  <div class="sb-layer-head"><span>Soft Skills</span><b>85</b></div>
+                  <div class="sb-bar-track"><div class="sb-bar" style="--w:85%"></div></div>
+                </div>
+                <div class="sb-layer">
+                  <div class="sb-layer-head"><span>Motivation &amp; Kultur-Fit</span><b>71</b></div>
+                  <div class="sb-bar-track"><div class="sb-bar" style="--w:71%"></div></div>
+                </div>
+              </div>
+              <div class="sb-candidate">
+                <div class="sb-av" style="background:linear-gradient(135deg,#22C1EE,#16C77C)"></div>
+                <div class="sb-candidate-info"><b>Lena Maier</b><span>Frontend Dev · Wien</span></div>
+                <div class="sb-badge">Top-Match</div>
+              </div>
+            </div>
+            <div class="sb-main-text">
+              <div class="sb-tag">6 Analyse-Ebenen</div>
+              <h3>Mehr als Schlagwort-Suche</h3>
+              <p>Revetly bewertet Hard Skills, Soft Skills, Kultur-Fit und Motivation – direkt aus CV und Anschreiben. Jeder Score ist erklärbar, jede Entscheidung nachvollziehbar.</p>
+              <ul class="sb-checks">
+                <li>Erklärbarer Score mit Stärken und Risiken</li>
+                <li>K.O.-Kriterien konfigurierbar pro Stelle</li>
+                <li>Anschreiben als Qualitätssignal genutzt</li>
+              </ul>
+            </div>
+          </div>
 
-        <div class="reveal s1">
-          <div class="tab-panel active" data-panel="0">
-            <div class="svc-card">
-              <div class="svc-text">
-                <h3>Wir matchen dich mit den besten Kandidaten.</h3>
-                <ul class="checks">
-                  <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Hard Skills, Erfahrung &amp; Sprachen automatisch bewertet</li>
-                  <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Soft Skills &amp; Culture Fit aus CV und Anschreiben abgeleitet</li>
-                  <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Erklärbarer Score – jede Entscheidung wird begründet</li>
-                </ul>
-                <a href="#" class="details-link">Details <span class="arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></span></a>
+          <!-- Right side cards -->
+          <div class="sb-side">
+            <div class="sb-card reveal s1" data-dir="right">
+              <div class="sb-card-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
               </div>
-              <div class="svc-photo"><img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=800&q=80" alt="Kandidatin im Gespräch" loading="lazy"><div class="svc-float"><div><div class="sf-n">94 / 100</div><div class="sf-l">Lena Maier · Frontend</div></div><span class="sf-pill">Top-Match</span></div></div>
+              <div class="sb-num">3 min</div>
+              <h3>Vom Job zum Apply-Link</h3>
+              <p>URL einfügen, KI befüllt das Formular automatisch. Stelle aktivieren und Apply-Link sofort teilen.</p>
             </div>
-          </div>
-          <div class="tab-panel" data-panel="1">
-            <div class="svc-card">
-              <div class="svc-text">
-                <h3>Alle Bewerber an einem Ort.</h3>
-                <ul class="checks">
-                  <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Zentrale, durchsuchbare Kandidaten-Datenbank</li>
-                  <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Status-Tracking von Eingang bis Einstellung</li>
-                  <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> DSGVO-konforme Speicherung auf EU-Servern</li>
-                </ul>
-                <a href="#" class="details-link">Details <span class="arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></span></a>
+            <div class="sb-card reveal s2" data-dir="right">
+              <div class="sb-card-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
-              <div class="svc-photo"><img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80" alt="HR-Team" loading="lazy"><div class="svc-float"><div><div class="sf-n">128 Profile</div><div class="sf-l">durchsuchbar &amp; DSGVO-konform</div></div><span class="sf-pill">Live</span></div></div>
-            </div>
-          </div>
-          <div class="tab-panel" data-panel="2">
-            <div class="svc-card">
-              <div class="svc-text">
-                <h3>Vom Job zum Apply-Link in Minuten.</h3>
-                <ul class="checks">
-                  <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Job-Blueprint mit automatischer Anforderungs-Extraktion</li>
-                  <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Mit einem Klick aktivieren und teilen</li>
-                  <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Öffentlicher Apply-Link für jede Stelle</li>
-                </ul>
-                <a href="#" class="details-link">Details <span class="arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></span></a>
-              </div>
-              <div class="svc-photo"><img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80" alt="Job-Setup" loading="lazy"><div class="svc-float"><div><div class="sf-n">3 Jobs live</div><div class="sf-l">Wien · München · Remote</div></div><span class="sf-pill">Aktiv</span></div></div>
+              <div class="sb-num">100%</div>
+              <h3>DSGVO-konform, immer</h3>
+              <p>Alle Daten bleiben auf EU-Servern in Frankfurt. Kein Training auf Bewerberdaten. AI Act konform.</p>
             </div>
           </div>
         </div>
@@ -920,15 +959,6 @@
     const toggle = document.getElementById('navToggle');
     toggle.addEventListener('click', () => nav.classList.toggle('mobile-open'));
     nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav.classList.remove('mobile-open')));
-
-    // Tabs
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const panels = document.querySelectorAll('.tab-panel');
-    tabBtns.forEach(btn => btn.addEventListener('click', () => {
-      const i = btn.dataset.tab;
-      tabBtns.forEach(b => b.classList.toggle('active', b === btn));
-      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === i));
-    }));
 
     // FAQ
     document.querySelectorAll('.faq-item').forEach(item => {
