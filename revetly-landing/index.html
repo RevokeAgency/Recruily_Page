@@ -500,9 +500,8 @@
       .gn-big { font-size: 3rem; }
     }
     /* =========================================================
-       SCROLL SKEW — JS-driven, applied to <main>
+       3D CARD TILT — will-change applied via JS on hover only
        ========================================================= */
-    main { will-change: transform; transform-origin: top center; }
 
     /* =========================================================
        SPOTLIGHT CARDS — cursor-tracking radial glow
@@ -1047,9 +1046,6 @@
       const h = document.documentElement;
       const max = h.scrollHeight - h.clientHeight;
       if (prog) prog.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
-      if (pVis && !reduce && document.body.classList.contains('loaded')) {
-        pVis.style.transform = `translateY(${Math.min(window.scrollY, 600) * -0.05}px)`;
-      }
     }
     window.addEventListener('scroll', onFrame, { passive: true });
     onFrame();
@@ -1201,30 +1197,61 @@
       }, { passive: true });
     }
 
-    // ── Scroll velocity skew ──────────────────────────────────
-    // The signature Stripe/Linear premium feel: page warps slightly
-    // on fast scroll, then springs back. Max ±2.2deg.
-    if (!reduce) {
-      const mainEl = document.querySelector('main');
-      let skewY = 0, prevScrollY = window.scrollY, skewRaf = null;
-
-      function decaySkew() {
-        skewY *= 0.74;
-        if (Math.abs(skewY) > 0.005) {
-          mainEl.style.transform = 'skewY(' + skewY.toFixed(3) + 'deg)';
-          skewRaf = requestAnimationFrame(decaySkew);
-        } else {
-          mainEl.style.transform = '';
-          skewRaf = null;
-        }
+    // ── Lerped hero parallax — smooth depth as you scroll ─────
+    // Instead of a linear jump, the hero visual glides with spring-like lag.
+    if (!reduce && pVis) {
+      let hpCur = 0, hpTar = 0, hpRaf = null;
+      function stepHeroP() {
+        hpCur += (hpTar - hpCur) * 0.09;
+        pVis.style.transform = `translateY(${(-hpCur * 0.06).toFixed(2)}px)`;
+        hpRaf = Math.abs(hpTar - hpCur) > 0.1 ? requestAnimationFrame(stepHeroP) : null;
       }
-
       window.addEventListener('scroll', () => {
-        const dy = window.scrollY - prevScrollY;
-        prevScrollY = window.scrollY;
-        skewY = Math.max(-2.2, Math.min(2.2, skewY + dy * 0.055));
-        if (!skewRaf) skewRaf = requestAnimationFrame(decaySkew);
+        hpTar = Math.min(window.scrollY, 700);
+        if (!hpRaf) hpRaf = requestAnimationFrame(stepHeroP);
       }, { passive: true });
+    }
+
+    // ── 3D Card Tilt — perspective tilt follows the mouse ─────
+    // Cards lean toward the cursor with lerped spring physics.
+    // Restricted to real pointer devices (not touch).
+    if (!reduce && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      document.querySelectorAll('.f-card, .price-card:not(.featured), .gn-stat, .sb-card').forEach(card => {
+        let tx = 0, ty = 0, cx = 0, cy = 0, tiltRaf = null;
+
+        function tiltStep() {
+          cx += (tx - cx) * 0.13;
+          cy += (ty - cy) * 0.13;
+          const lift = 1 + (Math.abs(cx) + Math.abs(cy)) * 4;
+          card.style.transform = `perspective(720px) rotateX(${(-cy * 10).toFixed(2)}deg) rotateY(${(cx * 10).toFixed(2)}deg) translateZ(${lift.toFixed(1)}px)`;
+          tiltRaf = (Math.abs(tx - cx) > 0.001 || Math.abs(ty - cy) > 0.001)
+            ? requestAnimationFrame(tiltStep) : null;
+        }
+
+        card.addEventListener('mouseenter', () => { card.style.willChange = 'transform'; });
+        card.addEventListener('mousemove', e => {
+          const r = card.getBoundingClientRect();
+          tx = (e.clientX - r.left) / r.width - 0.5;
+          ty = (e.clientY - r.top) / r.height - 0.5;
+          if (!tiltRaf) tiltRaf = requestAnimationFrame(tiltStep);
+        });
+        card.addEventListener('mouseleave', () => {
+          tx = 0; ty = 0;
+          if (tiltRaf) cancelAnimationFrame(tiltRaf);
+          function decay() {
+            cx *= 0.80; cy *= 0.80;
+            if (Math.abs(cx) > 0.001 || Math.abs(cy) > 0.001) {
+              card.style.transform = `perspective(720px) rotateX(${(-cy * 10).toFixed(2)}deg) rotateY(${(cx * 10).toFixed(2)}deg) translateZ(1px)`;
+              tiltRaf = requestAnimationFrame(decay);
+            } else {
+              card.style.transform = '';
+              card.style.willChange = '';
+              tiltRaf = null;
+            }
+          }
+          tiltRaf = requestAnimationFrame(decay);
+        });
+      });
     }
 
     // ── Spotlight cards — cursor-tracking radial glow ─────────
