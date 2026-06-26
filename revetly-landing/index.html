@@ -499,6 +499,30 @@
       .gn-proof-chips { flex-direction: row; flex-wrap: wrap; }
       .gn-big { font-size: 3rem; }
     }
+    /* =========================================================
+       SCROLL SKEW — JS-driven, applied to <main>
+       ========================================================= */
+    main { will-change: transform; transform-origin: top center; }
+
+    /* =========================================================
+       SPOTLIGHT CARDS — cursor-tracking radial glow
+       ========================================================= */
+    .f-card, .gn-stat, .sb-card { position: relative; overflow: hidden; }
+    .price-card { position: relative; }
+    .f-card::before, .gn-stat::before, .sb-card::before {
+      content: ''; position: absolute; inset: 0; border-radius: inherit;
+      background: radial-gradient(230px circle at var(--sx, 50%) var(--sy, 50%), rgba(22,199,124,.10), transparent 65%);
+      opacity: 0; transition: opacity .4s var(--ease); pointer-events: none; z-index: 0;
+    }
+    .price-card:not(.featured)::before {
+      content: ''; position: absolute; inset: 0; border-radius: inherit;
+      background: radial-gradient(230px circle at var(--sx, 50%) var(--sy, 50%), rgba(34,193,238,.10), transparent 65%);
+      opacity: 0; transition: opacity .4s var(--ease); pointer-events: none; z-index: 0;
+    }
+    .f-card:hover::before, .gn-stat:hover::before, .sb-card:hover::before,
+    .price-card:not(.featured):hover::before { opacity: 1; }
+    .f-card > *, .gn-stat > *, .sb-card > *, .price-card > * { position: relative; z-index: 1; }
+
     @media (prefers-reduced-motion: reduce) {
       * { animation: none !important; transition: none !important; scroll-behavior: auto; }
       .reveal, .lift { opacity: 1 !important; transform: none !important; }
@@ -1175,6 +1199,63 @@
           pb.style.transform = 'translateY(' + offset.toFixed(2) + 'px)';
         });
       }, { passive: true });
+    }
+
+    // ── Scroll velocity skew ──────────────────────────────────
+    // The signature Stripe/Linear premium feel: page warps slightly
+    // on fast scroll, then springs back. Max ±2.2deg.
+    if (!reduce) {
+      const mainEl = document.querySelector('main');
+      let skewY = 0, prevScrollY = window.scrollY, skewRaf = null;
+
+      function decaySkew() {
+        skewY *= 0.74;
+        if (Math.abs(skewY) > 0.005) {
+          mainEl.style.transform = 'skewY(' + skewY.toFixed(3) + 'deg)';
+          skewRaf = requestAnimationFrame(decaySkew);
+        } else {
+          mainEl.style.transform = '';
+          skewRaf = null;
+        }
+      }
+
+      window.addEventListener('scroll', () => {
+        const dy = window.scrollY - prevScrollY;
+        prevScrollY = window.scrollY;
+        skewY = Math.max(-2.2, Math.min(2.2, skewY + dy * 0.055));
+        if (!skewRaf) skewRaf = requestAnimationFrame(decaySkew);
+      }, { passive: true });
+    }
+
+    // ── Spotlight cards — cursor-tracking radial glow ─────────
+    document.querySelectorAll('.f-card, .gn-stat, .sb-card, .price-card:not(.featured)').forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--sx', ((e.clientX - r.left) / r.width * 100) + '%');
+        card.style.setProperty('--sy', ((e.clientY - r.top) / r.height * 100) + '%');
+      });
+    });
+
+    // ── Marquee velocity & direction ──────────────────────────
+    // Marquee speeds up when scrolling and reverses direction on scroll-up.
+    if (!reduce) {
+      let mVel = 1, mPrevY = window.scrollY, mDir = 1;
+      const mTrack = document.getElementById('marquee');
+      window.addEventListener('scroll', () => {
+        const dy = window.scrollY - mPrevY;
+        mPrevY = window.scrollY;
+        if (Math.abs(dy) > 1) {
+          mDir = dy > 0 ? 1 : -1;
+          mVel = Math.min(3.5, 1 + Math.abs(dy) * 0.14);
+        }
+      }, { passive: true });
+      setInterval(() => {
+        mVel += (1 - mVel) * 0.07;
+        if (mTrack) {
+          mTrack.style.animationDuration = (26 / Math.max(0.4, mVel)) + 's';
+          mTrack.style.animationDirection = mDir > 0 ? 'normal' : 'reverse';
+        }
+      }, 50);
     }
   </script>
 </body>
