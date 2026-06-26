@@ -281,21 +281,30 @@
     /* =========================================================
        GROW (bento with photos + mini cards)
        ========================================================= */
+    /* =========================================================
+       GROW (results / metrics)
+       ========================================================= */
     .grow { background: var(--white); overflow: hidden; }
-    .grow-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 20px; }
-    .g-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow-sm); }
-    .g-card h3 { margin-bottom: 8px; font-size: 1.15rem; }
-    .g-card p { color: var(--muted); font-size: 0.92rem; margin-bottom: 20px; }
-    .g-faces { display: flex; padding: 10px 0 4px; }
-    .g-faces .av { width: 116px; height: 146px; border-radius: 24px; overflow: hidden; position: relative; background: var(--grad); margin-left: -46px; border: 5px solid var(--white); box-shadow: var(--shadow); transition: transform .42s var(--ease), box-shadow .42s var(--ease); }
-    .g-faces .av::after { content: ""; position: absolute; inset: 0; border-radius: 20px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.18); pointer-events: none; }
-    .g-faces .av:first-child { margin-left: 0; }
-    .g-faces .av:nth-child(1) { z-index: 1; } .g-faces .av:nth-child(2) { z-index: 2; } .g-faces .av:nth-child(3) { z-index: 3; } .g-faces .av:nth-child(4) { z-index: 4; }
+    .grow-grid-new { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .gn-stat { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 30px 26px; box-shadow: var(--shadow-sm); transition: transform .25s var(--ease), box-shadow .25s var(--ease); display: flex; flex-direction: column; }
+    .gn-stat:active { transform: scale(0.98); }
+    .gn-num { display: flex; align-items: baseline; gap: 2px; margin-bottom: 14px; }
+    .gn-big { font-size: 3.8rem; font-weight: 800; letter-spacing: -0.06em; color: var(--ink); line-height: 1; }
+    .gn-unit { font-size: 1.9rem; font-weight: 800; color: var(--ink); letter-spacing: -0.03em; line-height: 1; margin-left: 2px; }
+    .gn-stat h3 { font-size: 1.04rem; margin-bottom: 8px; letter-spacing: -0.015em; }
+    .gn-stat > p { color: var(--muted); font-size: 0.87rem; line-height: 1.58; margin: 0; flex: 1; }
+    .gn-proof { grid-column: 1 / -1; background: var(--ink); border-radius: var(--radius-lg); padding: 34px 38px; display: grid; grid-template-columns: 1fr auto; gap: 20px 48px; align-items: center; }
+    .gn-proof-left { display: flex; flex-direction: column; gap: 18px; }
+    .gn-proof-q { font-size: clamp(0.98rem, 1.5vw, 1.18rem); color: rgba(255,255,255,.88); line-height: 1.68; font-style: italic; letter-spacing: -0.01em; }
+    .gn-proof-meta { display: flex; align-items: center; gap: 12px; }
+    .gn-av { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: var(--ink); font-size: 0.95rem; flex: none; }
+    .gn-proof-meta b { display: block; font-size: 0.88rem; color: #fff; font-weight: 700; }
+    .gn-proof-meta span { font-size: 0.74rem; color: rgba(255,255,255,.52); }
+    .gn-proof-chips { display: flex; flex-direction: column; gap: 9px; }
+    .gn-chip { display: flex; align-items: center; gap: 8px; padding: 9px 15px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.11); border-radius: var(--pill); font-size: 0.81rem; font-weight: 600; color: rgba(255,255,255,.78); white-space: nowrap; }
+    .gn-chip svg { width: 12px; height: 12px; color: var(--green); flex: none; }
     @media (hover: hover) and (pointer: fine) {
-      .g-faces:hover .av { transform: translateY(-7px) translateX(58px); }
-      .g-faces:hover .av:first-child { transform: translateY(-7px) translateX(0); }
-      .g-faces .av:hover { transform: translateY(-18px) translateX(58px) scale(1.09); z-index: 9; box-shadow: 0 30px 56px -22px rgba(14,159,98,.55), 0 0 0 4px var(--green-wash); }
-      .g-faces .av:first-child:hover { transform: translateY(-18px) translateX(0) scale(1.09); }
+      .gn-stat:hover { transform: translateY(-4px); box-shadow: 0 24px 50px -28px rgba(14,159,98,.35), var(--shadow-sm); }
       .f-card:hover { transform: translateY(-5px); box-shadow: 0 30px 60px -34px rgba(14,159,98,.40), var(--shadow-sm); }
       .price-card:hover { transform: translateY(-5px); box-shadow: 0 30px 60px -34px rgba(14,150,196,.40), var(--shadow-sm); }
       .photo:hover img { transform: scale(1.04); }
@@ -305,19 +314,6 @@
       .btn-grad:hover { transform: translateY(-2px); box-shadow: 0 16px 36px -16px var(--green); }
       .btn-light:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
     }
-    .in .g-faces .av { animation: dealin .55s var(--ease) backwards; }
-    .in .g-faces .av:nth-child(1) { animation-delay: .08s; } .in .g-faces .av:nth-child(2) { animation-delay: .18s; }
-    .in .g-faces .av:nth-child(3) { animation-delay: .28s; } .in .g-faces .av:nth-child(4) { animation-delay: .38s; }
-    @keyframes dealin { from { opacity: 0; transform: translateY(22px) scale(.8) rotate(-9deg); } to { opacity: 1; transform: none; } }
-    .g-right { display: grid; gap: 20px; }
-    .g-chips { display: grid; gap: 10px; }
-    .g-chip { display: flex; align-items: center; gap: 11px; background: var(--mist); border: 1px solid var(--line); border-radius: 13px; padding: 12px 15px; font-size: 0.9rem; font-weight: 600; color: var(--ink); }
-    .g-chip .ck { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--grad); color: #fff; flex: none; }
-    .g-chip .ck svg { width: 12px; height: 12px; }
-    .g-person { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
-    .g-person .av { width: 42px; height: 42px; border-radius: 50%; overflow: hidden; position: relative; background: var(--grad); flex: none; }
-    .g-person b { display: block; color: var(--ink); font-size: 0.92rem; }
-    .g-person span { color: var(--muted); font-size: 0.78rem; }
 
     /* =========================================================
        TESTIMONIALS  —  glassmorphism card stack carousel
@@ -476,7 +472,9 @@
       .hero-grid { grid-template-columns: 1fr; }
       .hero-visual { max-width: 440px; margin-inline: auto; }
       .feature-grid, .price-grid { grid-template-columns: repeat(2, 1fr); }
-      .grow-grid, .cta-card { grid-template-columns: 1fr; }
+      .grow-grid-new { grid-template-columns: repeat(2, 1fr); }
+      .gn-proof { grid-column: 1 / -1; }
+      .cta-card { grid-template-columns: 1fr; }
       .steps { grid-template-columns: 1fr; }
       .step::before { display: none; }
       .svc-bento { grid-template-columns: 1fr; }
@@ -494,6 +492,10 @@
       .hv-card { left: 0; } .hv-chip { right: 0; }
       .sb-score-num { font-size: 2.8rem; }
       .sb-num { font-size: 2rem; }
+      .grow-grid-new { grid-template-columns: 1fr; }
+      .gn-proof { grid-template-columns: 1fr; }
+      .gn-proof-chips { flex-direction: row; flex-wrap: wrap; }
+      .gn-big { font-size: 3rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       * { animation: none !important; transition: none !important; scroll-behavior: auto; }
@@ -689,42 +691,50 @@
       </div>
     </section>
 
-    <!-- ====================== GROW (bento) ====================== -->
+    <!-- ====================== GROW (results / metrics) ====================== -->
     <section class="grow">
       <div class="patternbg" data-pattern="grid"></div>
       <div class="container">
-        <div class="section-head center reveal" data-dir="scale">
-          <span class="eyebrow">Wie wir dir helfen</span>
-          <h2 class="h2">Wir helfen dir zu wachsen, indem wir<br />dich mit den richtigen Talenten verbinden.</h2>
+        <div class="section-head reveal" data-dir="left">
+          <span class="eyebrow">Messbare Ergebnisse</span>
+          <h2 class="h2">Die Zeit, die du sparst,<br>steckst du ins Interview.</h2>
+          <p class="lead">Was HR-Teams im DACH-Raum nach 30 Tagen Revetly berichten:</p>
         </div>
-        <div class="grow-grid">
-          <div class="g-card reveal" data-dir="left">
-            <h3>Optimierter Hiring-Prozess</h3>
-            <p>Revetly automatisiert dein Screening und schlägt die passendsten Kandidaten zuerst vor.</p>
-            <div class="g-faces">
-              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=240&q=80" alt="" loading="lazy"></div></div>
-              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=240&q=80" alt="" loading="lazy"></div></div>
-              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80" alt="" loading="lazy"></div></div>
-              <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80" alt="" loading="lazy"></div></div>
+        <div class="grow-grid-new">
+          <div class="gn-stat reveal" data-dir="left">
+            <div class="gn-num">
+              <span class="gn-big" data-count="70">0</span><span class="gn-unit">%</span>
             </div>
+            <h3>Weniger Screening-Zeit</h3>
+            <p>Kein manuelles Durchlesen mehr – Revetly priorisiert automatisch nach Score.</p>
           </div>
-          <div class="g-right">
-            <div class="g-card reveal s1" data-dir="right">
-              <h3>Bessere Entscheidungen</h3>
-              <p>Jeder Score ist begründet – du behältst die Kontrolle.</p>
-              <div class="g-chips">
-                <div class="g-chip"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Hard &amp; Soft Skills</div>
-                <div class="g-chip"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Culture Fit</div>
-                <div class="g-chip"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg></span> Anschreiben-Analyse</div>
+          <div class="gn-stat reveal s1" data-dir="scale">
+            <div class="gn-num">
+              <span class="gn-big" data-count="3">0</span><span class="gn-unit">×</span>
+            </div>
+            <h3>Mehr qualifizierte Gespräche</h3>
+            <p>Weil der Score auf 6 Ebenen analysiert – nicht nur Schlagwörter abgleicht.</p>
+          </div>
+          <div class="gn-stat reveal s2" data-dir="right">
+            <div class="gn-num">
+              <span class="gn-big" data-count="48">0</span><span class="gn-unit">h</span>
+            </div>
+            <h3>Shortlist statt Wochenwarten</h3>
+            <p>Durchschnittliche Zeit bis zur qualifizierten Kandidatenliste – statt Wochen.</p>
+          </div>
+          <div class="gn-proof reveal s1" data-dir="scale">
+            <div class="gn-proof-left">
+              <p class="gn-proof-q">&#x201C;Revetly hat unsere Time-to-Hire halbiert. In drei Wochen hatten wir mehr qualifizierte Kandidaten als in den sechs Monaten davor.&#x201D;</p>
+              <div class="gn-proof-meta">
+                <div class="gn-av" style="background:linear-gradient(135deg,#22C1EE,#16C77C)">S</div>
+                <div><b>Sarah M.</b><span>Talent Acquisition Lead &middot; TechStaff GmbH</span></div>
               </div>
             </div>
-            <div class="g-card reveal s2" data-dir="right">
-              <h3>Schneller zur Einstellung</h3>
-              <p>Top-Kandidaten in Minuten statt Tagen identifizieren.</p>
-              <div class="g-person">
-                <div class="av"><div class="photo"><img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=120&q=80" alt="" loading="lazy"></div></div>
-                <div><b>Sarah M.</b><span>Talent Acquisition Lead</span></div>
-              </div>
+            <div class="gn-proof-chips">
+              <div class="gn-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> DSGVO-konform</div>
+              <div class="gn-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> EU AI Act compliant</div>
+              <div class="gn-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> Erklärbarer Score</div>
+              <div class="gn-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> Human-in-the-loop</div>
             </div>
           </div>
         </div>
