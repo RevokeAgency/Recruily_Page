@@ -5,10 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Revetly — Die besten Kandidaten, sofort sichtbar</title>
   <meta name="description" content="Revetly ist KI-gestütztes Recruiting für den DACH-Markt. Matching, Absagen-Mails und Bewerberverwaltung – automatisiert, erklärbar, DSGVO-konform." />
+  <link rel="canonical" href="https://revetly.com/" />
+  <meta name="theme-color" content="#16C77C" />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet" />
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+  <!-- Open Graph / social preview -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Revetly" />
+  <meta property="og:url" content="https://revetly.com/" />
+  <meta property="og:title" content="Revetly — Die besten Kandidaten, sofort sichtbar" />
+  <meta property="og:description" content="KI-gestütztes Recruiting für den DACH-Markt. CV und Anschreiben gemeinsam analysiert, erklärbarer Score, DSGVO-konform auf EU-Servern." />
+  <meta property="og:image" content="https://revetly.com/og-image.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="de_DE" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Revetly — Die besten Kandidaten, sofort sichtbar" />
+  <meta name="twitter:description" content="KI-gestütztes Recruiting für den DACH-Markt. Erklärbarer Score, DSGVO-konform auf EU-Servern." />
+  <meta name="twitter:image" content="https://revetly.com/og-image.jpg" />
+
+  <!-- Self-hosted fonts (no Google hotlink, DSGVO-konform) -->
+  <link rel="preload" href="fonts/pjs-normal-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="fonts.css" />
 
   <style>
     /* =========================================================
@@ -24,7 +46,7 @@
 
       --ink:         #0C1A16;
       --ink-soft:    #2C3D38;
-      --muted:       #5E7A73;
+      --muted:       #506A63;   /* WCAG AA on white + mist backgrounds */
       --mist:        #F1F6F4;   /* very light green-grey (HR-PRO bg) */
       --mist-2:      #E7F0EC;
       --white:       #FFFFFF;
@@ -683,7 +705,7 @@
     <section class="hero">
       <!-- Full-bleed background photo (Ken-Burns) -->
       <div class="hero-bg" id="heroBg">
-        <img src="Version2.png" alt="" role="presentation" loading="eager" />
+        <img src="hero-1800.jpg" srcset="hero-1100.jpg 1100w, hero-1800.jpg 1800w" sizes="100vw" width="1800" height="746" alt="" role="presentation" loading="eager" fetchpriority="high" decoding="async" />
       </div>
       <!-- Teal scrim blends with the wall + lifts text contrast -->
       <div class="hero-scrim"></div>
@@ -964,10 +986,10 @@
           </div>
           <div class="gn-proof reveal s1" data-dir="scale">
             <div class="gn-proof-left">
-              <p class="gn-proof-q">&#x201C;Revetly hat unsere Time-to-Hire halbiert. In drei Wochen hatten wir mehr qualifizierte Kandidaten als in den sechs Monaten davor.&#x201D;</p>
+              <p class="gn-proof-q">&#x201C;Wir lesen keine Lebensläufe mehr quer. Revetly priorisiert nach Score, begründet jede Bewertung – und unser Team steckt die gewonnene Zeit in echte Gespräche statt in die Vorauswahl.&#x201D;</p>
               <div class="gn-proof-meta">
-                <div class="gn-av" style="background:linear-gradient(135deg,#22C1EE,#16C77C)">S</div>
-                <div><b>Sarah M.</b><span>Talent Acquisition Lead &middot; TechStaff GmbH</span></div>
+                <div class="gn-av" style="background:linear-gradient(135deg,#22C1EE,#16C77C)">C</div>
+                <div><b>Carolin V.</b><span>HR-Leitung &middot; Bregenz Industrietechnik</span></div>
               </div>
             </div>
             <div class="gn-proof-chips">
@@ -1349,12 +1371,23 @@
     toggle.addEventListener('click', () => nav.classList.toggle('mobile-open'));
     nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav.classList.remove('mobile-open')));
 
-    // FAQ
-    document.querySelectorAll('.faq-item').forEach(item => {
-      item.querySelector('.faq-q').addEventListener('click', () => {
-        const open = item.classList.contains('open');
-        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-        if (!open) item.classList.add('open');
+    // FAQ — accordion with ARIA state
+    const faqItems = document.querySelectorAll('.faq-item');
+    faqItems.forEach((item, idx) => {
+      const btn = item.querySelector('.faq-q');
+      const panel = item.querySelector('.faq-a');
+      const pid = 'faq-panel-' + idx;
+      panel.id = pid;
+      panel.setAttribute('role', 'region');
+      btn.setAttribute('aria-controls', pid);
+      btn.setAttribute('aria-expanded', 'false');
+      btn.addEventListener('click', () => {
+        const willOpen = !item.classList.contains('open');
+        faqItems.forEach(i => {
+          i.classList.remove('open');
+          i.querySelector('.faq-q').setAttribute('aria-expanded', 'false');
+        });
+        if (willOpen) { item.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
       });
     });
 
@@ -1635,8 +1668,70 @@
       openMatrixBtn.addEventListener('click', openModal);
       closeMatrixBtn.addEventListener('click', closeModal);
       matrixModal.addEventListener('click', e => { if (e.target === matrixModal) closeModal(); });
-      document.addEventListener('keydown', e => { if (e.key === 'Escape' && matrixModal.classList.contains('open')) closeModal(); });
+      document.addEventListener('keydown', e => {
+        if (!matrixModal.classList.contains('open')) return;
+        if (e.key === 'Escape') { closeModal(); return; }
+        // focus trap
+        if (e.key === 'Tab') {
+          const focusable = matrixModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+          if (!focusable.length) return;
+          const first = focusable[0], last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      });
     }
+  </script>
+
+  <!-- Structured data (SEO / Rich Results) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://revetly.com/#org",
+        "name": "Revetly",
+        "url": "https://revetly.com/",
+        "logo": "https://revetly.com/apple-touch-icon.png",
+        "email": "hallo@revetly.com",
+        "description": "KI-gestütztes Recruiting für den DACH-Markt: CV und Anschreiben gemeinsam analysiert, erklärbarer Score, DSGVO-konform auf EU-Servern.",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Mariahilfer Straße 1",
+          "postalCode": "1060",
+          "addressLocality": "Wien",
+          "addressCountry": "AT"
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Revetly",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "url": "https://revetly.com/",
+        "publisher": { "@id": "https://revetly.com/#org" },
+        "offers": [
+          { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "EUR" },
+          { "@type": "Offer", "name": "Starter", "price": "99", "priceCurrency": "EUR" },
+          { "@type": "Offer", "name": "Growth", "price": "249", "priceCurrency": "EUR" },
+          { "@type": "Offer", "name": "Pro", "price": "499", "priceCurrency": "EUR" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          { "@type": "Question", "name": "Was ist ein Match?", "acceptedAnswer": { "@type": "Answer", "text": "Ein Match ist eine Analyse von genau einem CV gegen genau eine Stelle. Du lädst z. B. 20 Bewerbungen für einen Job hoch – das sind 20 Matches. Der Free-Plan enthält 10 Matches, danach wechselst du auf einen bezahlten Plan." } },
+          { "@type": "Question", "name": "Wie funktioniert der Matching Score?", "acceptedAnswer": { "@type": "Answer", "text": "Revetly analysiert CV und Anschreiben gemeinsam und bewertet jeden Kandidaten auf 6 Ebenen – von Hard Skills und Berufserfahrung bis Kultur-Fit und Motivation. Jeder Score wird mit konkreten Belegen begründet, damit du die Entscheidung triffst, nicht die Black Box." } },
+          { "@type": "Question", "name": "Kann ich mehrere Stellen gleichzeitig nutzen?", "acceptedAnswer": { "@type": "Answer", "text": "Ja. Du kannst beliebig viele Stellen anlegen und parallel befüllen. Dein Kontingent gilt stellenübergreifend – du entscheidest selbst, wie du deine Matches aufteilst." } },
+          { "@type": "Question", "name": "Was passiert, wenn mein Kontingent aufgebraucht ist?", "acceptedAnswer": { "@type": "Answer", "text": "Du bekommst rechtzeitig eine Benachrichtigung. Beim Free-Plan wirst du nach 10 Matches zur Stripe-Checkout-Seite weitergeleitet. Bestehende Matches und Daten bleiben erhalten – nichts geht verloren." } },
+          { "@type": "Question", "name": "Sind meine Daten DSGVO-konform gespeichert?", "acceptedAnswer": { "@type": "Answer", "text": "Ja. Alle Daten liegen auf EU-Servern in Frankfurt. Die KI trainiert nicht auf deinen Bewerberdaten, und Revetly ist auf den EU AI Act ausgelegt – mit erklärbaren Entscheidungen und Human Oversight." } },
+          { "@type": "Question", "name": "Wie schnell bin ich startklar?", "acceptedAnswer": { "@type": "Answer", "text": "In Minuten. Du legst eine Stelle an (URL reinkopieren genügt), lädst Bewerbungen hoch und siehst sofort die Shortlist. Kein Setup, keine Schulung, keine IT-Abteilung nötig." } },
+          { "@type": "Question", "name": "Kann ich monatlich kündigen?", "acceptedAnswer": { "@type": "Answer", "text": "Ja, alle Pläne sind monatlich kündbar. Der Free-Plan bleibt dauerhaft kostenlos – ganz ohne Kreditkarte." } }
+        ]
+      }
+    ]
+  }
   </script>
 </body>
 </html>
